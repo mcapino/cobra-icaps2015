@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Properties;
 
 import javax.vecmath.Point2d;
@@ -12,12 +13,13 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import tt.euclid2i.Point;
-import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.region.Region;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.jointeuclidean2ni.probleminstance.ShortestPathProblem;
+import cz.agents.admap.agent.Agent;
 import cz.agents.alite.creator.Creator;
+import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer.LabeledPoint;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer.LabeledPointsProvider;
@@ -25,6 +27,7 @@ import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.VisManager.SceneParams;
 import cz.agents.alite.vis.layer.common.ColorLayer;
 import cz.agents.alite.vis.layer.common.VisInfoLayer;
+
 
 public class ScenarioCreator implements Creator {
 
@@ -45,9 +48,6 @@ public class ScenarioCreator implements Creator {
             createFromArgs();
         }
     }
-
-
-
 
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
@@ -122,13 +122,19 @@ public class ScenarioCreator implements Creator {
 
     private void solveADMAP(final ShortestPathProblem problem, final long expandedStatesLimit, boolean showVis) {
 
-        Collection<Rectangle> polygons = new LinkedList<Rectangle>();
-        for (Region obstacle : problem.getObstacles()) {
-            assert obstacle instanceof Rectangle;
-            polygons.add((Rectangle) obstacle);
+        // create simulation
+        ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
+        concurrentSimulation.setPrintouts(1000);
+
+        // create agents
+        List<Agent> agents = new LinkedList<Agent>();
+        for (int i=0; i<problem.getStarts().length; i++) {
+            agents.add(new Agent("a"+i, problem.getStart(i), problem.getTargetRegions(i), problem.getEnvironment()));
         }
-        
-        
+
+
+
+
 
 
         /*

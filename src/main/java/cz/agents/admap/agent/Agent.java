@@ -1,41 +1,33 @@
 package cz.agents.admap.agent;
 
-import cz.agents.alite.common.entity.Entity;
-import cz.agents.alite.trajectorytools.trajectory.EvaluatedTrajectory;
-import cz.agents.alite.trajectorytools.util.OrientedPoint;
+import java.util.HashMap;
+import java.util.Map;
 
-public abstract class Agent extends Entity implements Comparable<Agent>{
+import tt.euclid2i.Point;
+import tt.euclid2i.Trajectory;
+import tt.euclid2i.probleminstance.Environment;
+import tt.euclid2i.region.Region;
 
-    protected final OrientedPoint start;
-    protected final double startTime;
-    protected final OrientedPoint destination;
+public class Agent {
 
+    String name;
+    Map<String, Objectives> group = new HashMap<String, Objectives>();
+    Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
+    Map<String, Trajectory> avoids =  new HashMap<String, Trajectory>();
+    Environment environment;
 
-    public Agent(String name, OrientedPoint start, double startTime,  OrientedPoint destination) {
-        super(name);
-        this.start = start;
-        this.startTime = startTime;
-        this.destination = destination;
+    public Agent(String name, Point start, Region goal, Environment environment) {
+        this.name = name;
+        this.group.put(name, new Objectives(start, goal));
+        this.environment= environment ;
     }
 
-    public abstract EvaluatedTrajectory getCurrentTrajectory();
-
-    public synchronized OrientedPoint getStart() {
-        return start;
+    public synchronized Point getStart() {
+        return group.get(name).start;
     }
 
-    public double getStartTime() {
-        return startTime;
+    public synchronized Region getGoal() {
+        return group.get(name).goal;
     }
 
-    public synchronized OrientedPoint getDestination() {
-        return destination;
-    }
-
-    @Override
-    public int compareTo(Agent o) {
-        return this.getName().compareTo(o.getName());
-    }
-
-    public abstract void start() ;
 }
