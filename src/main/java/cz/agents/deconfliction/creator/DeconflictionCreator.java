@@ -14,6 +14,8 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.jgrapht.DirectedGraph;
 
+import tt.vis.ProjectionTo2d;
+
 import cz.agents.alite.creator.Creator;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.trajectorytools.graph.spatial.SpatialGridFactory;
@@ -32,7 +34,6 @@ import cz.agents.alite.trajectorytools.vis.SimulatedCylindricAgentLayer.TimeProv
 import cz.agents.alite.trajectorytools.vis.SimulationControlLayer;
 import cz.agents.alite.trajectorytools.vis.TrajectoriesLayer;
 import cz.agents.alite.trajectorytools.vis.TrajectoriesLayer.TrajectoriesProvider;
-import cz.agents.alite.trajectorytools.vis.projection.ProjectionTo2d;
 import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.VisManager.SceneParams;
 import cz.agents.alite.vis.layer.common.ColorLayer;

@@ -10,8 +10,6 @@ public abstract class CommunicatingAgent extends Agent {
 
     protected Communicator communicator;
     protected List<String> agents;
-    
-    
 
     public CommunicatingAgent(String name, OrientedPoint startPoint, double startTime, OrientedPoint destination) {
         super(name, startPoint, startTime,  destination);

@@ -2,9 +2,13 @@ package cz.agents.admap.creator;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.vecmath.Point2d;
@@ -14,12 +18,24 @@ import org.apache.log4j.PropertyConfigurator;
 
 import tt.euclid2i.Point;
 import tt.euclid2i.region.Region;
+import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.jointeuclidean2ni.probleminstance.ShortestPathProblem;
+import tt.vis.TrajectoryLayer;
+import tt.vis.TrajectoryLayer.TrajectoryProvider;
 import cz.agents.admap.agent.Agent;
+import cz.agents.alite.common.event.DurativeEvent;
+import cz.agents.alite.common.event.DurativeEventHandler;
+import cz.agents.alite.common.event.DurativeEventProcessor;
+import cz.agents.alite.communication.InboxBasedCommunicator;
+import cz.agents.alite.communication.channel.CommunicationChannelException;
+import cz.agents.alite.communication.channel.DirectCommunicationChannel;
+import cz.agents.alite.communication.channel.DirectCommunicationChannel.ReceiverTable;
+import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.creator.Creator;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
+import cz.agents.alite.trajectorytools.vis.AgentColors;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer.LabeledPoint;
 import cz.agents.alite.trajectorytools.vis.LabeledPointLayer.LabeledPointsProvider;
@@ -36,7 +52,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Method.ADMAP, 5, 961, 500, true);
+        creator.create("default", Method.ADMAP, 5, 961, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -55,7 +71,7 @@ public class ScenarioCreator implements Creator {
     private static final int AGENT_BODY_RADIUS = 10;
 
 
-    enum Method { ADPP, ADMAP}
+    enum Method {ADPP, ADMAP}
 
     private String[] args;
     private ShortestPathProblem problem;
@@ -68,7 +84,6 @@ public class ScenarioCreator implements Creator {
 
         // Set-up the logger
         String overrideLogFileName = null;
-        //if (args.length>1) overrideLogFileName  = args[1];
 
         Properties prop = new Properties();
 
@@ -102,13 +117,12 @@ public class ScenarioCreator implements Creator {
         String algorithm = args[2];
         int nAgents = Integer.parseInt(args[3]);
         int seed = Integer.parseInt(args[4]);
-        int expandedStatesLimit = Integer.parseInt(args[5]);
-        boolean showVis = Boolean.parseBoolean(args[6]);
+        boolean showVis = Boolean.parseBoolean(args[5]);
 
-        create(experimentId, Method.valueOf(algorithm), nAgents, seed, expandedStatesLimit, showVis);
+        create(experimentId, Method.valueOf(algorithm), nAgents, seed, showVis);
     }
 
-    public void create(String experimentId, Method method, int nAgents, int seed, long expandedStatesLimit,  boolean showVis) {
+    public void create(String experimentId, Method method, int nAgents, int seed, boolean showVis) {
         this.problem = new ShortestPathProblem(nAgents, AGENT_BODY_RADIUS, seed);
 
         if (showVis) {
@@ -116,24 +130,75 @@ public class ScenarioCreator implements Creator {
         }
 
         if (method == Method.ADMAP) {
-            solveADMAP(problem, expandedStatesLimit, showVis);
+            solveADMAP(problem,  showVis);
         }
     }
 
-    private void solveADMAP(final ShortestPathProblem problem, final long expandedStatesLimit, boolean showVis) {
+    private void solveADMAP(final ShortestPathProblem problem, boolean showVis) {
 
-        // create simulation
-        ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
-        concurrentSimulation.setPrintouts(1000);
-
-        // create agents
+        // Create agents
         List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
-            agents.add(new Agent("a"+i, problem.getStart(i), problem.getTargetRegions(i), problem.getEnvironment()));
+            agents.add(new Agent("a" + new DecimalFormat("00").format(i), problem.getStart(i), problem.getTargetRegions(i), problem.getEnvironment()));
         }
 
+        List<String> agentNames =  new ArrayList<String>(agents.size());
+        for (Agent agent : agents) {
+            agentNames.add(agent.getName());
+        }
+
+        // Create concurrent process simulation
+        final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
+        concurrentSimulation.setPrintouts(1000);
 
 
+        // Create the communication channels and communicators for each agent
+        ReceiverTable receiverTable = new DirectCommunicationChannel.DefaultReceiverTable();
+        Map<String, List<Long>> inboxCounters = new HashMap<String, List<Long>>();
+        for (Agent agent : agents) {
+            InboxBasedCommunicator communicator = new InboxBasedCommunicator(agent.getName());
+
+            try {
+                communicator.setChannel(new ConcurrentProcessCommunicationChannel(communicator, concurrentSimulation, receiverTable, inboxCounters));
+            } catch (CommunicationChannelException e) {
+                e.printStackTrace();
+            }
+            agent.setCommunicator(communicator, agentNames);
+        }
+
+        // Run simulation of concurrent computation
+        for (final Agent agent : agents) {
+               concurrentSimulation.addEvent(0, agent.getName(), new DurativeEventHandler() {
+                   @Override
+                   public long handleEvent(DurativeEvent event) {
+                       agent.start();
+                       return COUNT_SYSTEM_NANOS;
+                   }
+
+                   @Override
+                   public DurativeEventProcessor getEventProcessor() {
+                       return concurrentSimulation;
+                   }
+               });
+           }
+
+         concurrentSimulation.run();
+
+         if (showVis) {
+             int i = 0;
+             for (final Agent agent: agents) {
+                 // create visio
+                 VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+
+
+                    @Override
+                    public tt.Trajectory<Point> getTrajectory() {
+                        return (tt.Trajectory) agent.getCurrentTrajectory();
+                    }
+                }, new ProjectionTo2d(), AgentColors.getColorForAgent(i++), 0.1, 100, 'g'));
+            }
+
+         }
 
 
 
@@ -222,7 +287,7 @@ public class ScenarioCreator implements Creator {
                 return list;
             }
 
-        }, new tt.euclid2i.vis.PointProjectionTo2d(), Color.BLUE));
+        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE));
 
         VisManager.registerLayer(RegionsLayer.create(
                 new RegionsProvider() {
@@ -252,7 +317,7 @@ public class ScenarioCreator implements Creator {
                 return list;
             }
 
-        }, new tt.euclid2i.vis.PointProjectionTo2d(), Color.RED));
+        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.RED));
 
         // Overlay
         VisManager.registerLayer(VisInfoLayer.create());

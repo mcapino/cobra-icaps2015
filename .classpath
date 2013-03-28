@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry combineaccessrules="false" kind="src" path="/alite"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/alite-trajectorytools"/>
 	<classpathentry kind="src" output="target/classes" path="src/main/java">
 		<attributes>
 			<attribute name="optional" value="true"/>
@@ -24,5 +23,7 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/deconfliction-common"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/alite-trajectorytools2"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
