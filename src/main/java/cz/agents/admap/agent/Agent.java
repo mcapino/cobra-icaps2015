@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 import tt.euclid2i.Point;
+import tt.euclid2i.Region;
 import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
-import tt.euclid2i.region.Region;
 import cz.agents.alite.communication.Communicator;
 
 public class Agent {

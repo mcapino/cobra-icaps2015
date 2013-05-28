@@ -16,18 +16,18 @@ import javax.vecmath.Point2d;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import tt.discrete.vis.TrajectoryLayer;
+import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Point;
-import tt.euclid2i.region.Region;
+import tt.euclid2i.Region;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
-import tt.jointeuclidean2ni.probleminstance.ShortestPathProblem;
+import tt.jointeuclid2ni.probleminstance.ShortestPathProblem;
 import tt.util.AgentColors;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
-import tt.vis.TrajectoryLayer;
-import tt.vis.TrajectoryLayer.TrajectoryProvider;
 import cz.agents.admap.agent.Agent;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -192,8 +192,8 @@ public class ScenarioCreator implements Creator {
 
 
                     @Override
-                    public tt.Trajectory<Point> getTrajectory() {
-                        return (tt.Trajectory) agent.getCurrentTrajectory();
+                    public tt.continous.Trajectory<Point> getTrajectory() {
+                        return (tt.continous.Trajectory) agent.getCurrentTrajectory();
                     }
                 }, new ProjectionTo2d(), AgentColors.getColorForAgent(i++), 0.1, 100, 'g'));
             }

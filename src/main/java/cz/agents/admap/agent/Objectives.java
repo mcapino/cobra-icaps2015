@@ -1,7 +1,7 @@
 package cz.agents.admap.agent;
 
 import tt.euclid2i.Point;
-import tt.euclid2i.region.Region;
+import tt.euclid2i.Region;
 
 public class Objectives {
     Point start;
