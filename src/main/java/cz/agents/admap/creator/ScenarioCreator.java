@@ -20,14 +20,17 @@ import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
+import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
-import tt.jointeuclid2ni.probleminstance.ShortestPathProblem;
+import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
+import tt.jointeuclid2ni.probleminstance.RandomProblem;
 import tt.util.AgentColors;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
+import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -52,7 +55,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Method.ADMAP, 5, 961, true);
+        creator.create("default", Method.ADPPDG, 90, 961, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -69,12 +72,16 @@ public class ScenarioCreator implements Creator {
 
     private static final int ITERATION_DELAY = 50;
     private static final int AGENT_BODY_RADIUS = 10;
+    private static final int MAX_TIME = 2000;
 
-
-    enum Method {ADPP, ADMAP}
+    enum Method {
+        ADPP, /* Asynchronous Decentralized Prioritized Planning */
+        ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
+        DSA, /* Stochastic Prioritized Planning */
+        MGM}
 
     private String[] args;
-    private ShortestPathProblem problem;
+    private EarliestArrivalProblem problem;
 
     @SuppressWarnings("unused")
     @Override
@@ -123,23 +130,28 @@ public class ScenarioCreator implements Creator {
     }
 
     public void create(String experimentId, Method method, int nAgents, int seed, boolean showVis) {
-        this.problem = new ShortestPathProblem(nAgents, AGENT_BODY_RADIUS, seed);
+        this.problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
 
         if (showVis) {
             createVisualization();
         }
 
-        if (method == Method.ADMAP) {
-            solveADMAP(problem,  showVis);
+        if (method == Method.ADPPDG) {
+            solveADPPDG(problem,  showVis);
         }
     }
 
-    private void solveADMAP(final ShortestPathProblem problem, boolean showVis) {
+    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
 
         // Create agents
         List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
-            agents.add(new Agent("a" + new DecimalFormat("00").format(i), problem.getStart(i), problem.getTargetRegions(i), problem.getEnvironment()));
+            agents.add(new ADPPDGAgent(
+                    "a" + new DecimalFormat("00").format(i),
+                    problem.getStart(i),
+                    problem.getTargetPoint(i),
+                    problem.getEnvironment(),
+                    problem.getAgentSizeRadius()));
         }
 
         List<String> agentNames =  new ArrayList<String>(agents.size());
@@ -185,17 +197,17 @@ public class ScenarioCreator implements Creator {
          concurrentSimulation.run();
 
          if (showVis) {
-             int i = 0;
+             int color = 0;
              for (final Agent agent: agents) {
+
                  // create visio
                  VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
 
-
                     @Override
-                    public tt.continous.Trajectory<Point> getTrajectory() {
-                        return (tt.continous.Trajectory) agent.getCurrentTrajectory();
+                    public tt.discrete.Trajectory<Point> getTrajectory() {
+                        return agent.getCurrentTrajectory();
                     }
-                }, new ProjectionTo2d(), AgentColors.getColorForAgent(i++), 0.1, 100, 'g'));
+                }, new ProjectionTo2d(), AgentColors.getColorForAgent(color++), 1, MAX_TIME, 'g'));
             }
 
          }

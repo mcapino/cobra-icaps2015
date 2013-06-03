@@ -1,13 +1,12 @@
 package cz.agents.admap.agent;
 
 import tt.euclid2i.Point;
-import tt.euclid2i.Region;
 
 public class Objectives {
     Point start;
-    Region goal;
+    Point goal;
 
-    public Objectives(Point start, Region goal) {
+    public Objectives(Point start, Point goal) {
         super();
         this.start = start;
         this.goal = goal;
