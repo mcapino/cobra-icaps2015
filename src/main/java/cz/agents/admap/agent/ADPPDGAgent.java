@@ -1,6 +1,5 @@
 package cz.agents.admap.agent;
 
-import java.awt.Color;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -8,7 +7,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.util.Goal;
@@ -26,10 +24,7 @@ import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.Straight;
 import tt.euclidtime3i.region.MovingCircle;
-import tt.vis.GraphLayer;
-import tt.vis.GraphLayer.GraphProvider;
 import cz.agents.alite.communication.Communicator;
-import cz.agents.alite.vis.VisManager;
 
 public class ADPPDGAgent extends Agent {
 
@@ -78,19 +73,19 @@ public class ADPPDGAgent extends Agent {
             = new LazyGrid(start,
                     obstacles,
                     bounds,
-                    LazyGrid.PATTERN_4_WAY,
+                    LazyGrid.PATTERN_8_WAY,
                     GRID_STEP);
 
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
             = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
 
-        // graph
-        VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-            @Override
-            public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-                return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
-            }
-        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
+        // visualize the graph
+//        VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+//            @Override
+//            public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+//                return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
+//            }
+//        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
