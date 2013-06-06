@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,12 +25,16 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
+import tt.euclidtime3i.vis.TimeParameter;
+import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
 import tt.jointeuclid2ni.probleminstance.RandomProblem;
+import tt.jointeuclid2ni.probleminstance.SuperconflictProblem;
 import tt.util.AgentColors;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
+import tt.vis.ParameterControlLayer;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.alite.common.event.DurativeEvent;
@@ -55,7 +60,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Method.ADPPDG, 90, 961, true);
+        creator.create("default", Scenario.SUPERCONFLICT, Method.ADPPDG, 6, 961, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -71,7 +76,7 @@ public class ScenarioCreator implements Creator {
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
     private static final int ITERATION_DELAY = 50;
-    private static final int AGENT_BODY_RADIUS = 10;
+    private static final int AGENT_BODY_RADIUS = 40;
     private static final int MAX_TIME = 2000;
 
     enum Method {
@@ -79,6 +84,12 @@ public class ScenarioCreator implements Creator {
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA, /* Stochastic Prioritized Planning */
         MGM}
+
+    enum Scenario {
+        RANDOM,
+        SUPERCONFLICT,
+        GEESE
+    }
 
     private String[] args;
     private EarliestArrivalProblem problem;
@@ -115,22 +126,33 @@ public class ScenarioCreator implements Creator {
             PropertyConfigurator.configure(prop);
 
         }
-
     }
 
     public void createFromArgs() {
         //for (String arg : args) { System.out.println(arg); }
         String experimentId = args[1];
-        String algorithm = args[2];
-        int nAgents = Integer.parseInt(args[3]);
-        int seed = Integer.parseInt(args[4]);
-        boolean showVis = Boolean.parseBoolean(args[5]);
+        String scenario = args[2];
+        String algorithm = args[3];
+        int nAgents = Integer.parseInt(args[4]);
+        int seed = Integer.parseInt(args[5]);
+        boolean showVis = Boolean.parseBoolean(args[6]);
 
-        create(experimentId, Method.valueOf(algorithm), nAgents, seed, showVis);
+        create(experimentId, Scenario.valueOf(scenario), Method.valueOf(algorithm), nAgents, seed, showVis);
     }
 
-    public void create(String experimentId, Method method, int nAgents, int seed, boolean showVis) {
-        this.problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
+    public void create(String experimentId, Scenario scenario, Method method, int nAgents, int seed, boolean showVis) {
+
+        switch (scenario) {
+            case RANDOM:
+                problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
+                break;
+            case SUPERCONFLICT:
+                problem = new SuperconflictProblem(nAgents,AGENT_BODY_RADIUS);
+                break;
+            default:
+                throw new RuntimeException("Unknown scenario");
+        }
+
 
         if (showVis) {
             createVisualization();
@@ -194,10 +216,18 @@ public class ScenarioCreator implements Creator {
                });
            }
 
+         // *** run simulation ***
+
          concurrentSimulation.run();
+
+         // **** create visio ****
 
          if (showVis) {
              int color = 0;
+             final TimeParameter timeParameter = new TimeParameter(10);
+
+             VisManager.registerLayer(ParameterControlLayer.create(timeParameter));
+
              for (final Agent agent: agents) {
 
                  // create visio
@@ -207,7 +237,19 @@ public class ScenarioCreator implements Creator {
                     public tt.discrete.Trajectory<Point> getTrajectory() {
                         return agent.getCurrentTrajectory();
                     }
-                }, new ProjectionTo2d(), AgentColors.getColorForAgent(color++), 1, MAX_TIME, 'g'));
+                }, new ProjectionTo2d(), AgentColors.getColorForAgent(color), 1, MAX_TIME, 'g'));
+
+                VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
+                    new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
+                        @Override
+                        public Collection<tt.euclidtime3i.Region> getRegions() {
+                             Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
+                             return regions;
+
+                        }
+                }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(color), AgentColors.getColorForAgent(color)));
+
+                color++;
             }
 
          }

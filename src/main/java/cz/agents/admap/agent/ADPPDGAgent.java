@@ -3,7 +3,6 @@ package cz.agents.admap.agent;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 import org.jgrapht.DirectedGraph;
@@ -24,20 +23,17 @@ import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.Straight;
 import tt.euclidtime3i.region.MovingCircle;
-import cz.agents.alite.communication.Communicator;
+import cz.agents.admap.msg.InformNewTrajectory;
+import cz.agents.alite.communication.Message;
 
 public class ADPPDGAgent extends Agent {
 
     private static final int GRID_STEP = 50;
     private static final int MAX_TIME = 5000;
 
-    String name;
     Map<String, Objectives> group = new HashMap<String, Objectives>();
     Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
     Map<String, MovingCircle> avoids =  new HashMap<String, MovingCircle>();
-
-    protected Communicator communicator;
-    protected List<String> agents;
 
     public ADPPDGAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius) {
         super(name, start, goal, environment, agentSizeRadius);
@@ -57,12 +53,18 @@ public class ADPPDGAgent extends Agent {
 
     private void replan() {
 
+        // compute best response
+
         Collection<tt.euclidtime3i.Region> avoidRegions = new LinkedList<tt.euclidtime3i.Region>();
         for (MovingCircle movingCircle : avoids.values()) {
-            avoidRegions.add(movingCircle);
+            avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentSizeRadius));
         }
 
         trajectory = computeBestResponse(start, goal, environment.getObstacles(), environment.getBounds(), avoidRegions);
+
+        // broadcast to the others
+
+        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentSizeRadius)));
     }
 
     private EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
@@ -114,5 +116,21 @@ public class ADPPDGAgent extends Agent {
 
         return trajectory;
     }
+
+    @Override
+    protected void notify(Message message) {
+        super.notify(message);
+        if (message.getContent() instanceof InformNewTrajectory) {
+            InformNewTrajectory newTrajectoryMessage = (InformNewTrajectory) (message.getContent());
+            String agentName = newTrajectoryMessage.getAgentName();
+            MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
+
+            if (agentName.compareTo(getName()) < 0) {
+                avoids.put(agentName, occupiedRegion);
+                replan();
+            }
+        }
+    }
+
 
 }

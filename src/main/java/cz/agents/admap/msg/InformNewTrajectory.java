@@ -1,40 +1,31 @@
 package cz.agents.admap.msg;
 
-import tt.euclid2i.Trajectory;
+import tt.euclidtime3i.Region;
 import cz.agents.alite.communication.content.Content;
 
 public class InformNewTrajectory extends Content {
     final String agentName;
-    final double priority;
-    final Trajectory trajectory;
+    final tt.euclidtime3i.Region region;
 
-
-    public InformNewTrajectory(String agentName, double priority, Trajectory t) {
-        super(t);
-
+    public InformNewTrajectory(String agentName, Region region) {
+        super(null);
         this.agentName = agentName;
-        this.priority = priority;
-        this.trajectory = t;
+        this.region = region;
     }
 
-    public synchronized String getAgentName() {
+    public String getAgentName() {
         return agentName;
     }
 
-    public synchronized Trajectory getTrajectory() {
-        return trajectory;
-    }
-
-    public double getPriority() {
-        return priority;
+    public tt.euclidtime3i.Region getRegion() {
+        return region;
     }
 
     @Override
     public String toString() {
-        return "InformNewTrajectory [agentName=" + agentName + ", priority="
-                + priority + ", trajectory=" + trajectory + "]";
+        return "InformNewTrajectory [agentName=" + agentName + ", region="
+                + region + "]";
     }
-
 
 
 }
