@@ -37,6 +37,7 @@ import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.ParameterControlLayer;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
+import cz.agents.admap.agent.DSAAgent;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
 import cz.agents.alite.common.event.DurativeEventProcessor;
@@ -60,7 +61,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.SUPERCONFLICT, Method.ADPPDG, 6, 961, true);
+        creator.create("default", Scenario.SUPERCONFLICT, Method.DSA, 2, 961, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -83,10 +84,12 @@ public class ScenarioCreator implements Creator {
         ADPP, /* Asynchronous Decentralized Prioritized Planning */
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA, /* Stochastic Prioritized Planning */
-        MGM}
+        MGM,
+        ADOPT}
 
     enum Scenario {
-        RANDOM,
+        RANDOM_IN_FREESPACE,
+        RANDOM_WITH_OBSTACLES,
         SUPERCONFLICT,
         GEESE
     }
@@ -143,8 +146,11 @@ public class ScenarioCreator implements Creator {
     public void create(String experimentId, Scenario scenario, Method method, int nAgents, int seed, boolean showVis) {
 
         switch (scenario) {
-            case RANDOM:
+            case RANDOM_IN_FREESPACE:
                 problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
+                break;
+            case RANDOM_WITH_OBSTACLES:
+                problem = new RandomProblem(new Environment(1000, 1000, 50, 150, seed), nAgents, AGENT_BODY_RADIUS, seed);
                 break;
             case SUPERCONFLICT:
                 problem = new SuperconflictProblem(nAgents,AGENT_BODY_RADIUS);
@@ -158,17 +164,32 @@ public class ScenarioCreator implements Creator {
             createVisualization();
         }
 
-        if (method == Method.ADPPDG) {
-            solveADPPDG(problem,  showVis);
+        switch (method) {
+            case ADPPDG:
+                solveADPPDG(problem, showVis);
+                break;
+
+            case DSA:
+                solveDSA(problem, showVis);
+                break;
+
+            default:
+                throw new RuntimeException("unknown method");
+
         }
+
     }
 
-    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
+    interface AgentFactory {
+        Agent createAgent(String name, Point start, Point target, Environment env, int agentBodyRadius);
+    }
+
+    private void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, boolean showVis) {
 
         // Create agents
         List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
-            agents.add(new ADPPDGAgent(
+            agents.add(agentFactory.createAgent(
                     "a" + new DecimalFormat("00").format(i),
                     problem.getStart(i),
                     problem.getTargetPoint(i),
@@ -202,6 +223,7 @@ public class ScenarioCreator implements Creator {
 
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
+
                concurrentSimulation.addEvent(0, agent.getName(), new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
@@ -214,11 +236,33 @@ public class ScenarioCreator implements Creator {
                        return concurrentSimulation;
                    }
                });
+
+               // start periodic ticks
+               final long tickPeriod = (long) 1e9;
+               final long simulateUntil = 120 * (long) 1e9;
+               DurativeEventHandler tickhandler =  new DurativeEventHandler() {
+                   @Override
+                   public long handleEvent(DurativeEvent event) {
+                       long lastEventStartedAtNanos = System.nanoTime();
+                       agent.tick(concurrentSimulation.getWallclockRuntime());
+                       long duration = System.nanoTime() - lastEventStartedAtNanos;
+
+                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
+                           concurrentSimulation.addEvent(event.getTime() + tickPeriod, agent.getName(), this);
+                       }
+                       return tickPeriod + duration;
+                   }
+
+                   @Override
+                   public DurativeEventProcessor getEventProcessor() {
+                       return concurrentSimulation;
+                   }
+               };
+
+               concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
            }
 
-         // *** run simulation ***
 
-         concurrentSimulation.run();
 
          // **** create visio ****
 
@@ -254,13 +298,33 @@ public class ScenarioCreator implements Creator {
 
          }
 
+         // *** run simulation ***
+
+         concurrentSimulation.run();
+
+    }
 
 
-        /*
-        reportResult(Method.ADMAP.toString(), problem, path != null,
-                path != null ? path.getWeight() : Double.POSITIVE_INFINITY,
-                astar.getExpandedStatesCount(),
-                expandedStatesLimit);*/
+    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, int agentBodyRadius) {
+                return new ADPPDGAgent(name, start, target, env, agentBodyRadius);
+            }
+        }, showVis);
+    }
+
+    private void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, int agentBodyRadius) {
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3);
+            }
+        }, showVis);
     }
 
     /*

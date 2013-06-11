@@ -95,4 +95,12 @@ public abstract class Agent {
     protected void notify(Message message) {
         LOGGER.debug(getName() + " received " + message.getContent());
     }
+
+    public void tick(long time) {
+        LOGGER.debug(getName() + " tick: " + time);
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException e) {}
+    }
+
 }

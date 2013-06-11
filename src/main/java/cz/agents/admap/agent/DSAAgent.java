@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
@@ -26,7 +27,11 @@ import tt.euclidtime3i.region.MovingCircle;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
 
-public class ADPPDGAgent extends Agent {
+public class DSAAgent extends Agent {
+
+    Logger LOGGER = Logger.getLogger(DSAAgent.class);
+
+    private final double activationProbability;
 
     private static final int GRID_STEP = 10;
     private static final int MAX_TIME = 5000;
@@ -35,10 +40,11 @@ public class ADPPDGAgent extends Agent {
     Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
     Map<String, MovingCircle> avoids =  new HashMap<String, MovingCircle>();
 
-    public ADPPDGAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius) {
+    public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability) {
         super(name, start, goal, environment, agentSizeRadius);
         this.group.put(name, new Objectives(start, goal));
         this.environment = environment;
+        this.activationProbability = activationProbability;
     }
 
     @Override
@@ -52,6 +58,7 @@ public class ADPPDGAgent extends Agent {
     }
 
     private void replan() {
+
 
         // compute best response
 
@@ -127,10 +134,17 @@ public class ADPPDGAgent extends Agent {
 
             if (agentName.compareTo(getName()) < 0) {
                 avoids.put(agentName, occupiedRegion);
-                replan();
             }
         }
     }
 
+    @Override
+    public void tick(long time) {
+        super.tick(time);
+        if (Math.random() < activationProbability) {
+            LOGGER.debug(name + " was activated and replans");
+            replan();
+        }
+    }
 
 }

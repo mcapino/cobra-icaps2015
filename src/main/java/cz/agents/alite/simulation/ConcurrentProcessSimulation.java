@@ -16,6 +16,7 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
     public ConcurrentProcessSimulation() {
     }
 
+    @Override
     public void run() {
         runTime = System.currentTimeMillis();
         LOGGER.info(">>> CONCURRENT PROCESS SIMULATION START");
@@ -26,7 +27,6 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
 
         for (String processName : getProcessNames()) {
             LOGGER.info(String.format(">>> PROCESS TERMINATION TIME: %s %.4fs (Active: %.4fs Idle: %.4fs)", processName,getProcessLastActivityFinishedTime(processName)/1e9d, getProcessActiveCounter(processName)/1e9d, getProcessIdleCounter(processName)/1e9f));
-
         }
 
         LOGGER.info(String.format(">>> EVENT COUNT: %d", eventCount));
@@ -65,7 +65,7 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
 
     public long getCumulativeIdleRuntime() {
         long result = 0;
-        long wallclock = getWallclockRuntime(); 
+        long wallclock = getWallclockRuntime();
         for (String processName : getProcessNames() ) {
             result += getProcessIdleCounter(processName);
             result += wallclock - this.getProcessLastActivityFinishedTime(processName);
