@@ -106,10 +106,10 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-        LOGGER.debug(getName() + " tick: " + time);
-//        try {
-//            Thread.sleep(1000);
-//        } catch (InterruptedException e) {}
+        //        LOGGER.debug(getName() + " tick: " + time);
+        //        try {
+        //            Thread.sleep(1000);
+        //        } catch (InterruptedException e) {}
     }
 
 }

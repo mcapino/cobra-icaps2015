@@ -35,9 +35,11 @@ import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.ParameterControlLayer;
+import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.admap.agent.DSAAgent;
+import cz.agents.admap.agent.adopt.NotCollidingConstraint;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
 import cz.agents.alite.common.event.DurativeEventProcessor;
@@ -61,7 +63,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.RANDOM_WITH_OBSTACLES, Method.ADPPDG, 5, 967, true);
+        creator.create("default", Scenario.RANDOM_WITH_OBSTACLES, Method.ADOPT, 2, 967, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -171,11 +173,49 @@ public class ScenarioCreator implements Creator {
                 solveDSA(problem, showVis);
                 break;
 
+            case ADOPT:
+                solveADOPT(problem, showVis);
+                break;
+
             default:
                 throw new RuntimeException("Unknown method");
 
         }
 
+    }
+
+
+    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, int agentBodyRadius) {
+                return new ADPPDGAgent(name, start, target, env, agentBodyRadius);
+            }
+        }, showVis);
+    }
+
+    private void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, int agentBodyRadius) {
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3);
+            }
+        }, showVis);
+    }
+
+    private void solveADOPT(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, int agentBodyRadius) {
+                return new ADOPTAgent(name, start, target, env, agentBodyRadius, new NotCollidingConstraint());
+            }
+        }, showVis);
     }
 
     interface AgentFactory {
@@ -275,27 +315,7 @@ public class ScenarioCreator implements Creator {
 
 
 
-    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
-        solve(problem, new AgentFactory() {
 
-            @Override
-            public Agent createAgent(String name, Point start, Point target,
-                    Environment env, int agentBodyRadius) {
-                return new ADPPDGAgent(name, start, target, env, agentBodyRadius);
-            }
-        }, showVis);
-    }
-
-    private void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
-        solve(problem, new AgentFactory() {
-
-            @Override
-            public Agent createAgent(String name, Point start, Point target,
-                    Environment env, int agentBodyRadius) {
-                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3);
-            }
-        }, showVis);
-    }
 
     /*
     private void reportResult(String alg, ShortestPathProblem problem, boolean foundSolution,
