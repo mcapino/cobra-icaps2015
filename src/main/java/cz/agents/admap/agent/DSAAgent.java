@@ -64,14 +64,14 @@ public class DSAAgent extends Agent {
 
         Collection<tt.euclidtime3i.Region> avoidRegions = new LinkedList<tt.euclidtime3i.Region>();
         for (MovingCircle movingCircle : avoids.values()) {
-            avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentSizeRadius));
+            avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
         }
 
         trajectory = computeBestResponse(start, goal, environment.getObstacles(), environment.getBounds(), avoidRegions);
 
         // broadcast to the others
 
-        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentSizeRadius)));
+        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
 
     private EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,

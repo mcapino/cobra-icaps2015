@@ -61,29 +61,20 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.SUPERCONFLICT, Method.DSA, 2, 961, true);
+        creator.create("default", Scenario.RANDOM_WITH_OBSTACLES, Method.ADPPDG, 5, 967, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
 
-
-    @Override
-    public void create() {
-        if (args.length > 1) {
-            createFromArgs();
-        }
-    }
-
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
-    private static final int ITERATION_DELAY = 50;
-    private static final int AGENT_BODY_RADIUS = 40;
+    private static final int AGENT_BODY_RADIUS = 50;
     private static final int MAX_TIME = 2000;
 
     enum Method {
-        ADPP, /* Asynchronous Decentralized Prioritized Planning */
+        ADPP,   /* Asynchronous Decentralized Prioritized Planning */
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
-        DSA, /* Stochastic Prioritized Planning */
+        DSA,    /* Stochastic Prioritized Planning */
         MGM,
         ADOPT}
 
@@ -96,6 +87,13 @@ public class ScenarioCreator implements Creator {
 
     private String[] args;
     private EarliestArrivalProblem problem;
+
+    @Override
+    public void create() {
+        if (args.length > 1) {
+            createFromArgs();
+        }
+    }
 
     @SuppressWarnings("unused")
     @Override
@@ -127,7 +125,6 @@ public class ScenarioCreator implements Creator {
                 prop.setProperty("log4j.appender.R.File", overrideLogFileName);
             }
             PropertyConfigurator.configure(prop);
-
         }
     }
 
@@ -150,7 +147,7 @@ public class ScenarioCreator implements Creator {
                 problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
                 break;
             case RANDOM_WITH_OBSTACLES:
-                problem = new RandomProblem(new Environment(1000, 1000, 50, 150, seed), nAgents, AGENT_BODY_RADIUS, seed);
+                problem = new RandomProblem(new Environment(1000, 1000, 10, 250, seed), nAgents, AGENT_BODY_RADIUS, seed);
                 break;
             case SUPERCONFLICT:
                 problem = new SuperconflictProblem(nAgents,AGENT_BODY_RADIUS);
@@ -161,7 +158,8 @@ public class ScenarioCreator implements Creator {
 
 
         if (showVis) {
-            createVisualization();
+            initVisualization();
+            visualizeProblem();
         }
 
         switch (method) {
@@ -174,7 +172,7 @@ public class ScenarioCreator implements Creator {
                 break;
 
             default:
-                throw new RuntimeException("unknown method");
+                throw new RuntimeException("Unknown method");
 
         }
 
@@ -224,6 +222,7 @@ public class ScenarioCreator implements Creator {
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
 
+               // start agents
                concurrentSimulation.addEvent(0, agent.getName(), new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
@@ -264,45 +263,16 @@ public class ScenarioCreator implements Creator {
 
 
 
-         // **** create visio ****
-
+         // **** create visio of agents ****
          if (showVis) {
-             int color = 0;
-             final TimeParameter timeParameter = new TimeParameter(10);
-
-             VisManager.registerLayer(ParameterControlLayer.create(timeParameter));
-
-             for (final Agent agent: agents) {
-
-                 // create visio
-                 VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
-
-                    @Override
-                    public tt.discrete.Trajectory<Point> getTrajectory() {
-                        return agent.getCurrentTrajectory();
-                    }
-                }, new ProjectionTo2d(), AgentColors.getColorForAgent(color), 1, MAX_TIME, 'g'));
-
-                VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
-                    new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
-                        @Override
-                        public Collection<tt.euclidtime3i.Region> getRegions() {
-                             Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
-                             return regions;
-
-                        }
-                }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(color), AgentColors.getColorForAgent(color)));
-
-                color++;
-            }
-
+             visualizeAgents(agents);
          }
 
          // *** run simulation ***
-
          concurrentSimulation.run();
-
     }
+
+
 
 
     private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
@@ -336,7 +306,7 @@ public class ScenarioCreator implements Creator {
     } */
 
 
-    private void createVisualization() {
+    private void initVisualization() {
         VisManager.setInitParam("Trajectory Tools Vis", 1024, 768);
         VisManager.setSceneParam(new SceneParams() {
 
@@ -353,23 +323,13 @@ public class ScenarioCreator implements Creator {
         });
         VisManager.init();
 
+        // Overlay
+        VisManager.registerLayer(VisInfoLayer.create());
+    }
+
+    private void visualizeProblem() {
         // background
         VisManager.registerLayer(ColorLayer.create(Color.WHITE));
-
-        // KeyToggleLayer graphToggle = KeyToggleLayer.create("g");
-        // graphToggle.addSubLayer(GraphLayer.create(new GraphProvider<Waypoint,
-        // SpatialManeuver>() {
-        //
-        // @Override
-        // public Graph<Waypoint, SpatialManeuver> getGraph() {
-        // return graph;
-        // }}, Color.GRAY, Color.GRAY, 1, 4));
-        // graphToggle.setEnabled(true);
-        //
-        // VisManager.registerLayer(graphToggle);
-
-        // VisManager.registerLayer(NodeIdLayer.create(graph, Color.GRAY, 1,
-        // "n"));
 
         VisManager.registerLayer(RegionsLayer.create(
                 new RegionsProvider() {
@@ -382,6 +342,17 @@ public class ScenarioCreator implements Creator {
                     }
 
                 }, Color.BLACK, Color.WHITE));
+
+        Color inflatedRegionsColor = new Color(250,250,250);
+        VisManager.registerLayer(RegionsLayer.create(
+                new RegionsProvider() {
+
+                    @Override
+                    public Collection<Region> getRegions() {
+                        return problem.getInflatedObstacles();
+                    }
+
+                }, inflatedRegionsColor, inflatedRegionsColor));
 
         VisManager.registerLayer(RegionsLayer.create(
                 new RegionsProvider() {
@@ -436,8 +407,36 @@ public class ScenarioCreator implements Creator {
             }
 
         }, new tt.euclid2i.vis.ProjectionTo2d(), Color.RED));
+    }
 
-        // Overlay
-        VisManager.registerLayer(VisInfoLayer.create());
+    private void visualizeAgents(List<Agent> agents) {
+        int color = 0;
+         final TimeParameter timeParameter = new TimeParameter(10);
+
+         VisManager.registerLayer(ParameterControlLayer.create(timeParameter));
+
+         for (final Agent agent: agents) {
+
+             // create visio
+             VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+
+                @Override
+                public tt.discrete.Trajectory<Point> getTrajectory() {
+                    return agent.getCurrentTrajectory();
+                }
+            }, new ProjectionTo2d(), AgentColors.getColorForAgent(color), 1, MAX_TIME, 'g'));
+
+            VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
+                new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
+                    @Override
+                    public Collection<tt.euclidtime3i.Region> getRegions() {
+                         Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
+                         return regions;
+
+                    }
+            }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(color), AgentColors.getColorForAgent(color)));
+
+            color++;
+        }
     }
 }

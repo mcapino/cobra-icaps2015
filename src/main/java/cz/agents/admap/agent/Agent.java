@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -7,6 +8,7 @@ import org.apache.log4j.Logger;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
+import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.Message;
@@ -23,20 +25,23 @@ public abstract class Agent {
     Point goal;
 
     Environment environment;
-    int agentSizeRadius;
+    int agentBodyRadius;
 
     EvaluatedTrajectory trajectory;
 
     Communicator communicator;
     List<String> agents;
 
-    public Agent(String name, Point start, Point goal, Environment environment, int agentSizeRadius) {
+    protected Collection<Region> inflatedObstacles;
+
+    public Agent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
         super();
         this.name = name;
         this.start = start;
         this.goal = goal;
         this.environment = environment;
-        this.agentSizeRadius = agentSizeRadius;
+        this.agentBodyRadius = agentBodyRadius;
+        this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);
     }
 
     public synchronized Point getStart() {
@@ -54,7 +59,11 @@ public abstract class Agent {
     public abstract EvaluatedTrajectory getCurrentTrajectory();
 
     public tt.euclidtime3i.Region getOccupiedRegion() {
-        return new tt.euclidtime3i.region.MovingCircle(getCurrentTrajectory(), agentSizeRadius);
+        if (getCurrentTrajectory() != null) {
+            return new tt.euclidtime3i.region.MovingCircle(getCurrentTrajectory(), agentBodyRadius);
+        } else {
+            return null;
+        }
     }
 
     public void setCommunicator(Communicator communicator, List<String> agents) {
