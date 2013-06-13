@@ -20,7 +20,6 @@ public class ADOPTAgent extends Agent {
     Constraint constraint;
 
     LocalCost localCost = new LocalCost() {
-
         @Override
         public double getCost(EvaluatedTrajectory value) {
             return computeLocalCost(value);
@@ -97,7 +96,7 @@ public class ADOPTAgent extends Agent {
             //terminated
         }
 
-        // broadcast to higher priority agents
+        // broadcast cost
         broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), context, lb(), ub()));
 
     }
@@ -135,12 +134,14 @@ public class ADOPTAgent extends Agent {
         }
     }
 
-    private void handleInformMessage(ValueMsg newTrajectoryMessage) {
-        String agentName = newTrajectoryMessage.getAgentName();
-          MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
+    private void handleInformMessage(ValueMsg valueMessage) {
+        String agentName = valueMessage.getAgentName();
+          MovingCircle occupiedRegion = (MovingCircle) valueMessage.getRegion();
 
+          // Ignore messages from ancestors
           if (agentName.compareTo(getName()) < 0) {
-              // it is a message from a pseudo-parent
+
+              System.out.println(getName()+": processing " + valueMessage);
 
               context.put(agentName, occupiedRegion);
 
@@ -154,28 +155,34 @@ public class ADOPTAgent extends Agent {
     }
 
     private void handleCostMessage(CostMsg costMessage) {
+        String agentName = costMessage.getAgentName();
         Context msgcontext = costMessage.getContext();
         msgcontext.removeVar(getName());
 
-        // add variables not in my context
-        for (String varName : msgcontext.vars()) {
-            // TODO if not my neighbor ...
-            context.put(varName, msgcontext.get(varName));
+        // ignore costs of lower priority agents
+        if (agentName.compareTo(getName()) > 0) {
+
+            System.out.println(getName()+": processing " + costMessage);
+
+            // add variables not in my context
+            for (String varName : msgcontext.vars()) {
+                // TODO if not my neighbor ...
+                context.put(varName, msgcontext.get(varName));
+            }
+            valueBounds.resetAfterContextChange(context);
+
+            if (context.compatibleWith(msgcontext)) {
+                valueBounds.set(getValue(),
+                        costMessage.getAgentName(),
+                        costMessage.getLb(),
+                        costMessage.getUb(),
+                        0 /*threshold*/,
+                        costMessage.getContext());
+            }
+
+            maintainChildThresholdInvariant();
+            maintainThresholdInvariant();
         }
-        valueBounds.resetAfterContextChange(context);
-
-        if (context.compatibleWith(msgcontext)) {
-            valueBounds.set(getValue(),
-                    costMessage.getAgentName(),
-                    costMessage.getLb(),
-                    costMessage.getUb(),
-                    0 /*threshold*/,
-                    costMessage.getContext());
-        }
-
-
-        maintainChildThresholdInvariant();
-        maintainThresholdInvariant();
     }
 
     private void maintainChildThresholdInvariant() {
@@ -204,13 +211,16 @@ public class ADOPTAgent extends Agent {
 
     @Override
     public String getStatus() {
-        return String.format("%s c: %.2f \n lb: %.2f ub: %.2f \n t: %.2f val. expl.: %d",
+        String s = String.format("%s c: %.2f \n lb: %.2f ub: %.2f \n t: %.2f val. expl.: %d",
                 getName(),
                 getCurrentTrajectory() != null ? getCurrentTrajectory().getCost() : Double.POSITIVE_INFINITY,
                 lb(),
                 ub(),
                 threshold,
                 valueBounds.size());
+
+        s += "\n" + valueBounds.toString();
+        return s;
     }
 
 

@@ -18,4 +18,9 @@ public class ChildBounds {
         this.threshold = threshold;
         this.context = context;
     }
+
+    @Override
+    public String toString() {
+        return String.format("(lb:%.2f, ub:%.2f, t:%.2f, context:%s)", lowerBound, upperBound, threshold, context.toString());
+    }
 }

@@ -91,4 +91,9 @@ public class ValueBounds {
     public void introduceNewValue(EvaluatedTrajectory value) {
         valueBounds.put(value, null);
     }
+
+    @Override
+    public String toString() {
+        return valueBounds.toString();
+    }
 }
