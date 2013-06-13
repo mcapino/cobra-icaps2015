@@ -63,7 +63,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.RANDOM_WITH_OBSTACLES, Method.ADOPT, 2, 967, true);
+        creator.create("default", Scenario.SUPERCONFLICT, Method.ADOPT, 2, 967, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -183,7 +183,6 @@ public class ScenarioCreator implements Creator {
         }
 
     }
-
 
     private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
         solve(problem, new AgentFactory() {
@@ -430,7 +429,7 @@ public class ScenarioCreator implements Creator {
     }
 
     private void visualizeAgents(List<Agent> agents) {
-        int color = 0;
+         int agentIndex = 0;
          final TimeParameter timeParameter = new TimeParameter(10);
 
          VisManager.registerLayer(ParameterControlLayer.create(timeParameter));
@@ -444,7 +443,7 @@ public class ScenarioCreator implements Creator {
                 public tt.discrete.Trajectory<Point> getTrajectory() {
                     return agent.getCurrentTrajectory();
                 }
-            }, new ProjectionTo2d(), AgentColors.getColorForAgent(color), 1, MAX_TIME, 'g'));
+            }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TIME, 'g'));
 
             VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
                 new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
@@ -454,9 +453,21 @@ public class ScenarioCreator implements Creator {
                          return regions;
 
                     }
-            }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(color), AgentColors.getColorForAgent(color)));
+            }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
 
-            color++;
+            final Point labelLocation = problem.getStart(agentIndex);
+            VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
+
+                @Override
+                public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
+                    Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
+                    points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
+                    return points;
+                }
+
+            }, new ProjectionTo2d(), Color.RED ));
+
+            agentIndex++;
         }
     }
 }

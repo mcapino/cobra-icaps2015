@@ -20,7 +20,7 @@ import tt.euclidtime3i.discretization.Straight;
 
 public class Util {
 
-    private static final int GRID_STEP = 10;
+    private static final int GRID_STEP = 25;
     private static final int MAX_TIME = 100000;
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,

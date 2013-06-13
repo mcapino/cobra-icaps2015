@@ -112,4 +112,6 @@ public abstract class Agent {
         //        } catch (InterruptedException e) {}
     }
 
+    public String getStatus() { return getName(); }
+
 }

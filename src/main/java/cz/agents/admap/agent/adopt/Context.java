@@ -4,8 +4,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 
 public class Context {
@@ -49,5 +51,20 @@ public class Context {
         }
 
         return true;
+    }
+
+    public void removeVar(String varName) {
+        variables.remove(varName);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        for (Entry<String, Region> entry : variables.entrySet()) {
+            sb.append(entry.getKey() + ":" + entry.getValue() + " ");
+        }
+        sb.append("}");
+        return sb.toString();
     }
 }

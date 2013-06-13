@@ -4,17 +4,18 @@ import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclidtime3i.region.MovingCircle;
-import cz.agents.admap.agent.adopt.Bounds;
 import cz.agents.admap.agent.adopt.Constraint;
 import cz.agents.admap.agent.adopt.Context;
 import cz.agents.admap.agent.adopt.LocalCost;
-import cz.agents.admap.msg.InformNewTrajectory;
+import cz.agents.admap.agent.adopt.ValueBounds;
+import cz.agents.admap.msg.CostMsg;
+import cz.agents.admap.msg.ValueMsg;
 import cz.agents.alite.communication.Message;
 
 public class ADOPTAgent extends Agent {
 
     Context context;
-    Bounds valueBounds;
+    ValueBounds valueBounds;
     double threshold;
     Constraint constraint;
 
@@ -29,7 +30,7 @@ public class ADOPTAgent extends Agent {
     public ADOPTAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, Constraint constraint) {
         super(name, start, goal, environment, agentBodyRadius);
         context = new Context();
-        valueBounds = new Bounds();
+        valueBounds = new ValueBounds();
         threshold = 0;
         this.constraint = constraint;
     }
@@ -38,7 +39,9 @@ public class ADOPTAgent extends Agent {
         double cost = value.getCost();
 
         for (String agent : context.vars()) {
-            cost += constraint.getCost(getOccupiedRegion(), context.get(agent));
+            if (!agent.equals(getName())) {
+                cost += constraint.getCost(getOccupiedRegion(), context.get(agent));
+            }
         }
 
         return cost;
@@ -50,6 +53,7 @@ public class ADOPTAgent extends Agent {
 
     private void setValue(EvaluatedTrajectory traj) {
         context.put(getName(), new MovingCircle(traj, agentBodyRadius));
+        valueBounds.introduceNewValue(traj);
     }
 
     private EvaluatedTrajectory getValue() {
@@ -73,22 +77,66 @@ public class ADOPTAgent extends Agent {
 
     private void backtrack() {
 
-        if (threshold == valueBounds.getUpperBound(localCost)) {
+        if (threshold == ub()) {
             // we have found the optimum
-        } else if (valueBounds.getLowerBoundOf(localCost, getValue()) > threshold) {
+            // TODO
+        } else if (lb(getValue()) > threshold) {
             // switch to a different value
+            // TODO
+            System.out.println(getName() + " BACKTRACKING...");
         }
 
         // broadcast to lower-priority
-        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getValue(), agentBodyRadius)));
+        broadcast(new ValueMsg(getName(), new MovingCircle(getValue(), agentBodyRadius)));
+
+        // TODO maintain allocation invariant
+        maintainAllocationInvariant();
+
+
+        if (threshold == ub()) {
+            //terminated
+        }
+
+        // broadcast to higher priority agents
+        broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), context, lb(), ub()));
+
+    }
+
+    private void maintainAllocationInvariant() {
+        // TODO still to be implemented...
+    }
+
+    private double ub(EvaluatedTrajectory value) {
+        return valueBounds.getUpperBoundOf(localCost, value);
+    }
+
+    private double lb(EvaluatedTrajectory value) {
+        return valueBounds.getLowerBoundOf(localCost, value);
+    }
+
+    private double ub() {
+        return valueBounds.getUpperBound(localCost);
+    }
+
+    private double lb() {
+        return valueBounds.getLowerBound(localCost);
     }
 
     @Override
     protected void notify(Message message) {
         super.notify(message);
-        if (message.getContent() instanceof InformNewTrajectory) {
-          InformNewTrajectory newTrajectoryMessage = (InformNewTrajectory) (message.getContent());
-          String agentName = newTrajectoryMessage.getAgentName();
+
+        if (message.getContent() instanceof ValueMsg) {
+            handleInformMessage((ValueMsg) (message.getContent()));
+        }
+
+        if (message.getContent() instanceof CostMsg) {
+            handleCostMessage((CostMsg) message.getContent());
+        }
+    }
+
+    private void handleInformMessage(ValueMsg newTrajectoryMessage) {
+        String agentName = newTrajectoryMessage.getAgentName();
           MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
 
           if (agentName.compareTo(getName()) < 0) {
@@ -96,19 +144,75 @@ public class ADOPTAgent extends Agent {
 
               context.put(agentName, occupiedRegion);
 
-              // we're in a new context -- reset bounds
+              // we're in a new context -- reset inconsistent bounds
               valueBounds.resetAfterContextChange(context);
 
               maintainThresholdInvariant();
 
               backtrack();
           }
+    }
+
+    private void handleCostMessage(CostMsg costMessage) {
+        Context msgcontext = costMessage.getContext();
+        msgcontext.removeVar(getName());
+
+        // add variables not in my context
+        for (String varName : msgcontext.vars()) {
+            // TODO if not my neighbor ...
+            context.put(varName, msgcontext.get(varName));
         }
+        valueBounds.resetAfterContextChange(context);
+
+        if (context.compatibleWith(msgcontext)) {
+            valueBounds.set(getValue(),
+                    costMessage.getAgentName(),
+                    costMessage.getLb(),
+                    costMessage.getUb(),
+                    0 /*threshold*/,
+                    costMessage.getContext());
+        }
+
+
+        maintainChildThresholdInvariant();
+        maintainThresholdInvariant();
+    }
+
+    private void maintainChildThresholdInvariant() {
+        // TODO Still to be implemented...
     }
 
     private void maintainThresholdInvariant() {
-        // TODO
+        if (threshold > ub()) {
+            threshold = ub();
+        }
+
+        if (threshold < lb()) {
+            threshold = lb();
+        }
     }
+
+    @Override
+    public String toString() {
+        return String.format("ADOPTAgent %s lb: %.2f ub: %.2f t: %.2f values explored: %d",
+                getName(),
+                lb(),
+                ub(),
+                threshold,
+                valueBounds.size());
+    }
+
+    @Override
+    public String getStatus() {
+        return String.format("%s c: %.2f \n lb: %.2f ub: %.2f \n t: %.2f val. expl.: %d",
+                getName(),
+                getCurrentTrajectory() != null ? getCurrentTrajectory().getCost() : Double.POSITIVE_INFINITY,
+                lb(),
+                ub(),
+                threshold,
+                valueBounds.size());
+    }
+
 
 
 }
