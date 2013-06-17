@@ -1,5 +1,8 @@
 package cz.agents.admap.agent;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
@@ -26,7 +29,8 @@ public class ADOPTAgent extends Agent {
         }
     };
 
-    public ADOPTAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, Constraint constraint) {
+    public ADOPTAgent(String name, Point start, Point goal,
+            Environment environment, int agentBodyRadius, Constraint constraint) {
         super(name, start, goal, environment, agentBodyRadius);
         context = new Context();
         valueBounds = new ValueBounds();
@@ -47,7 +51,16 @@ public class ADOPTAgent extends Agent {
     }
 
     private EvaluatedTrajectory findMinimumLowerBoundTrajectory() {
-        return Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), context.getOccupiedRegions(agentBodyRadius));
+        System.out.println(getName() + " is replaning with context: " + context.getOccupiedRegions(getName(), agentBodyRadius));
+        EvaluatedTrajectory traj = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(),
+                context.getOccupiedRegions(getName(), agentBodyRadius+2));
+
+        if (traj != null) {
+            return traj;
+        } else {
+            throw new RuntimeException(getName() +": Cannot find a best response!");
+        }
+
     }
 
     private void setValue(EvaluatedTrajectory traj) {
@@ -57,7 +70,7 @@ public class ADOPTAgent extends Agent {
 
     private EvaluatedTrajectory getValue() {
         if (context.contains(getName())) {
-            return (EvaluatedTrajectory)((MovingCircle) context.get(getName())).getTrajectory();
+            return (EvaluatedTrajectory) ((MovingCircle) context.get(getName())).getTrajectory();
         } else {
             return null;
         }
@@ -70,19 +83,27 @@ public class ADOPTAgent extends Agent {
 
     @Override
     public void start() {
+        valueBounds.updateChildren(getChildren());
         setValue(findMinimumLowerBoundTrajectory());
         backtrack();
     }
 
     private void backtrack() {
-
-        if (threshold == ub()) {
+        if (valueBounds.isEmpty()) {
+            // the domain is empty, take best response
+            System.out.println(getName() + " CHOSING BEST-RESPONSE VALUE...");
+            setValue(findMinimumLowerBoundTrajectory());
+            threshold = lb();
+            System.out.println(getStatus());
+        } else if (threshold == ub()) {
             // we have found the optimum
             // TODO
         } else if (lb(getValue()) > threshold) {
             // switch to a different value
             // TODO
-            System.out.println(getName() + " BACKTRACKING...");
+            System.out.println(getName() + " CHOSING ANOTHER VALUE...");
+            setValue(findMinimumLowerBoundTrajectory());
+            System.out.println(getStatus());
         }
 
         // broadcast to lower-priority
@@ -91,13 +112,12 @@ public class ADOPTAgent extends Agent {
         // TODO maintain allocation invariant
         maintainAllocationInvariant();
 
-
         if (threshold == ub()) {
-            //terminated
+            // terminated
         }
 
         // broadcast cost
-        broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), context, lb(), ub()));
+        broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), new Context(context), lb(), ub()));
 
     }
 
@@ -125,8 +145,10 @@ public class ADOPTAgent extends Agent {
     protected void notify(Message message) {
         super.notify(message);
 
+        // update the collection of known children
+
         if (message.getContent() instanceof ValueMsg) {
-            handleInformMessage((ValueMsg) (message.getContent()));
+            handleValueMessage((ValueMsg) (message.getContent()));
         }
 
         if (message.getContent() instanceof CostMsg) {
@@ -134,24 +156,24 @@ public class ADOPTAgent extends Agent {
         }
     }
 
-    private void handleInformMessage(ValueMsg valueMessage) {
+    private void handleValueMessage(ValueMsg valueMessage) {
         String agentName = valueMessage.getAgentName();
-          MovingCircle occupiedRegion = (MovingCircle) valueMessage.getRegion();
+        MovingCircle occupiedRegion = (MovingCircle) valueMessage.getRegion();
 
-          // Ignore messages from ancestors
-          if (agentName.compareTo(getName()) < 0) {
+        // Ignore messages from ancestors
+        if (agentName.compareTo(getName()) < 0) {
 
-              System.out.println(getName()+": processing " + valueMessage);
+            System.out.println(getName() + ": processing " + valueMessage);
 
-              context.put(agentName, occupiedRegion);
+            context.put(agentName, occupiedRegion);
 
-              // we're in a new context -- reset inconsistent bounds
-              valueBounds.resetAfterContextChange(context);
+            // we're in a new context -- reset inconsistent bounds
+            valueBounds.resetAfterContextChange(context);
 
-              maintainThresholdInvariant();
+            maintainThresholdInvariant();
 
-              backtrack();
-          }
+            backtrack();
+        }
     }
 
     private void handleCostMessage(CostMsg costMessage) {
@@ -159,25 +181,24 @@ public class ADOPTAgent extends Agent {
         Context msgcontext = costMessage.getContext();
         msgcontext.removeVar(getName());
 
-        // ignore costs of lower priority agents
-        if (agentName.compareTo(getName()) > 0) {
+        // ignore costs from other agents than children
+        if (getChildren().contains(agentName)) {
 
-            System.out.println(getName()+": processing " + costMessage);
+            System.out.println(getName() + ": processing " + costMessage);
 
             // add variables not in my context
             for (String varName : msgcontext.vars()) {
-                // TODO if not my neighbor ...
-                context.put(varName, msgcontext.get(varName));
+                // TODO if not my neighbor ... parent and children are neighbors
+                if (!getNeighbors().contains(varName)) {
+                    context.put(varName, msgcontext.get(varName));
+                }
             }
             valueBounds.resetAfterContextChange(context);
 
             if (context.compatibleWith(msgcontext)) {
-                valueBounds.set(getValue(),
-                        costMessage.getAgentName(),
-                        costMessage.getLb(),
-                        costMessage.getUb(),
-                        0 /*threshold*/,
-                        costMessage.getContext());
+                valueBounds.set(getValue(), costMessage.getAgentName(),
+                        costMessage.getLb(), costMessage.getUb(),
+                        0 /* threshold */, costMessage.getContext());
             }
 
             maintainChildThresholdInvariant();
@@ -190,37 +211,65 @@ public class ADOPTAgent extends Agent {
     }
 
     private void maintainThresholdInvariant() {
-        if (threshold > ub()) {
-            threshold = ub();
-        }
-
         if (threshold < lb()) {
             threshold = lb();
+        }
+
+        if (threshold > ub()) {
+            threshold = ub();
         }
     }
 
     @Override
     public String toString() {
-        return String.format("ADOPTAgent %s lb: %.2f ub: %.2f t: %.2f values explored: %d",
-                getName(),
-                lb(),
-                ub(),
-                threshold,
-                valueBounds.size());
+        return String.format(
+                "ADOPTAgent %s lb: %.2f ub: %.2f t: %.2f values explored: %d",
+                getName(), lb(), ub(), threshold, valueBounds.size());
     }
 
     @Override
     public String getStatus() {
-        String s = String.format("%s c: %.2f \n lb: %.2f ub: %.2f \n t: %.2f val. expl.: %d",
-                getName(),
-                getCurrentTrajectory() != null ? getCurrentTrajectory().getCost() : Double.POSITIVE_INFINITY,
-                lb(),
-                ub(),
-                threshold,
-                valueBounds.size());
+        String s = String
+                .format("%s traj: %s c: %.2f \n lb: %.2f ub: %.2f \n t: %.2f \n context: %s \n children: %s",
+                        getName(),
+                        getCurrentTrajectory() != null ? Integer.toHexString(getCurrentTrajectory().hashCode()) : null,
+                        getCurrentTrajectory() != null ? getCurrentTrajectory().getCost() : Double.POSITIVE_INFINITY,
+                        lb(),
+                        ub(),
+                        threshold,
+                        context,
+                        getChildren().toString());
 
-        s += "\n" + valueBounds.toString();
+        s += "\nvalues:\n" + valueBounds.toString(localCost);
         return s;
+    }
+
+    public Set<String> getChildren() {
+        String[] agentsArray = agents.toArray(new String[agents.size()]);
+        for (int i = 0; i < agentsArray.length; i++) {
+            if (agentsArray[i].compareTo(getName()) > 0) {
+                Set<String> children = new HashSet<String>();
+                children.add(agentsArray[i]);
+                return children;
+            }
+        }
+        return new HashSet<String>();
+    }
+
+    public String getParent() {
+        String[] agentsArray = agents.toArray(new String[agents.size()]);
+        for (int i = agentsArray.length-1; i >= 0; i--) {
+            if (agentsArray[i].compareTo(getName()) < 0) {
+                return agentsArray[i];
+            }
+        }
+        return null;
+    }
+
+    public Set<String> getNeighbors() {
+        Set<String> neighbors =  new HashSet<String>(getChildren());
+        neighbors.add(getParent());
+        return neighbors;
     }
 
 

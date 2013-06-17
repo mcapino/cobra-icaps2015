@@ -7,7 +7,7 @@ public class ChildBounds {
     Context context;
 
     public ChildBounds() {
-        this(Double.POSITIVE_INFINITY, 0, 0, new Context());
+        this(0, Double.POSITIVE_INFINITY, 0, new Context());
     }
 
     public ChildBounds(double lowerBound, double upperBound, double threshold,

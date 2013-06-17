@@ -11,7 +11,15 @@ import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 
 public class Context {
-    Map<String, tt.euclidtime3i.Region> variables = new HashMap<String, tt.euclidtime3i.Region>();
+    Map<String, tt.euclidtime3i.Region> variables;
+
+    public Context() {
+        variables = new HashMap<String, Region>();
+    }
+
+    public Context(Context context) {
+        variables = new HashMap<String, Region>(context.variables);
+    }
 
     public void put(String var, tt.euclidtime3i.Region traj) {
         variables.put(var, traj);
@@ -29,12 +37,15 @@ public class Context {
         return variables.containsKey(var);
     }
 
-    public Collection<tt.euclidtime3i.Region> getOccupiedRegions(int enlargeBy) {
+    public Collection<tt.euclidtime3i.Region> getOccupiedRegions(String excludeVar, int enlargeBy) {
         Collection<tt.euclidtime3i.Region> avoidRegions = new LinkedList<tt.euclidtime3i.Region>();
-        for (tt.euclidtime3i.Region region : variables.values()) {
+        for (String varName : variables.keySet()) {
+            tt.euclidtime3i.Region region = variables.get(varName);
             assert region instanceof MovingCircle;
-            MovingCircle movingCircle =  (MovingCircle) region;
-            avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + enlargeBy));
+            if (!varName.equals(excludeVar)) {
+                MovingCircle movingCircle =  (MovingCircle) region;
+                avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + enlargeBy));
+            }
         }
         return avoidRegions;
     }

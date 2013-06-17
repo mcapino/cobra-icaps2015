@@ -66,11 +66,11 @@ public class Util {
                         return current.getPosition().equals(goal);
                     }
                 });
-
-        EvaluatedTrajectory trajectory
-            = new StraightSegmentTrajectory<tt.euclidtime3i.Point, Straight>(path, MAX_TIME);
-
-        return trajectory;
+        if (path != null) {
+            return new StraightSegmentTrajectory<tt.euclidtime3i.Point, Straight>(path, MAX_TIME);
+        } else {
+            return null;
+        }
     }
 
 }
