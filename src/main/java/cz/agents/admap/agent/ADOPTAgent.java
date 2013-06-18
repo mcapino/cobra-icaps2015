@@ -1,6 +1,8 @@
 package cz.agents.admap.agent;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Random;
 import java.util.Set;
 
 import tt.euclid2i.EvaluatedTrajectory;
@@ -9,6 +11,7 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclidtime3i.region.MovingCircle;
 import cz.agents.admap.agent.adopt.Constraint;
 import cz.agents.admap.agent.adopt.Context;
+import cz.agents.admap.agent.adopt.FeasibleTrajectoriesDomain;
 import cz.agents.admap.agent.adopt.LocalCost;
 import cz.agents.admap.agent.adopt.ValueBounds;
 import cz.agents.admap.msg.CostMsg;
@@ -19,7 +22,8 @@ public class ADOPTAgent extends Agent {
 
     Context context;
     ValueBounds valueBounds;
-    double threshold;
+    double backtrackThreshold;
+    double newValueThreshold;
     Constraint constraint;
 
     LocalCost localCost = new LocalCost() {
@@ -29,13 +33,17 @@ public class ADOPTAgent extends Agent {
         }
     };
 
+    private FeasibleTrajectoriesDomain domain;
+    private Random random = new Random(1);
+
     public ADOPTAgent(String name, Point start, Point goal,
             Environment environment, int agentBodyRadius, Constraint constraint) {
         super(name, start, goal, environment, agentBodyRadius);
         context = new Context();
         valueBounds = new ValueBounds();
-        threshold = 0;
+        backtrackThreshold = 0;
         this.constraint = constraint;
+        domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, new LinkedList<tt.euclidtime3i.Region>(), environment.getBounds(), random);
     }
 
     double computeLocalCost(EvaluatedTrajectory value) {
@@ -48,19 +56,6 @@ public class ADOPTAgent extends Agent {
         }
 
         return cost;
-    }
-
-    private EvaluatedTrajectory findMinimumLowerBoundTrajectory() {
-        System.out.println(getName() + " is replaning with context: " + context.getOccupiedRegions(getName(), agentBodyRadius));
-        EvaluatedTrajectory traj = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(),
-                context.getOccupiedRegions(getName(), agentBodyRadius+2));
-
-        if (traj != null) {
-            return traj;
-        } else {
-            throw new RuntimeException(getName() +": Cannot find a best response!");
-        }
-
     }
 
     private void setValue(EvaluatedTrajectory traj) {
@@ -84,28 +79,48 @@ public class ADOPTAgent extends Agent {
     @Override
     public void start() {
         valueBounds.updateChildren(getChildren());
-        setValue(findMinimumLowerBoundTrajectory());
+        setValue(domain.getNewTrajectory(Double.POSITIVE_INFINITY));
         backtrack();
     }
 
     private void backtrack() {
-        if (valueBounds.isEmpty()) {
-            // the domain is empty, take best response
-            System.out.println(getName() + " CHOSING BEST-RESPONSE VALUE...");
-            setValue(findMinimumLowerBoundTrajectory());
-            threshold = lb();
-            System.out.println(getStatus());
-        } else if (threshold == ub()) {
+//        if (valueBounds.isEmpty()) {
+//            // the domain is empty, take best response
+//            System.out.println(getName() + " CHOSING BEST-RESPONSE VALUE...");
+//            setValue(findMinimumLowerBoundTrajectory());
+//            threshold = lb();
+//            System.out.println(getStatus());
+//        } else
+        if (backtrackThreshold == ub()) {
             // we have found the optimum
             // TODO
-        } else if (lb(getValue()) > threshold) {
-            // switch to a different value
-            // TODO
-            System.out.println(getName() + " CHOSING ANOTHER VALUE...");
-            setValue(findMinimumLowerBoundTrajectory());
-            System.out.println(getStatus());
         }
 
+        if (lb() > newValueThreshold) {
+            // introduce a new value
+            EvaluatedTrajectory traj = domain.getNewTrajectory(newValueThreshold);
+            System.out.println(getName() + " Introduced new value: " + Integer.toHexString(traj.hashCode()));
+            valueBounds.introduceNewValue(traj);
+        }
+
+        if (lb(getValue()) > backtrackThreshold) {
+            // Chose the best (w.r.t. lower-bound) value from the existing ones
+
+            System.out.println(getName() + " Switching to a new value: " + Integer.toHexString(traj.hashCode()));
+
+            EvaluatedTrajectory traj = valueBounds.findLowestBoundValue();
+
+            setValue(traj);
+            System.out.println(getStatus());
+
+            broadcast(new ValueMsg(getName(), new MovingCircle(getValue(), agentBodyRadius)));
+
+            try { Thread.sleep(5000); } catch (InterruptedException e) {}
+        }
+
+        broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), new Context(context), lb(), ub()));
+
+        /*
         // broadcast to lower-priority
         broadcast(new ValueMsg(getName(), new MovingCircle(getValue(), agentBodyRadius)));
 
@@ -118,11 +133,8 @@ public class ADOPTAgent extends Agent {
 
         // broadcast cost
         broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), new Context(context), lb(), ub()));
+        */
 
-    }
-
-    private void maintainAllocationInvariant() {
-        // TODO still to be implemented...
     }
 
     private double ub(EvaluatedTrajectory value) {
@@ -134,11 +146,29 @@ public class ADOPTAgent extends Agent {
     }
 
     private double ub() {
-        return valueBounds.getUpperBound(localCost);
+        if (domain.isEmpty()) {
+            // there are no consistent trajectories
+            return Double.POSITIVE_INFINITY;
+        }
+        else if (valueBounds.isEmpty()) {
+            // there are no children
+            return domain.getShortestTrajCost();
+        } else {
+            return valueBounds.getUpperBound(localCost);
+        }
     }
 
     private double lb() {
-        return valueBounds.getLowerBound(localCost);
+        if (domain.isEmpty()) {
+            // there are no consistent trajectories
+            return Double.POSITIVE_INFINITY;
+        }
+        else if (valueBounds.isEmpty()) {
+            // there are no children
+            return domain.getShortestTrajCost();
+        } else {
+            return valueBounds.getLowerBound(localCost);
+        }
     }
 
     @Override
@@ -168,7 +198,13 @@ public class ADOPTAgent extends Agent {
             context.put(agentName, occupiedRegion);
 
             // we're in a new context -- reset inconsistent bounds
-            valueBounds.resetAfterContextChange(context);
+            // TOO SOPHISTICATED, DISABLING FOR A WHILE
+            //valueBounds.resetAfterContextChange(context);
+
+            valueBounds = new ValueBounds();
+            valueBounds.updateChildren(getChildren());
+
+            domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, context.getOccupiedRegions(getName(), agentBodyRadius+2), environment.getBounds(), random);
 
             maintainThresholdInvariant();
 
@@ -193,6 +229,8 @@ public class ADOPTAgent extends Agent {
                     context.put(varName, msgcontext.get(varName));
                 }
             }
+
+            // TODO disabled
             valueBounds.resetAfterContextChange(context);
 
             if (context.compatibleWith(msgcontext)) {
@@ -203,6 +241,7 @@ public class ADOPTAgent extends Agent {
 
             maintainChildThresholdInvariant();
             maintainThresholdInvariant();
+            backtrack();
         }
     }
 
@@ -211,20 +250,25 @@ public class ADOPTAgent extends Agent {
     }
 
     private void maintainThresholdInvariant() {
-        if (threshold < lb()) {
-            threshold = lb();
-        }
+          backtrackThreshold = 99;
+//        if (threshold < lb()) {
+//            threshold = lb();
+//        }
+//
+//        if (threshold > ub()) {
+//            threshold = ub();
+//        }
+    }
 
-        if (threshold > ub()) {
-            threshold = ub();
-        }
+    private void maintainAllocationInvariant() {
+        // TODO still to be implemented...
     }
 
     @Override
     public String toString() {
         return String.format(
                 "ADOPTAgent %s lb: %.2f ub: %.2f t: %.2f values explored: %d",
-                getName(), lb(), ub(), threshold, valueBounds.size());
+                getName(), lb(), ub(), backtrackThreshold, valueBounds.size());
     }
 
     @Override
@@ -236,7 +280,7 @@ public class ADOPTAgent extends Agent {
                         getCurrentTrajectory() != null ? getCurrentTrajectory().getCost() : Double.POSITIVE_INFINITY,
                         lb(),
                         ub(),
-                        threshold,
+                        backtrackThreshold,
                         context,
                         getChildren().toString());
 

@@ -51,11 +51,11 @@ public class Context {
     }
 
     // two contexts are compatible if they agree on the variables they share
-    public boolean compatibleWith(Context context) {
+    public boolean compatibleWith(Context otherContext) {
 
         for (Map.Entry<String, tt.euclidtime3i.Region> entry : variables.entrySet()) {
-            if (context.contains(entry.getKey())) {
-                if (!context.get(entry.getKey()).equals(entry.getValue())) {
+            if (otherContext.contains(entry.getKey())) {
+                if (!otherContext.get(entry.getKey()).equals(entry.getValue())) {
                     return false;
                 }
             }

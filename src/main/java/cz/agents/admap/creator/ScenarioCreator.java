@@ -63,7 +63,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.SUPERCONFLICT, Method.ADOPT, 3, 967, true);
+        creator.create("default", Scenario.SUPERCONFLICT, Method.ADOPT, 2, 967, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
