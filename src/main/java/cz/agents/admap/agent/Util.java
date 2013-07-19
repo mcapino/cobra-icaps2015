@@ -8,7 +8,7 @@ import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
-import org.jgrapht.util.Heuristic;
+import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
@@ -55,7 +55,7 @@ public class Util {
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath
                 .findPathBetween(graph,
-                new Heuristic<tt.euclidtime3i.Point>() {
+                new HeuristicToGoal<tt.euclidtime3i.Point>() {
                     @Override
                     public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
                         return (current.getPosition()).distance(goal);
@@ -106,7 +106,7 @@ public class Util {
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = RandomWalkPlanner
                 .findPathBetween(graph,
-                new Heuristic<tt.euclidtime3i.Point>() {
+                new HeuristicToGoal<tt.euclidtime3i.Point>() {
                     @Override
                     public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
                         return (current.getPosition()).distance(goal);

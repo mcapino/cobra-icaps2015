@@ -11,13 +11,13 @@ import org.jgrapht.alg.specifics.Specifics;
 import org.jgrapht.alg.specifics.SpecificsFactory;
 import org.jgrapht.graph.GraphPathImpl;
 import org.jgrapht.util.Goal;
-import org.jgrapht.util.Heuristic;
+import org.jgrapht.util.HeuristicToGoal;
 
 
 public class RandomWalkPlanner<V, E>{
 
     public static <V, E> GraphPath<V, E> findPathBetween(Graph<V, E> graph,
-            Heuristic<V> heuristic, V startVertex, Goal<V> goal, Random random, double randomMoveRatio) {
+            HeuristicToGoal<V> heuristic, V startVertex, Goal<V> goal, Random random, double randomMoveRatio) {
 
         List<E> edgeList = new LinkedList<E>();
         double weight = 0;
