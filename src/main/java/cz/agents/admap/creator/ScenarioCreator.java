@@ -22,6 +22,7 @@ import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
+import tt.euclid2i.probleminstance.RandomEnvironment;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
@@ -146,10 +147,10 @@ public class ScenarioCreator implements Creator {
 
         switch (scenario) {
             case RANDOM_IN_FREESPACE:
-                problem = new RandomProblem(new Environment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
+                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
                 break;
             case RANDOM_WITH_OBSTACLES:
-                problem = new RandomProblem(new Environment(1000, 1000, 10, 250, seed), nAgents, AGENT_BODY_RADIUS, seed);
+                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 10, 250, seed), nAgents, AGENT_BODY_RADIUS, seed);
                 break;
             case SUPERCONFLICT:
                 problem = new SuperconflictProblem(nAgents,AGENT_BODY_RADIUS);
