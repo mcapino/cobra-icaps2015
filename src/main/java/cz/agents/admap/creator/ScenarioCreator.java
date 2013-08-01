@@ -64,7 +64,7 @@ public class ScenarioCreator implements Creator {
     public static void main(String[] args) {
         ScenarioCreator creator = new ScenarioCreator();
         creator.init(args);
-        creator.create("default", Scenario.SUPERCONFLICT, Method.ADPPDG, 2, 967, true);
+        creator.create("default", Scenario.RANDOM_IN_FREESPACE, Method.ADPPDG, 20, 999, true);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -311,11 +311,6 @@ public class ScenarioCreator implements Creator {
          // *** run simulation ***
          concurrentSimulation.run();
     }
-
-
-
-
-
 
     /*
     private void reportResult(String alg, ShortestPathProblem problem, boolean foundSolution,

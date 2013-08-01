@@ -5,15 +5,21 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
+import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
+import tt.euclidtime3i.util.IntersectionChecker;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
 
 public class ADPPDGAgent extends Agent {
+
+	static final Logger LOGGER = Logger.getLogger(ADPPDGAgent.class);
 
     Map<String, Objectives> group = new HashMap<String, Objectives>();
     Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
@@ -31,23 +37,31 @@ public class ADPPDGAgent extends Agent {
 
     @Override
     public void start() {
-        replan();
+    	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), new LinkedList<Region>());
+    	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
 
     private void replan() {
 
-        // compute best response
+        // inflate the space-time regions
 
         Collection<tt.euclidtime3i.Region> avoidRegions = new LinkedList<tt.euclidtime3i.Region>();
         for (MovingCircle movingCircle : avoids.values()) {
             avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
         }
 
-        trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), avoidRegions);
+        if (getCurrentTrajectory() != null &&
+        	IntersectionChecker.intersect(new MovingCircle(getCurrentTrajectory(), agentBodyRadius), new LinkedList<tt.euclidtime3i.Region>(avoids.values()))) {
 
-        // broadcast to the others
+        	LOGGER.trace(getName() + " started planning...");
 
-        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
+        	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), avoidRegions);
+
+	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());
+
+	        // broadcast to the others
+	        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
+        }
     }
 
 
@@ -61,6 +75,7 @@ public class ADPPDGAgent extends Agent {
             MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
 
             if (agentName.compareTo(getName()) < 0) {
+            	//LOGGER.trace(getName() + " adding new trajectory " + occupiedRegion.getTrajectory() + " of " + agentName + " to avoids set");
                 avoids.put(agentName, occupiedRegion);
                 replan();
             }

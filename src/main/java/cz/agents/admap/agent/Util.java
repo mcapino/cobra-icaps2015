@@ -1,14 +1,18 @@
 package cz.agents.admap.agent;
 
+import java.awt.Color;
 import java.util.Collection;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
+
+import cz.agents.alite.vis.VisManager;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
@@ -18,12 +22,15 @@ import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
+import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
 import tt.euclidtime3i.discretization.Straight;
+import tt.vis.GraphLayer;
+import tt.vis.GraphLayer.GraphProvider;
 
 public class Util {
 
     private static final int GRID_STEP = 25;
-    private static final int MAX_TIME = 100000;
+    private static final int MAX_TIME = 2000;
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
             Collection<Region> obstacles, Rectangle bounds, Collection<tt.euclidtime3i.Region> avoid) {
@@ -39,22 +46,25 @@ public class Util {
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
             = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
 
-        // visualize the graph
-//        VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-//            @Override
-//            public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-//                return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
-//            }
-//        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
+      //visualize the graph
+//      VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+//          @Override
+//          public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+//              return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
+//          }
+//      }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(spatialGraph, MAX_TIME, new int[] {1}, avoid);
+            = new ConstantSpeedTimeExtension(spatialGraph, MAX_TIME, new int[] {1}, avoid, GRID_STEP);
+
+        DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
+        	= new FreeOnTargetWaitExtension(graph, goal);
 
 
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath
-                .findPathBetween(graph,
+                .findPathBetween(graphFreeOnTarget,
                 new HeuristicToGoal<tt.euclidtime3i.Point>() {
                     @Override
                     public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
@@ -65,7 +75,8 @@ public class Util {
                 new Goal<tt.euclidtime3i.Point>() {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
-                        return current.getPosition().equals(goal);
+                        return current.getPosition().equals(goal) &&
+                        		current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
         if (path != null) {
@@ -100,8 +111,7 @@ public class Util {
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(spatialGraph, Integer.MAX_VALUE, new int[] {1}, avoid);
-
+            = new ConstantSpeedTimeExtension(spatialGraph, Integer.MAX_VALUE, new int[] {1}, avoid, ConstantSpeedTimeExtension.DISABLE_WAIT_MOVE);
 
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = RandomWalkPlanner
@@ -116,7 +126,7 @@ public class Util {
                 new Goal<tt.euclidtime3i.Point>() {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
-                        return current.getPosition().equals(goal);
+                        return current.getPosition().equals(goal); // last space-time node might not be placed at MAX_TIME
                     }
                 }, random, 0.2);
 
