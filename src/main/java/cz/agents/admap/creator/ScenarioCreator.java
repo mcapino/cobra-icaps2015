@@ -230,9 +230,9 @@ public class ScenarioCreator implements Creator {
             agents.add(agentFactory.createAgent(
                     "a" + new DecimalFormat("00").format(i),
                     problem.getStart(i),
-                    problem.getTargetPoint(i),
+                    problem.getTarget(i),
                     problem.getEnvironment(),
-                    problem.getAgentSizeRadius()));
+                    problem.getBodyRadius(i)));
         }
 
         List<String> agentNames =  new ArrayList<String>(agents.size());
@@ -358,17 +358,6 @@ public class ScenarioCreator implements Creator {
 
                 }, Color.BLACK, Color.WHITE));
 
-        Color inflatedRegionsColor = new Color(250,250,250);
-        VisManager.registerLayer(RegionsLayer.create(
-                new RegionsProvider() {
-
-                    @Override
-                    public Collection<Region> getRegions() {
-                        return problem.getInflatedObstacles();
-                    }
-
-                }, inflatedRegionsColor, inflatedRegionsColor));
-
         VisManager.registerLayer(RegionsLayer.create(
                 new RegionsProvider() {
 
@@ -393,30 +382,14 @@ public class ScenarioCreator implements Creator {
 
         }, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE));
 
-        VisManager.registerLayer(RegionsLayer.create(
-                new RegionsProvider() {
-
-                    @Override
-                    public Collection<Region> getRegions() {
-                        LinkedList<Region> list = new LinkedList<Region>();
-
-                        for (int i=0; i < problem.getTargetRegions().length; i++) {
-                            list.add(problem.getTargetRegions()[i]);
-                        }
-
-                        return list;
-                    }
-
-                }, Color.PINK, Color.PINK));
-
         VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<Point>() {
 
             @Override
             public Collection<LabeledPoint<Point>> getLabeledPoints() {
                 LinkedList<LabeledPoint<Point>> list = new LinkedList<LabeledPoint<Point>>();
 
-                for (int i=0; i < problem.getTargetRegions().length; i++) {
-                    list.add(new LabeledPoint<Point>(problem.getTargetPoint(i), "g"+i));
+                for (int i=0; i < problem.getTargets().length; i++) {
+                    list.add(new LabeledPoint<Point>(problem.getTarget(i), "g"+i));
                 }
                 return list;
             }

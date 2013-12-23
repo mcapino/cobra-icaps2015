@@ -104,18 +104,21 @@ public class ADOPTAgent extends Agent {
         }
 
         if (lb(getValue()) > backtrackThreshold) {
+
+            System.out.println(getName() + " Backtrack not implemented :-(");
+
             // Chose the best (w.r.t. lower-bound) value from the existing ones
 
-            System.out.println(getName() + " Switching to a new value: " + Integer.toHexString(traj.hashCode()));
+            //System.out.println(getName() + " Switching to a new value: " + Integer.toHexString(traj.hashCode()));
 
-            EvaluatedTrajectory traj = valueBounds.findLowestBoundValue();
+            //EvaluatedTrajectory traj = valueBounds.findLowestBoundValue();
 
-            setValue(traj);
-            System.out.println(getStatus());
+            //setValue(traj);
+            //System.out.println(getStatus());
 
-            broadcast(new ValueMsg(getName(), new MovingCircle(getValue(), agentBodyRadius)));
+            //broadcast(new ValueMsg(getName(), new MovingCircle(getValue(), agentBodyRadius)));
 
-            try { Thread.sleep(5000); } catch (InterruptedException e) {}
+            //try { Thread.sleep(5000); } catch (InterruptedException e) {}
         }
 
         broadcast(new CostMsg(getName(), new MovingCircle(getValue(), agentBodyRadius), new Context(context), lb(), ub()));

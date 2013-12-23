@@ -1,18 +1,14 @@
 package cz.agents.admap.agent;
 
-import java.awt.Color;
 import java.util.Collection;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
-
-import cz.agents.alite.vis.VisManager;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
@@ -24,8 +20,6 @@ import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
 import tt.euclidtime3i.discretization.Straight;
-import tt.vis.GraphLayer;
-import tt.vis.GraphLayer.GraphProvider;
 
 public class Util {
 
@@ -59,7 +53,7 @@ public class Util {
             = new ConstantSpeedTimeExtension(spatialGraph, MAX_TIME, new int[] {1}, avoid, GRID_STEP);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
-        	= new FreeOnTargetWaitExtension(graph, goal);
+            = new FreeOnTargetWaitExtension(graph, goal);
 
 
         // plan
@@ -76,11 +70,11 @@ public class Util {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
                         return current.getPosition().equals(goal) &&
-                        		current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
+                                current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
         if (path != null) {
-            return new StraightSegmentTrajectory<tt.euclidtime3i.Point, Straight>(path, MAX_TIME);
+            return new StraightSegmentTrajectory(path, MAX_TIME);
         } else {
             return null;
         }
@@ -131,7 +125,7 @@ public class Util {
                 }, random, 0.2);
 
         if (path != null) {
-            return new StraightSegmentTrajectory<tt.euclidtime3i.Point, Straight>(path, MAX_TIME);
+            return new StraightSegmentTrajectory(path, MAX_TIME);
         } else {
             return null;
         }
