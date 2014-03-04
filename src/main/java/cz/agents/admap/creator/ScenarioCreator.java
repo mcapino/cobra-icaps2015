@@ -352,7 +352,7 @@ public class ScenarioCreator implements Creator {
                     @Override
                     public Collection<Region> getRegions() {
                         LinkedList<Region> list = new LinkedList<Region>();
-                        list.add(problem.getBounds());
+                        list.add(problem.getEnvironment().getBoundary());
                         return list;
                     }
 

@@ -43,7 +43,7 @@ public class ADOPTAgent extends Agent {
         valueBounds = new ValueBounds();
         backtrackThreshold = 0;
         this.constraint = constraint;
-        domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, new LinkedList<tt.euclidtime3i.Region>(), environment.getBounds(), random);
+        domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, new LinkedList<tt.euclidtime3i.Region>(), environment.getBoundary().getBoundingBox(), random);
     }
 
     double computeLocalCost(EvaluatedTrajectory value) {
@@ -207,7 +207,7 @@ public class ADOPTAgent extends Agent {
             valueBounds = new ValueBounds();
             valueBounds.updateChildren(getChildren());
 
-            domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, context.getOccupiedRegions(getName(), agentBodyRadius+2), environment.getBounds(), random);
+            domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, context.getOccupiedRegions(getName(), agentBodyRadius+2), environment.getBoundary().getBoundingBox(), random);
 
             maintainThresholdInvariant();
 

@@ -51,7 +51,7 @@ public class DSAAgent extends Agent {
             avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
         }
 
-        trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), avoidRegions);
+        trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
 
         // broadcast to the others
 

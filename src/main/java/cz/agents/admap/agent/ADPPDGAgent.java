@@ -37,7 +37,7 @@ public class ADPPDGAgent extends Agent {
 
     @Override
     public void start() {
-    	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), new LinkedList<Region>());
+    	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
 
@@ -55,7 +55,7 @@ public class ADPPDGAgent extends Agent {
 
         	LOGGER.trace(getName() + " started planning...");
 
-        	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBounds(), avoidRegions);
+        	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());
 
