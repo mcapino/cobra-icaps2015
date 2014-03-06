@@ -1,13 +1,16 @@
 package cz.agents.admap.agent;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.jgrapht.DirectedGraph;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
+import tt.euclid2i.Line;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import cz.agents.alite.communication.Communicator;
@@ -24,7 +27,10 @@ public abstract class Agent {
     Point start;
     Point goal;
 
+    Point currentPosition;
+
     Environment environment;
+
     int agentBodyRadius;
 
     EvaluatedTrajectory trajectory;
@@ -32,9 +38,12 @@ public abstract class Agent {
     Communicator communicator;
     List<String> agents;
 
-    protected Collection<Region> inflatedObstacles;
+    Collection<Region> inflatedObstacles;
+    DirectedGraph<Point, Line> planningGraph;
 
-    public Agent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
+
+
+	public Agent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
         super();
         this.name = name;
         this.start = start;
@@ -42,6 +51,7 @@ public abstract class Agent {
         this.environment = environment;
         this.agentBodyRadius = agentBodyRadius;
         this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);
+        this.inflatedObstacles.addAll(tt.euclid2i.util.Util.inflateRegions(Collections.singleton(environment.getBoundary()), agentBodyRadius));
     }
 
     public synchronized Point getStart() {
@@ -51,6 +61,14 @@ public abstract class Agent {
     public synchronized Point getGoal() {
         return goal;
     }
+
+    public synchronized Point getCurrentPosition() {
+        return currentPosition;
+    }
+
+    public synchronized void setCurrentPosition(Point currentPosition) {
+		this.currentPosition = currentPosition;
+	}
 
     public String getName() {
         return name;
@@ -106,12 +124,19 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-        //        LOGGER.debug(getName() + " tick: " + time);
-        //        try {
-        //            Thread.sleep(1000);
-        //        } catch (InterruptedException e) {}
+        LOGGER.debug(getName() + " Tick: " + time/1000000000.0);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {}
     }
 
     public String getStatus() { return getName(); }
 
+    public DirectedGraph<Point, Line> getPlanningGraph() {
+    	return planningGraph;
+    }
+
+    public void setPlanningGraph(DirectedGraph<Point, Line> planningGraph) {
+    	this.planningGraph = planningGraph;
+    }
 }

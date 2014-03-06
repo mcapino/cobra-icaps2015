@@ -37,7 +37,14 @@ public class Util {
                     LazyGrid.PATTERN_8_WAY,
                     GRID_STEP);
 
-        final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
+        return computeBestResponse(start, goal, grid, avoid);
+    }
+
+	public static EvaluatedTrajectory computeBestResponse(final Point start,
+			final Point goal,
+			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid,
+			Collection<tt.euclidtime3i.Region> avoid) {
+		final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
             = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
 
       //visualize the graph
@@ -54,7 +61,6 @@ public class Util {
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);
-
 
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath
@@ -78,7 +84,7 @@ public class Util {
         } else {
             return null;
         }
-    }
+	}
 
 
     static public EvaluatedTrajectory computeRandomRoute(final Point start, final Point goal,

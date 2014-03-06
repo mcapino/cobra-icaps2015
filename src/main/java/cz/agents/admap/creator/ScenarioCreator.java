@@ -2,6 +2,7 @@ package cz.agents.admap.creator;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,10 +17,12 @@ import javax.vecmath.Point2d;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.jgrapht.DirectedGraph;
 
 import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Point;
+import tt.euclid2i.Line;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.probleminstance.RandomEnvironment;
@@ -29,9 +32,13 @@ import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.euclidtime3i.vis.TimeParameter;
 import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
+import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblemXMLDeserializer;
 import tt.jointeuclid2ni.probleminstance.RandomProblem;
 import tt.jointeuclid2ni.probleminstance.SuperconflictProblem;
+import tt.jointeuclid2ni.probleminstance.VisUtil;
+import tt.jointeuclid2ni.solver.Parameters;
 import tt.util.AgentColors;
+import tt.util.Args;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
@@ -40,6 +47,7 @@ import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.admap.agent.DSAAgent;
+import cz.agents.admap.agent.ORCAAgent;
 import cz.agents.admap.agent.adopt.NotCollidingConstraint;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -57,21 +65,24 @@ import cz.agents.alite.vis.layer.common.ColorLayer;
 import cz.agents.alite.vis.layer.common.VisInfoLayer;
 
 
-public class ScenarioCreator implements Creator {
+public class ScenarioCreator {
 
     ////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
-        ScenarioCreator creator = new ScenarioCreator();
-        creator.init(args);
-        creator.create("default", Scenario.RANDOM_IN_FREESPACE, Method.ADPPDG, 20, 999, true);
+        if (args.length > 1) {
+        	createFromArgs(args);
+        } else {
+        	final int AGENT_BODY_RADIUS = 50;
+        	EarliestArrivalProblem problem = createProblem(Scenario.RANDOM_IN_FREESPACE, 10, AGENT_BODY_RADIUS, 999);
+        	create(problem, Method.ADPPDG, true);
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////
 
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
-    private static final int AGENT_BODY_RADIUS = 50;
     private static final int MAX_TIME = 2000;
 
     enum Method {
@@ -79,90 +90,41 @@ public class ScenarioCreator implements Creator {
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA,    /* Stochastic Prioritized Planning */
         MGM,
-        ADOPT}
+        ADOPT,
+        ORCA}
 
-    enum Scenario {
-        RANDOM_IN_FREESPACE,
-        RANDOM_WITH_OBSTACLES,
-        SUPERCONFLICT,
-        GEESE
+
+    private static EarliestArrivalProblem problem;
+
+    public static void createFromArgs(String[] args) {
+    	Parameters params = new Parameters();
+    	String xml = Args.getArgumentValue(args, "-problemfile", true);
+    	String methodStr = Args.getArgumentValue(args, "-method", true);
+    	params.showVis = Args.isArgumentSet(args, "-showvis");
+    	params.verbose = Args.isArgumentSet(args, "-verbose");
+    	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
+
+		File file = new File(xml);
+	    params.fileName = file.getName();
+
+	    try {
+			problem = EarliestArrivalProblemXMLDeserializer.deserialize(new FileInputStream(file));
+		} catch (FileNotFoundException e) {}
+
+	    Method method = Method.valueOf(methodStr);
+
+    	create(problem, method, params.showVis);
     }
 
-    private String[] args;
-    private EarliestArrivalProblem problem;
 
-    @Override
-    public void create() {
-        if (args.length > 1) {
-            createFromArgs();
-        }
-    }
-
-    @SuppressWarnings("unused")
-    @Override
-    public void init(String[] args) {
-
-        this.args = args;
-
-        // Set-up the logger
-        String overrideLogFileName = null;
-
-        Properties prop = new Properties();
-
-        String propFile = null;
-        if ((new File("log4j.properties")).isFile()) {
-            propFile = "log4j.properties";
-        } else {
-            if ((new File("resources" + File.separator + "log4j" + File.separator + "log4j.properties")).isFile()) {
-                propFile = "resources" + File.separator + "log4j" + File.separator + "log4j.properties";
-            }
-
-        }
-        if (propFile != null) {
-            try {
-                prop.load(new FileInputStream(propFile));
-            } catch (Exception ex){
-                ex.printStackTrace();
-            }
-            if (overrideLogFileName != null) {
-                prop.setProperty("log4j.appender.R.File", overrideLogFileName);
-            }
-            PropertyConfigurator.configure(prop);
-        }
-    }
-
-    public void createFromArgs() {
-        //for (String arg : args) { System.out.println(arg); }
-        String experimentId = args[1];
-        String scenario = args[2];
-        String algorithm = args[3];
-        int nAgents = Integer.parseInt(args[4]);
-        int seed = Integer.parseInt(args[5]);
-        boolean showVis = Boolean.parseBoolean(args[6]);
-
-        create(experimentId, Scenario.valueOf(scenario), Method.valueOf(algorithm), nAgents, seed, showVis);
-    }
-
-    public void create(String experimentId, Scenario scenario, Method method, int nAgents, int seed, boolean showVis) {
-
-        switch (scenario) {
-            case RANDOM_IN_FREESPACE:
-                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 0, 300, seed), nAgents, AGENT_BODY_RADIUS, seed);
-                break;
-            case RANDOM_WITH_OBSTACLES:
-                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 10, 250, seed), nAgents, AGENT_BODY_RADIUS, seed);
-                break;
-            case SUPERCONFLICT:
-                problem = new SuperconflictProblem(nAgents,AGENT_BODY_RADIUS);
-                break;
-            default:
-                throw new RuntimeException("Unknown scenario");
-        }
-
+    public static void create(EarliestArrivalProblem problem, Method method, boolean showVis) {
 
         if (showVis) {
-            initVisualization();
-            visualizeProblem();
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", 10);
+            VisUtil.visualizeProblem(problem);
+            if (problem.getPlanningGraph() != null) {
+            	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
+            }
         }
 
         switch (method) {
@@ -178,51 +140,96 @@ public class ScenarioCreator implements Creator {
                 solveADOPT(problem, showVis);
                 break;
 
+            case ORCA:
+                solveORCA(problem, showVis);
+                break;
+
             default:
                 throw new RuntimeException("Unknown method");
 
         }
-
     }
 
-    private void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
-        solve(problem, new AgentFactory() {
+    enum Scenario {
+    	RANDOM_IN_FREESPACE,
+    	RANDOM_WITH_OBSTACLES,
+    	SUPERCONFLICT,
+    	GEESE
+    }
 
+	private static EarliestArrivalProblem createProblem(Scenario scenario, int nAgents, int agentBodyRadius, int seed) {
+
+		EarliestArrivalProblem problem;
+
+		switch (scenario) {
+            case RANDOM_IN_FREESPACE:
+                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 0, 300, seed), nAgents, agentBodyRadius, seed);
+                break;
+            case RANDOM_WITH_OBSTACLES:
+                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 10, 250, seed), nAgents, agentBodyRadius, seed);
+                break;
+            case SUPERCONFLICT:
+                problem = new SuperconflictProblem(nAgents, agentBodyRadius);
+                break;
+            default:
+                throw new RuntimeException("Unknown scenario");
+        }
+
+		return problem;
+	}
+
+    private static void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
-                    Environment env, int agentBodyRadius) {
-                return new ADPPDGAgent(name, start, target, env, agentBodyRadius);
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius);
+            	agent.setPlanningGraph(planningGraph);
+                return agent;
             }
         }, showVis);
     }
 
-    private void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
-                    Environment env, int agentBodyRadius) {
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3);
             }
         }, showVis);
     }
 
-    private void solveADOPT(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveADOPT(final EarliestArrivalProblem problem, boolean showVis) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
-                    Environment env, int agentBodyRadius) {
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new ADOPTAgent(name, start, target, env, agentBodyRadius, new NotCollidingConstraint());
             }
         }, showVis);
     }
 
-    interface AgentFactory {
-        Agent createAgent(String name, Point start, Point target, Environment env, int agentBodyRadius);
+    private static void solveORCA(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius);
+            	return agent;
+            }
+        }, showVis);
     }
 
-    private void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, boolean showVis) {
+    interface AgentFactory {
+        Agent createAgent(String name, Point start, Point target, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
+    }
+
+    private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, boolean showVis) {
 
         // Create agents
         List<Agent> agents = new LinkedList<Agent>();
@@ -232,6 +239,7 @@ public class ScenarioCreator implements Creator {
                     problem.getStart(i),
                     problem.getTarget(i),
                     problem.getEnvironment(),
+                    problem.getPlanningGraph(),
                     problem.getBodyRadius(i)));
         }
 
@@ -277,7 +285,7 @@ public class ScenarioCreator implements Creator {
                });
 
                // start periodic ticks
-               final long tickPeriod = (long) 1e9;
+               final long tickPeriod = (long) 1e7;
                final long simulateUntil = 120 * (long) 1e9;
                DurativeEventHandler tickhandler =  new DurativeEventHandler() {
                    @Override
@@ -305,7 +313,7 @@ public class ScenarioCreator implements Creator {
 
          // **** create visio of agents ****
          if (showVis) {
-             visualizeAgents(agents);
+             visualizeAgents(problem, agents);
          }
 
          // *** run simulation ***
@@ -320,84 +328,7 @@ public class ScenarioCreator implements Creator {
                 + solutionQuality + ";" + iterationsToFirstSolution + ";" + iterationLimit);
     } */
 
-
-    private void initVisualization() {
-        VisManager.setInitParam("Trajectory Tools Vis", 1024, 768);
-        VisManager.setSceneParam(new SceneParams() {
-
-            @Override
-            public Point2d getDefaultLookAt() {
-                return new Point2d(500, 500);
-            }
-
-            @Override
-            public double getDefaultZoomFactor() {
-                return 0.5;
-            }
-
-        });
-        VisManager.init();
-
-        // Overlay
-        VisManager.registerLayer(VisInfoLayer.create());
-    }
-
-    private void visualizeProblem() {
-        // background
-        VisManager.registerLayer(ColorLayer.create(Color.WHITE));
-
-        VisManager.registerLayer(RegionsLayer.create(
-                new RegionsProvider() {
-
-                    @Override
-                    public Collection<Region> getRegions() {
-                        LinkedList<Region> list = new LinkedList<Region>();
-                        list.add(problem.getEnvironment().getBoundary());
-                        return list;
-                    }
-
-                }, Color.BLACK, Color.WHITE));
-
-        VisManager.registerLayer(RegionsLayer.create(
-                new RegionsProvider() {
-
-                    @Override
-                    public Collection<Region> getRegions() {
-                        return problem.getObstacles();
-                    }
-
-                }, Color.GRAY, Color.GRAY));
-
-        VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<Point>() {
-
-            @Override
-            public Collection<LabeledPoint<Point>> getLabeledPoints() {
-                LinkedList<LabeledPoint<Point>> list = new LinkedList<LabeledPoint<Point>>();
-
-                for (int i=0; i < problem.getStarts().length; i++) {
-                    list.add(new LabeledPoint<Point>(problem.getStarts()[i], "s"+i));
-                }
-                return list;
-            }
-
-        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE));
-
-        VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<Point>() {
-
-            @Override
-            public Collection<LabeledPoint<Point>> getLabeledPoints() {
-                LinkedList<LabeledPoint<Point>> list = new LinkedList<LabeledPoint<Point>>();
-
-                for (int i=0; i < problem.getTargets().length; i++) {
-                    list.add(new LabeledPoint<Point>(problem.getTarget(i), "g"+i));
-                }
-                return list;
-            }
-
-        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.RED));
-    }
-
-    private void visualizeAgents(List<Agent> agents) {
+    private static void visualizeAgents(EarliestArrivalProblem problem, List<Agent> agents) {
          int agentIndex = 0;
          final TimeParameter timeParameter = new TimeParameter(10);
 

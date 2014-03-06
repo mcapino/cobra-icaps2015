@@ -37,7 +37,11 @@ public class ADPPDGAgent extends Agent {
 
     @Override
     public void start() {
-    	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
+    	if (getPlanningGraph() != null) {
+    		trajectory = Util.computeBestResponse(start, goal, getPlanningGraph(), new LinkedList<Region>());
+    	} else {
+    		trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
+    	}
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
 
@@ -55,7 +59,11 @@ public class ADPPDGAgent extends Agent {
 
         	LOGGER.trace(getName() + " started planning...");
 
-        	trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
+        	if (getPlanningGraph() != null) {
+        		trajectory = Util.computeBestResponse(start, goal, getPlanningGraph(), avoidRegions);
+        	} else {
+        		trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
+        	}
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());
 
@@ -63,8 +71,6 @@ public class ADPPDGAgent extends Agent {
 	        broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
         }
     }
-
-
 
     @Override
     protected void notify(Message message) {
