@@ -124,10 +124,7 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-        LOGGER.debug(getName() + " Tick: " + time/1000000000.0);
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {}
+
     }
 
     public String getStatus() { return getName(); }

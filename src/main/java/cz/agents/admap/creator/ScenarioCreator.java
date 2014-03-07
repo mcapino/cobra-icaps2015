@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import javax.management.RuntimeErrorException;
 import javax.vecmath.Point2d;
 
 import org.apache.log4j.Logger;
@@ -109,7 +110,9 @@ public class ScenarioCreator {
 
 	    try {
 			problem = EarliestArrivalProblemXMLDeserializer.deserialize(new FileInputStream(file));
-		} catch (FileNotFoundException e) {}
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 
 	    Method method = Method.valueOf(methodStr);
 

@@ -1,5 +1,7 @@
 package cz.agents.admap.msg;
 
+import javax.vecmath.Tuple2i;
+
 import tt.euclid2d.Point;
 import tt.euclid2d.Vector;
 import cz.agents.alite.communication.content.Content;
@@ -48,5 +50,6 @@ public class InformNewPosition extends Content {
 	public double getRadius() {
 		return radius;
 	}
+
 
 }

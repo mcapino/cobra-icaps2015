@@ -1,6 +1,7 @@
 package cz.agents.admap.agent;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -36,9 +37,9 @@ public class ORCAAgent extends Agent {
 
 	private static final int MAX_NEIGHBORS = 50;
 	private static final float MAX_SPEED = 1;
-	private static final float NEIGHBOR_DIST = 100;
-	private static final float TIME_HORIZON_AGENT = 10;
-	private static final float TIME_HORIZON_OBSTACLE = 2;
+	private static final float NEIGHBOR_DIST = 1000;
+	private static final float TIME_HORIZON_AGENT = 400;
+	private static final float TIME_HORIZON_OBSTACLE = 10;
 
 	private static final double NEAR_GOAL_EPS = 0.5f;
 
@@ -52,11 +53,8 @@ public class ORCAAgent extends Agent {
 	DesiredControl desiredControl;
 
 	private static final long UNKNOWN = -1;
-	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 80.0;
+	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 500.0;
 	private long lastTickTime = UNKNOWN;
-
-
-	static private int agentCounter = 0;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
         super(name, start, goal, environment, agentBodyRadius);
@@ -73,7 +71,7 @@ public class ORCAAgent extends Agent {
         rvoAgent.timeHorizon_ = TIME_HORIZON_AGENT;
         rvoAgent.timeHorizonObst_ = TIME_HORIZON_OBSTACLE;
 
-        rvoAgent.id_ = agentCounter++;
+        rvoAgent.id_ = Integer.parseInt(name.substring(1));
 
         rvoAgent.initVisualization();
 
@@ -109,18 +107,18 @@ public class ORCAAgent extends Agent {
 
     @Override
     public void start() {
-    	if (getPlanningGraph() != null) {
-    		trajectory = Util.computeBestResponse(start, goal, getPlanningGraph(), new LinkedList<Region>());
-    	} else {
-    		trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
-    	}
-    	setCurrentPosition(trajectory.get(0));
+
     }
 
 
     @Override
 	public void tick(long time) {
 		super.tick(time);
+
+        LOGGER.debug(getName() + " Tick: " + time/1000000000.0);
+        try {
+            Thread.sleep(20);
+        } catch (InterruptedException e) {}
 
 		if (lastTickTime == UNKNOWN) {
 			lastTickTime = time;
@@ -137,9 +135,9 @@ public class ORCAAgent extends Agent {
 
 		RVOAgent[] rvoAgents = neighbors.values().toArray(new RVOAgent[neighbors.values().size()]);
 
-		LOGGER.debug(getName() + " neighbors: " + rvoAgents.length);
+		LOGGER.debug(getName() + " neighbors: " + neighbors);
 
-		// TODO Add other agents to the KD-tree
+		kdTree.clearAgents();
         kdTree.buildAgentTree(rvoAgents);
 
         rvoAgent.computeNeighbors(kdTree);
@@ -148,6 +146,7 @@ public class ORCAAgent extends Agent {
 
         // broadcast to the others
         broadcast(new InformNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), (double) rvoAgent.radius_));
+        setCurrentPosition(rvoAgent.position_.toPoint2i());
     }
 
 	private void setPreferredVelocity(float timeStep) {
@@ -183,10 +182,14 @@ public class ORCAAgent extends Agent {
         if (message.getContent() instanceof InformNewPosition) {
             InformNewPosition newPosMessage = (InformNewPosition) (message.getContent());
             RVOAgent neighborRVOAgent = new RVOAgent();
+            neighborRVOAgent.id_ = newPosMessage.getAgentId();
             neighborRVOAgent.position_ = new Vector2(newPosMessage.getPosition());
             neighborRVOAgent.velocity_ = new Vector2(newPosMessage.getVelocity());
             neighborRVOAgent.radius_ = (float) newPosMessage.getRadius();
-            neighbors.put(newPosMessage.getAgentName(), neighborRVOAgent);
+
+            if (!newPosMessage.getAgentName().equals(getName())) {
+            	neighbors.put(newPosMessage.getAgentName(), neighborRVOAgent);
+            }
         }
     }
 
