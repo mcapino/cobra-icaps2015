@@ -84,6 +84,7 @@ public class ScenarioCreator {
 
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
+
     private static final int MAX_TIME = 2000;
 
     enum Method {
@@ -216,13 +217,13 @@ public class ScenarioCreator {
         }, showVis);
     }
 
-    private static void solveORCA(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveORCA(final EarliestArrivalProblem problem, final boolean showVis) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius);
+            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, showVis);
             	return agent;
             }
         }, showVis);
@@ -235,7 +236,7 @@ public class ScenarioCreator {
     private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, boolean showVis) {
 
         // Create agents
-        List<Agent> agents = new LinkedList<Agent>();
+        final List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
             agents.add(agentFactory.createAgent(
                     "a" + new DecimalFormat("00").format(i),
@@ -255,7 +256,6 @@ public class ScenarioCreator {
         final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
         concurrentSimulation.setPrintouts(1000);
 
-
         // Create the communication channels and communicators for each agent
         ReceiverTable receiverTable = new DirectCommunicationChannel.DefaultReceiverTable();
         Map<String, List<Long>> inboxCounters = new HashMap<String, List<Long>>();
@@ -269,6 +269,14 @@ public class ScenarioCreator {
             }
             agent.setCommunicator(communicator, agentNames);
         }
+
+
+        // The list of agents that havent reached their goals yet
+        final Collection<String> unfinishedAgents = new LinkedList<String>();
+        for (Agent agent : agents) {
+        	unfinishedAgents.add(agent.getName());
+        }
+
 
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
@@ -297,8 +305,19 @@ public class ScenarioCreator {
                        agent.tick(concurrentSimulation.getWallclockRuntime());
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
 
-                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
-                           concurrentSimulation.addEvent(event.getTime() + tickPeriod, agent.getName(), this);
+                       // Check whether all agents reached their goals
+                       if (agent.isFinished()) {
+                    	   unfinishedAgents.remove(agent.getName());
+                       }
+
+                       if (unfinishedAgents.isEmpty()) {
+                    	   // We are done!
+                    	   printSummary(true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
+                    	   System.exit(0);
+                       } else {
+	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
+	                           concurrentSimulation.addEvent(event.getTime() + tickPeriod, agent.getName(), this);
+	                       }
                        }
                        return tickPeriod + duration;
                    }
@@ -323,13 +342,21 @@ public class ScenarioCreator {
          concurrentSimulation.run();
     }
 
-    /*
-    private void reportResult(String alg, ShortestPathProblem problem, boolean foundSolution,
-            double solutionQuality, long iterationsToFirstSolution, long iterationLimit) {
-        System.out.println(alg + ";" + problem.getSeed() + ";" + Analyzer.getProblemInstanceCharacteristics(problem)
-                + ";" + foundSolution + ";"
-                + solutionQuality + ";" + iterationsToFirstSolution + ";" + iterationLimit);
-    } */
+    private static void printSummary(boolean succeeded, List<Agent> agents, long wallClockRuntimeMs) {
+
+    	if (succeeded) {
+	    	double cost = 0;
+	    	int msgsSent = 0;
+	    	for (Agent agent : agents) {
+	    		cost += agent.getCurrentTrajectory().getCost();
+	    		msgsSent += agent.getMessageSentCounter();
+	    	}
+	    	System.out.println(String.format("%.2f", cost) + ";" + wallClockRuntimeMs + ";" + msgsSent);
+    	} else {
+    		System.out.println("inf;0;0");
+    	}
+
+    }
 
     private static void visualizeAgents(EarliestArrivalProblem problem, List<Agent> agents) {
          int agentIndex = 0;

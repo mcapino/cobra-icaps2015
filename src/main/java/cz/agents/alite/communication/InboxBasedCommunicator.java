@@ -13,6 +13,7 @@ public class InboxBasedCommunicator implements Communicator {
     private final String address;
     private ConcurrentProcessCommunicationChannel channel = null;
     private final List<MessageHandler> messageHandlers = new CopyOnWriteArrayList<MessageHandler>();
+    private int messagesSent = 0;
 
     private static long counter = System.currentTimeMillis();
 
@@ -69,6 +70,7 @@ public class InboxBasedCommunicator implements Communicator {
     @Override
     public void sendMessage(Message message) {
         try {
+        	messagesSent++;
             channel.sendMessage(message);
         } catch (CommunicationChannelException e) {
             Message errorMessage = createMessage(new ErrorContent(e));
@@ -92,4 +94,8 @@ public class InboxBasedCommunicator implements Communicator {
     public int getInboxSize() {
         return channel.getInboxSize(address);
     }
+
+    public int getMessagesSent() {
+		return messagesSent;
+	}
 }

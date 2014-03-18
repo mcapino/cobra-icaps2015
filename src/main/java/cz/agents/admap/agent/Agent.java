@@ -14,6 +14,7 @@ import tt.euclid2i.Line;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import cz.agents.alite.communication.Communicator;
+import cz.agents.alite.communication.InboxBasedCommunicator;
 import cz.agents.alite.communication.Message;
 import cz.agents.alite.communication.MessageHandler;
 import cz.agents.alite.communication.content.Content;
@@ -27,21 +28,15 @@ public abstract class Agent {
     Point start;
     Point goal;
 
-    Point currentPosition;
-
     Environment environment;
 
     int agentBodyRadius;
-
-    EvaluatedTrajectory trajectory;
 
     Communicator communicator;
     List<String> agents;
 
     Collection<Region> inflatedObstacles;
     DirectedGraph<Point, Line> planningGraph;
-
-
 
 	public Agent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
         super();
@@ -57,18 +52,6 @@ public abstract class Agent {
     public synchronized Point getStart() {
         return start;
     }
-
-    public synchronized Point getGoal() {
-        return goal;
-    }
-
-    public synchronized Point getCurrentPosition() {
-        return currentPosition;
-    }
-
-    public synchronized void setCurrentPosition(Point currentPosition) {
-		this.currentPosition = currentPosition;
-	}
 
     public String getName() {
         return name;
@@ -124,7 +107,7 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-
+    	LOGGER.debug(getName() + " Tick @ " + time/1000000000.0 + "s");
     }
 
     public String getStatus() { return getName(); }
@@ -136,4 +119,10 @@ public abstract class Agent {
     public void setPlanningGraph(DirectedGraph<Point, Line> planningGraph) {
     	this.planningGraph = planningGraph;
     }
+
+    public abstract boolean isFinished();
+
+	public int getMessageSentCounter() {
+		return ((InboxBasedCommunicator) communicator).getMessagesSent();
+	}
 }

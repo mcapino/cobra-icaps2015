@@ -17,7 +17,7 @@ import tt.euclidtime3i.util.IntersectionChecker;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
 
-public class ADPPDGAgent extends Agent {
+public class ADPPDGAgent extends PlanningAgent {
 
 	static final Logger LOGGER = Logger.getLogger(ADPPDGAgent.class);
 
@@ -87,6 +87,11 @@ public class ADPPDGAgent extends Agent {
             }
         }
     }
+
+	@Override
+	public boolean isFinished() {
+		return false;
+	}
 
 
 }

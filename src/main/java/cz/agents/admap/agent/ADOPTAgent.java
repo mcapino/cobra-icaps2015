@@ -35,6 +35,7 @@ public class ADOPTAgent extends Agent {
 
     private FeasibleTrajectoriesDomain domain;
     private Random random = new Random(1);
+	EvaluatedTrajectory trajectory;
 
     public ADOPTAgent(String name, Point start, Point goal,
             Environment environment, int agentBodyRadius, Constraint constraint) {
@@ -318,6 +319,11 @@ public class ADOPTAgent extends Agent {
         neighbors.add(getParent());
         return neighbors;
     }
+
+	@Override
+	public boolean isFinished() {
+		return false;
+	}
 
 
 

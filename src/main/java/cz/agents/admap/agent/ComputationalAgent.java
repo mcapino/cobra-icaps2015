@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 
@@ -16,6 +17,8 @@ public abstract class ComputationalAgent extends Agent {
     private long activityStartedSystemTime = INACTIVE;
     private long totalActiveTimeNs = 0;
     private long toalIdleTimeNs = 0;
+
+	EvaluatedTrajectory trajectory;
 
     public ComputationalAgent(String name, Point start, Point goal,
             Environment environment, int agentSizeRadius) {

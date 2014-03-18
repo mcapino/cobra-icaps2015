@@ -25,6 +25,8 @@ public class DSAAgent extends Agent {
     Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
     Map<String, MovingCircle> avoids =  new HashMap<String, MovingCircle>();
 
+	EvaluatedTrajectory trajectory;
+
     public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability) {
         super(name, start, goal, environment, agentSizeRadius);
         this.group.put(name, new Objectives(start, goal));
@@ -80,5 +82,10 @@ public class DSAAgent extends Agent {
             replan();
         }
     }
+
+	@Override
+	public boolean isFinished() {
+		return false;
+	}
 
 }

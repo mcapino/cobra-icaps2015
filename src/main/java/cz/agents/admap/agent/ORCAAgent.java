@@ -1,11 +1,8 @@
 package cz.agents.admap.agent;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -20,15 +17,10 @@ import tt.euclid2d.Vector;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
-import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Polygon;
-import tt.euclidtime3i.Region;
-import tt.euclidtime3i.region.MovingCircle;
-import tt.euclidtime3i.util.IntersectionChecker;
 import util.DesiredControl;
 import cz.agents.admap.msg.InformNewPosition;
-import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
 
 public class ORCAAgent extends Agent {
@@ -44,8 +36,7 @@ public class ORCAAgent extends Agent {
 	private static final double NEAR_GOAL_EPS = 0.5f;
 
 	private RVOAgent rvoAgent;
-
-	private HashMap<String, RVOAgent> neighbors;
+    private HashMap<String, RVOAgent> neighbors;
 
 	private KdTree kdTree;
 	private ArrayList<RVOObstacle> obstacles;
@@ -56,8 +47,12 @@ public class ORCAAgent extends Agent {
 	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 500.0;
 	private long lastTickTime = UNKNOWN;
 
-    public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+	private boolean showVis;
+
+    public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
+
+        this.showVis = showVis;
 
         rvoAgent = new RVOAgent();
 
@@ -71,9 +66,14 @@ public class ORCAAgent extends Agent {
         rvoAgent.timeHorizon_ = TIME_HORIZON_AGENT;
         rvoAgent.timeHorizonObst_ = TIME_HORIZON_OBSTACLE;
 
+        rvoAgent.clearTrajectory();
+
         rvoAgent.id_ = Integer.parseInt(name.substring(1));
 
-        rvoAgent.initVisualization();
+        rvoAgent.showVis = showVis;
+        if (showVis) {
+        	rvoAgent.initVisualization();
+        }
 
         LinkedList<tt.euclid2i.Region> ttObstacles = new LinkedList<tt.euclid2i.Region>();
         ttObstacles.addAll(environment.getObstacles());
@@ -100,9 +100,13 @@ public class ORCAAgent extends Agent {
  		neighbors.put(getName(), rvoAgent);
     }
 
+    public synchronized Point getGoal() {
+        return goal;
+    }
+
     @Override
     public EvaluatedTrajectory getCurrentTrajectory() {
-        return trajectory;
+        return rvoAgent.getEvaluatedTrajectory(goal);
     }
 
     @Override
@@ -115,15 +119,16 @@ public class ORCAAgent extends Agent {
 	public void tick(long time) {
 		super.tick(time);
 
-        LOGGER.debug(getName() + " Tick: " + time/1000000000.0);
-        try {
-            Thread.sleep(20);
-        } catch (InterruptedException e) {}
+        if (showVis) {
+	        try {
+	            Thread.sleep(20);
+	        } catch (InterruptedException e) {}
 
-		if (lastTickTime == UNKNOWN) {
-			lastTickTime = time;
-			return;
-		}
+			if (lastTickTime == UNKNOWN) {
+				lastTickTime = time;
+				return;
+			}
+        }
 
 		float timeStep = (float) ((time - lastTickTime)/1000000000.0);
 
@@ -146,7 +151,6 @@ public class ORCAAgent extends Agent {
 
         // broadcast to the others
         broadcast(new InformNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), (double) rvoAgent.radius_));
-        setCurrentPosition(rvoAgent.position_.toPoint2i());
     }
 
 	private void setPreferredVelocity(float timeStep) {
@@ -161,7 +165,7 @@ public class ORCAAgent extends Agent {
 			Vector desiredDir = new Vector(desiredVelocity);
 			desiredDir.normalize();
 
-			System.out.println("Setting pref. velocity for agent " + getName() + " to " + desiredVelocity);
+			LOGGER.trace("Setting pref. velocity for agent " + getName() + " to " + desiredVelocity);
 
 			// Adjust if the agent is near the goal
 			if (distanceToGoal <= timeStep * desiredSpeed) {
@@ -199,6 +203,11 @@ public class ORCAAgent extends Agent {
 
 	public Vector getCurrentVelocity() {
 		return rvoAgent.velocity_.toVector2d();
+	}
+
+	@Override
+	public boolean isFinished() {
+		return getCurrentPosition().distance(goal) < 1;
 	}
 
 
