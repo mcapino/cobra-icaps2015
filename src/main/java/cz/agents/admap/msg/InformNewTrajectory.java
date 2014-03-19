@@ -21,11 +21,13 @@ public class InformNewTrajectory extends Content {
         return region;
     }
 
-    @Override
-    public String toString() {
-        return "InformNewTrajectory [agentName=" + agentName + ", region="
-                + region + "]";
-    }
+	@Override
+	public String toString() {
+		return "InformNewTrajectory [agentName=" + agentName + ", region="
+				+ region + "" + "]";
+	}
+
+
 
 
 }

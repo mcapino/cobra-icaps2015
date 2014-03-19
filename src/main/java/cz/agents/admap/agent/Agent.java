@@ -107,7 +107,7 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-    	LOGGER.debug(getName() + " Tick @ " + time/1000000000.0 + "s");
+    	LOGGER.trace(getName() + " Tick @ " + time/1000000000.0 + "s");
     }
 
     public String getStatus() { return getName(); }

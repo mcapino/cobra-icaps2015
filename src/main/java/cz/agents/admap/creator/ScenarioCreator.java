@@ -45,6 +45,7 @@ import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.ParameterControlLayer;
 import cz.agents.admap.agent.ADOPTAgent;
+import cz.agents.admap.agent.ADPPAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.admap.agent.DSAAgent;
@@ -132,6 +133,11 @@ public class ScenarioCreator {
         }
 
         switch (method) {
+
+	        case ADPP:
+	            solveADPP(problem, showVis);
+	            break;
+
             case ADPPDG:
                 solveADPPDG(problem, showVis);
                 break;
@@ -181,6 +187,19 @@ public class ScenarioCreator {
 
 		return problem;
 	}
+
+    private static void solveADPP(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+            	ADPPAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius);
+            	agent.setPlanningGraph(planningGraph);
+                return agent;
+            }
+        }, showVis);
+    }
 
     private static void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
         solve(problem, new AgentFactory() {
