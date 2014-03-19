@@ -332,7 +332,6 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   // We are done!
                     	   printSummary(true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
-                    	   System.exit(0);
                        } else {
 	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
 	                           concurrentSimulation.addEvent(event.getTime() + tickPeriod, agent.getName(), this);
@@ -367,6 +366,7 @@ public class ScenarioCreator {
 	    	double cost = 0;
 	    	int msgsSent = 0;
 	    	for (Agent agent : agents) {
+	    		LOGGER.info(agent.getName() + " cost: " + String.format("%.2f", agent.getCurrentTrajectory().getCost()) + " Messages sent: " + agent.getMessageSentCounter() );
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    	}

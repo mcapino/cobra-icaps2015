@@ -50,11 +50,7 @@ public class ADPPAgent extends PlanningAgent {
 
     @Override
     public void start() {
-    	if (getPlanningGraph() != null) {
-    		trajectory = Util.computeBestResponse(start, goal, getPlanningGraph(), new LinkedList<Region>());
-    	} else {
-    		trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
-    	}
+    	trajectory = getBestResponseTrajectory(Collections.<Region>emptySet());
 
     	broadcastNewTrajectory(getCurrentTrajectory());
 
@@ -93,11 +89,7 @@ public class ADPPAgent extends PlanningAgent {
         		// The current trajectory is inconsistent
 	        	LOGGER.trace(getName() + " started planning...");
 
-	        	if (getPlanningGraph() != null) {
-	        		trajectory = Util.computeBestResponse(start, goal, getPlanningGraph(), avoidRegions);
-	        	} else {
-	        		trajectory = Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
-	        	}
+	        	trajectory = getBestResponseTrajectory(avoidRegions);
 
 		        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());
 

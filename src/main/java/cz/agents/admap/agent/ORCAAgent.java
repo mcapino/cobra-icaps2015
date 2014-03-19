@@ -44,7 +44,7 @@ public class ORCAAgent extends Agent {
 	DesiredControl desiredControl;
 
 	private static final long UNKNOWN = -1;
-	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 500.0;
+	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 100.0;
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
