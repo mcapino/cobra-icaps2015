@@ -19,6 +19,9 @@ import javax.vecmath.Point2d;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 import org.jgrapht.DirectedGraph;
+import org.junit.runner.Description;
+import org.junit.runner.Runner;
+import org.junit.runner.notification.RunNotifier;
 
 import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
@@ -107,6 +110,8 @@ public class ScenarioCreator {
     	params.verbose = Args.isArgumentSet(args, "-verbose");
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
 
+
+
 		File file = new File(xml);
 	    params.fileName = file.getName();
 
@@ -118,11 +123,33 @@ public class ScenarioCreator {
 
 	    Method method = Method.valueOf(methodStr);
 
+	    if (timeoutStr != null) {
+	    	int timeout = Integer.parseInt(timeoutStr);
+	    	killAt(System.currentTimeMillis() + timeout);
+	    }
+
     	create(problem, method, params.showVis);
     }
 
 
-    public static void create(EarliestArrivalProblem problem, Method method, boolean showVis) {
+    private static void killAt(final long killAtMs) {
+    	Thread t = new Thread() {
+			@Override
+			public void run() {
+				while (System.currentTimeMillis() < killAtMs) {
+					try {
+						Thread.sleep(10);
+					} catch (InterruptedException e) {}
+				}
+				printSummary(false, null, 0);
+				System.exit(0);
+			}
+    	};
+    	t.start();
+	}
+
+
+	public static void create(EarliestArrivalProblem problem, Method method, boolean showVis) {
 
         if (showVis) {
             VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", 10);
