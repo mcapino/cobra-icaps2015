@@ -6,6 +6,7 @@ import java.util.Random;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
+import org.jgrapht.alg.AStarShortestPathSimple;
 import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
@@ -13,6 +14,8 @@ import org.jgrapht.util.HeuristicToGoal;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
+import tt.euclid2i.SegmentedTrajectory;
+import tt.euclid2i.discretization.L1Heuristic;
 import tt.euclid2i.discretization.LazyGrid;
 import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
@@ -20,6 +23,15 @@ import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
 import tt.euclidtime3i.discretization.Straight;
+import tt.euclidtime3i.region.MovingCircle;
+import tt.euclidtime3i.sipp.SippEdge;
+import tt.euclidtime3i.sipp.SippGoal;
+import tt.euclidtime3i.sipp.SippHeuristic;
+import tt.euclidtime3i.sipp.SippNode;
+import tt.euclidtime3i.sipp.SippUtils;
+import tt.euclidtime3i.sipp.SippWrapper;
+import tt.euclidtime3i.sipp.intervals.Interval;
+import tt.euclidtime3i.sipprrts.DynamicEnvironmentImpl;
 
 public class Util {
 
@@ -83,6 +95,47 @@ public class Util {
             return new StraightSegmentTrajectory(path, MAX_TIME);
         } else {
             return null;
+        }
+	}
+
+	public static EvaluatedTrajectory computeBestResponseSIPP(final Point start,
+			final Point goal,
+			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
+			Collection<tt.euclidtime3i.Region> avoid) {
+
+        final SegmentedTrajectory[] trajArr = new SegmentedTrajectory[avoid.size()];
+        int[] radiuses = new int[trajArr.length];
+
+        int i = 0;
+        for (tt.euclidtime3i.Region region: avoid) {
+        	assert region instanceof MovingCircle;
+        	MovingCircle mc = (MovingCircle) region;
+        	assert mc.getTrajectory() instanceof MovingCircle;
+        	trajArr[i] = (SegmentedTrajectory) mc.getTrajectory();
+        	radiuses[i] = mc.getRadius();
+        	i++;
+        }
+
+        DynamicEnvironmentImpl dynamicEnv = new DynamicEnvironmentImpl(trajArr, radiuses, MAX_TIME);
+
+        System.out.println("Creating SIPP Wrapper...");
+
+        SippWrapper wrapper = new SippWrapper(spatialGraph, dynamicEnv, 0, 1, 2, MAX_TIME);
+        SippNode startSipp = new SippNode(start, Interval.toInfinity(0), 0);
+        SippHeuristic heuristic = new SippHeuristic(new L1Heuristic(goal));
+        SippGoal goalSipp = new SippGoal(goal, MAX_TIME);
+
+        System.out.println("..Done \nStarting A* search...");
+
+        GraphPath<SippNode, SippEdge> path = AStarShortestPathSimple.findPathBetween(wrapper, heuristic, startSipp, goalSipp);
+
+        if (path != null) {
+        	final SegmentedTrajectory trajectory = SippUtils.parseTrajectory(path, MAX_TIME);
+        	System.out.println("...Done\n Finished planning: " + trajectory);
+        	return trajectory;
+        } else {
+        	System.out.println("...Done\n Finished planning: No solution found.");
+        	return null;
         }
 	}
 

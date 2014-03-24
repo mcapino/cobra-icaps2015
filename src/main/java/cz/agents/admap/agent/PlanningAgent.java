@@ -21,7 +21,7 @@ public abstract class PlanningAgent extends Agent {
 
 	protected EvaluatedTrajectory getBestResponseTrajectory(Collection<Region> avoidRegions) {
 		if (getPlanningGraph() != null) {
-    		return Util.computeBestResponse(start, goal, getPlanningGraph(), avoidRegions);
+    		return Util.computeBestResponseSIPP(start, goal, getPlanningGraph(), avoidRegions);
     	} else {
     		return Util.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
     	}
