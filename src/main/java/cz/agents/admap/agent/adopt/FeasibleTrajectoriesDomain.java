@@ -6,7 +6,7 @@ import java.util.Random;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.region.Rectangle;
-import cz.agents.admap.agent.Util;
+import cz.agents.admap.agent.BestResponse;
 
 public class FeasibleTrajectoriesDomain {
     Collection<tt.euclid2i.Region> inflatedSpaceObstacles;
@@ -31,7 +31,7 @@ public class FeasibleTrajectoriesDomain {
         this.start = start;
         this.goal = goal;
         this.bounds = bounds;
-        this.shortestTraj = Util.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles);
+        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles);
         this.shortestTrajExamined = false;
         this.random = random;
     }
@@ -42,7 +42,7 @@ public class FeasibleTrajectoriesDomain {
             return shortestTraj;
         } else {
             EvaluatedTrajectory randomTraj
-                = Util.computeRandomRoute(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles, random);
+                = BestResponse.computeRandomRoute(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles, random);
             assert randomTraj != null;
             return randomTraj;
         }

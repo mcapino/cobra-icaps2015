@@ -16,6 +16,7 @@ import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.SegmentedTrajectory;
 import tt.euclid2i.discretization.L1Heuristic;
+import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.discretization.LazyGrid;
 import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
@@ -31,9 +32,9 @@ import tt.euclidtime3i.sipp.SippNode;
 import tt.euclidtime3i.sipp.SippUtils;
 import tt.euclidtime3i.sipp.SippWrapper;
 import tt.euclidtime3i.sipp.intervals.Interval;
-import tt.euclidtime3i.sipprrts.DynamicEnvironmentImpl;
+import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
 
-public class Util {
+public class BestResponse {
 
     private static final int GRID_STEP = 25;
     private static final int MAX_TIME = 2000;
@@ -75,8 +76,7 @@ public class Util {
             = new FreeOnTargetWaitExtension(graph, goal);
 
         // plan
-        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath
-                .findPathBetween(graphFreeOnTarget,
+        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath.findPathBetween(graphFreeOnTarget,
                 new HeuristicToGoal<tt.euclidtime3i.Point>() {
                     @Override
                     public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
@@ -116,13 +116,13 @@ public class Util {
         	i++;
         }
 
-        DynamicEnvironmentImpl dynamicEnv = new DynamicEnvironmentImpl(trajArr, radiuses, MAX_TIME);
+        DynamicObstaclesImpl dynamicEnv = new DynamicObstaclesImpl(trajArr, radiuses, MAX_TIME);
 
         System.out.println("Creating SIPP Wrapper...");
 
         SippWrapper wrapper = new SippWrapper(spatialGraph, dynamicEnv, 0, 1, 2, MAX_TIME);
         SippNode startSipp = new SippNode(start, Interval.toInfinity(0), 0);
-        SippHeuristic heuristic = new SippHeuristic(new L1Heuristic(goal));
+        SippHeuristic heuristic = new SippHeuristic(new L2Heuristic(goal), 1);
         SippGoal goalSipp = new SippGoal(goal, MAX_TIME);
 
         System.out.println("..Done \nStarting A* search...");
@@ -131,10 +131,8 @@ public class Util {
 
         if (path != null) {
         	final SegmentedTrajectory trajectory = SippUtils.parseTrajectory(path, MAX_TIME);
-        	System.out.println("...Done\n Finished planning: " + trajectory);
         	return trajectory;
         } else {
-        	System.out.println("...Done\n Finished planning: No solution found.");
         	return null;
         }
 	}
@@ -153,14 +151,6 @@ public class Util {
 
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
             = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
-
-        // visualize the graph
-//        VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-//            @Override
-//            public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-//                return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
-//            }
-//        }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
