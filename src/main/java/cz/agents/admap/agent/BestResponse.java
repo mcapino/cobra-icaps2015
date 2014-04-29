@@ -18,6 +18,7 @@ import tt.euclid2i.SegmentedTrajectory;
 import tt.euclid2i.discretization.L1Heuristic;
 import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.discretization.LazyGrid;
+import tt.euclid2i.discretization.ObstacleWrapper;
 import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
@@ -40,7 +41,9 @@ public class BestResponse {
     private static final int MAX_TIME = 2000;
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
-            Collection<Region> obstacles, Rectangle bounds, Collection<tt.euclidtime3i.Region> avoid) {
+            Collection<Region> obstacles, Rectangle bounds,
+            Collection<tt.euclid2i.Region> staticObstacles,
+            Collection<tt.euclidtime3i.Region> dynamicObstacles) {
 
         // create grid discretization
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid
@@ -50,27 +53,34 @@ public class BestResponse {
                     LazyGrid.PATTERN_8_WAY,
                     GRID_STEP);
 
-        return computeBestResponse(start, goal, grid, avoid);
+        return computeBestResponse(start, goal, grid, staticObstacles, dynamicObstacles);
     }
 
 	public static EvaluatedTrajectory computeBestResponse(final Point start,
 			final Point goal,
-			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid,
-			Collection<tt.euclidtime3i.Region> avoid) {
-		final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
-            = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
+			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
+			Collection<tt.euclid2i.Region> staticObstacles,
+			Collection<tt.euclidtime3i.Region> dynamicObstacles) {
+
+		final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
+			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
+
+		// = new ToGoalEdgeExtension(graph, goal, GRID_STEP);
 
       //visualize the graph
-//      VisManager.registerLayer(GraphLayer.create(new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-//          @Override
-//          public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-//              return ((ToGoalEdgeExtension) spatialGraph).generateFullGraph(start);
-//          }
-//      }, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY, Color.GRAY, 1, 4));
+//		VisManager.registerLayer(GraphLayer.create(
+//				new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+//					@Override
+//					public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+//						return ((ToGoalEdgeExtension) spatialGraph)
+//								.generateFullGraph(start);
+//					}
+//				}, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY,
+//				Color.GRAY, 1, 4));
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(spatialGraph, MAX_TIME, new int[] {1}, avoid, GRID_STEP);
+            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, MAX_TIME, new int[] {1}, dynamicObstacles, GRID_STEP);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);

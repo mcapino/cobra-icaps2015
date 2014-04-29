@@ -6,13 +6,16 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
-import tt.euclid2i.Trajectory;
+import tt.euclid2i.SegmentedTrajectory;
 import tt.euclid2i.probleminstance.Environment;
+import tt.euclid2i.region.Circle;
+import tt.euclid2i.trajectory.SegmentedTrajectories;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
@@ -25,7 +28,7 @@ public class ADPPAgent extends PlanningAgent {
 
 	static final Logger LOGGER = Logger.getLogger(ADPPAgent.class);
 
-    Map<String, MovingCircle> avoids =  new HashMap<String, MovingCircle>();
+    Map<String, MovingCircle> agentView =  new HashMap<String, MovingCircle>();
 
     boolean higherPriorityRobotsFinished = false;
     boolean finished = false;
@@ -50,19 +53,15 @@ public class ADPPAgent extends PlanningAgent {
 
     @Override
     public void start() {
-    	trajectory = getBestResponseTrajectory(Collections.<Region>emptySet());
-
-    	broadcastNewTrajectory(getCurrentTrajectory());
-
     	if (isHighestPriority()) {
-    		finished = true;
-    		broadcastFinished();
-    		LOGGER.info(getName() +  " has finished...");
+    		higherPriorityRobotsFinished = true;
     	}
+
+    	assertConsistency();
     }
 
-    private void broadcastNewTrajectory(EvaluatedTrajectory currentTrajectory) {
-    	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
+    private void broadcastNewTrajectory(EvaluatedTrajectory newTrajectory) {
+    	broadcast(new InformNewTrajectory(getName(), new MovingCircle(newTrajectory, agentBodyRadius)));
 	}
 
     private void broadcastFinished() {
@@ -73,40 +72,86 @@ public class ADPPAgent extends PlanningAgent {
 		return sortedAgents.get(0).equals(getName());
 	}
 
-	private void replan() {
+	private void assertConsistency() {
+		if (getCurrentTrajectory() == null) {
+	    	trajectory = assertConsistency(getCurrentTrajectory(), Collections.<tt.euclid2i.Region> emptySet(), Collections.<Region> emptySet());
+		} else {
 
-        // inflate the space-time regions
+			Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
+			Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
 
-        Collection<tt.euclidtime3i.Region> avoidRegions = new LinkedList<tt.euclidtime3i.Region>();
-        for (MovingCircle movingCircle : avoids.values()) {
-            avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
-        }
+	        for (Entry<String, MovingCircle> entry : agentView.entrySet()) {
+	        	String name = entry.getKey();
+	        	MovingCircle movingCircle = entry.getValue();
 
-        if (getCurrentTrajectory() != null) {
+	        	if (getName().compareTo(name) > 0) {
+	        		// Dynamic obstacles
+	        		dObst.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius()));
+	        	} else {
+	        		// Static obstacles
+	        		sObst.add(new Circle(movingCircle.getTrajectory().get(0), movingCircle.getRadius()));
+	        	}
+	        }
 
-        	if (IntersectionChecker.intersect(new MovingCircle(getCurrentTrajectory(), agentBodyRadius),
-        			new LinkedList<tt.euclidtime3i.Region>(avoids.values()))) {
-        		// The current trajectory is inconsistent
-	        	LOGGER.trace(getName() + " started planning...");
+	        trajectory = assertConsistency(getCurrentTrajectory(), sObst, dObst);
+		}
 
-	        	trajectory = getBestResponseTrajectory(avoidRegions);
+    	if (!finished && higherPriorityRobotsFinished && lowerPriorityAgentViewFull()) {
+    		// we have consistent trajectory and the higher-priority agents are fixed
+    		finished = true;
+    		broadcastFinished();
+    		LOGGER.info(getName() +  " has finished!");
+    	}
 
-		        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());
+	}
 
-		        // broadcast to the others
-		        broadcastNewTrajectory(getCurrentTrajectory());
+	private EvaluatedTrajectory assertConsistency(EvaluatedTrajectory currentTraj, Collection<tt.euclid2i.Region> sObst, Collection<Region> dObst) {
+
+		if (currentTraj == null || !consistent(new MovingCircle(currentTraj, agentBodyRadius), sObst, dObst)) {
+    		// The current trajectory is inconsistent
+			LOGGER.trace(getName() + " detected inconsistency");
+
+        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst);
+
+        	if (newTrajectory == null) {
+        		// Failure
+        		throw new RuntimeException(getName() + ": FAIL: Cannot find a consistent trajectory.");
         	}
 
-        	if (higherPriorityRobotsFinished) {
-        		// we have consistent trajectory and the higher-priority agents are fixed
-        		finished = true;
-        		broadcastFinished();
-        		LOGGER.info(getName() +  " has finished...");
-        	}
-        }
+	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost());
+
+	        // broadcast to the others
+	        broadcastNewTrajectory(newTrajectory);
+        	return newTrajectory;
+		} else {
+			return currentTraj;
+		}
     }
 
-    @Override
+    private boolean lowerPriorityAgentViewFull() {
+
+    	for (String otherAgentName : sortedAgents) {
+    		if (otherAgentName.compareTo(getName()) > 0) {
+    			if (!agentView.containsKey(otherAgentName)) {
+    				return false;
+    			}
+    		}
+    	}
+
+    	return true;
+   	}
+
+	private boolean consistent(MovingCircle movingCircle, Collection<tt.euclid2i.Region> sObst, Collection<Region> dObst) {
+
+    	assert movingCircle.getTrajectory() instanceof SegmentedTrajectory;
+    	LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(sObst, agentBodyRadius);
+
+    	boolean consistentWithStaticObstacles = SegmentedTrajectories.isInFreeSpace((SegmentedTrajectory) movingCircle.getTrajectory(), sObstInflated);
+    	boolean consistentWithDynamicObstacles = !IntersectionChecker.intersect(movingCircle, dObst);
+    	return  consistentWithStaticObstacles && consistentWithDynamicObstacles;
+	}
+
+	@Override
     protected void notify(Message message) {
         super.notify(message);
         if (message.getContent() instanceof InformNewTrajectory) {
@@ -114,19 +159,18 @@ public class ADPPAgent extends PlanningAgent {
             String agentName = newTrajectoryMessage.getAgentName();
             MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
 
-            if (agentName.compareTo(getName()) < 0) {
-            	//LOGGER.trace(getName() + " adding new trajectory " + occupiedRegion.getTrajectory() + " of " + agentName + " to avoids set");
-                avoids.put(agentName, occupiedRegion);
-                replan();
+            if (agentName.compareTo(getName()) != 0) {
+                agentView.put(agentName, occupiedRegion);
+                assertConsistency();
             }
         }
 
         if (message.getContent() instanceof InformFinished) {
         	String agentName = ((InformFinished) message.getContent()).getAgentName();
-            if (isMyPredecessor(agentName)) {
-            	higherPriorityRobotsFinished = true;
-            	replan();
-            }
+        	if (isMyPredecessor(agentName)) {
+        		higherPriorityRobotsFinished = true;
+        		assertConsistency();
+        	}
         }
     }
 
@@ -142,6 +186,11 @@ public class ADPPAgent extends PlanningAgent {
 	@Override
 	public boolean isFinished() {
 		return finished;
+	}
+
+	@Override
+	public void tick(long time) {
+		super.tick(time);
 	}
 
 }

@@ -11,28 +11,17 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-
-import javax.management.RuntimeErrorException;
-import javax.vecmath.Point2d;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.PropertyConfigurator;
 import org.jgrapht.DirectedGraph;
-import org.junit.runner.Description;
-import org.junit.runner.Runner;
-import org.junit.runner.notification.RunNotifier;
 
 import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
-import tt.euclid2i.Point;
 import tt.euclid2i.Line;
-import tt.euclid2i.Region;
+import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.probleminstance.RandomEnvironment;
 import tt.euclid2i.vis.ProjectionTo2d;
-import tt.euclid2i.vis.RegionsLayer;
-import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.euclidtime3i.vis.TimeParameter;
 import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
@@ -53,6 +42,7 @@ import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
 import cz.agents.admap.agent.DSAAgent;
 import cz.agents.admap.agent.ORCAAgent;
+import cz.agents.admap.agent.PlanningAgent;
 import cz.agents.admap.agent.adopt.NotCollidingConstraint;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -62,12 +52,8 @@ import cz.agents.alite.communication.channel.CommunicationChannelException;
 import cz.agents.alite.communication.channel.DirectCommunicationChannel;
 import cz.agents.alite.communication.channel.DirectCommunicationChannel.ReceiverTable;
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
-import cz.agents.alite.creator.Creator;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
-import cz.agents.alite.vis.VisManager.SceneParams;
-import cz.agents.alite.vis.layer.common.ColorLayer;
-import cz.agents.alite.vis.layer.common.VisInfoLayer;
 
 
 public class ScenarioCreator {
@@ -221,7 +207,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	ADPPAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius);
+            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -316,13 +302,11 @@ public class ScenarioCreator {
             agent.setCommunicator(communicator, agentNames);
         }
 
-
         // The list of agents that havent reached their goals yet
         final Collection<String> unfinishedAgents = new LinkedList<String>();
         for (Agent agent : agents) {
         	unfinishedAgents.add(agent.getName());
         }
-
 
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
@@ -342,13 +326,13 @@ public class ScenarioCreator {
                });
 
                // start periodic ticks
-               final long tickPeriod = (long) 1e7;
+               final long tickPeriod = (long) 1e8;
                final long simulateUntil = 120 * (long) 1e9;
                DurativeEventHandler tickhandler =  new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
                        long lastEventStartedAtNanos = System.nanoTime();
-                       agent.tick(concurrentSimulation.getWallclockRuntime());
+                       agent.tick(event.getTime());
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
 
                        // Check whether all agents reached their goals
@@ -357,11 +341,14 @@ public class ScenarioCreator {
                        }
 
                        if (unfinishedAgents.isEmpty()) {
+                    	   concurrentSimulation.clearQueue();
                     	   // We are done!
                     	   printSummary(true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
                        } else {
 	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
-	                           concurrentSimulation.addEvent(event.getTime() + tickPeriod, agent.getName(), this);
+	                    	   int noOfTicksToSkip = (int) (duration / tickPeriod); // if the tick handling takes more than tickPeriod, we need to skip some ticks
+
+	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriod, agent.getName(), this);
 	                       }
                        }
                        return tickPeriod + duration;
@@ -375,8 +362,6 @@ public class ScenarioCreator {
 
                concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
            }
-
-
 
          // **** create visio of agents ****
          if (showVis) {

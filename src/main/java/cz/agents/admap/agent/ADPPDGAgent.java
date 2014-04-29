@@ -1,6 +1,7 @@
 package cz.agents.admap.agent;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -38,9 +39,9 @@ public class ADPPDGAgent extends PlanningAgent {
     @Override
     public void start() {
     	if (getPlanningGraph() != null) {
-    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new LinkedList<Region>());
+    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), Collections.EMPTY_SET, new LinkedList<Region>());
     	} else {
-    		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), new LinkedList<Region>());
+    		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, new LinkedList<Region>());
     	}
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
@@ -60,9 +61,9 @@ public class ADPPDGAgent extends PlanningAgent {
         	LOGGER.trace(getName() + " started planning...");
 
         	if (getPlanningGraph() != null) {
-        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), avoidRegions);
+        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), Collections.EMPTY_SET, avoidRegions);
         	} else {
-        		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), avoidRegions);
+        		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions);
         	}
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());

@@ -103,7 +103,7 @@ public abstract class Agent {
     }
 
     protected void notify(Message message) {
-        LOGGER.trace(getName() + " received " + message.getContent());
+        LOGGER.trace(getName() + " >>> received message " + message.getContent());
     }
 
     public void tick(long time) {

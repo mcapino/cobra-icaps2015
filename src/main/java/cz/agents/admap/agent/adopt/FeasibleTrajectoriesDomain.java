@@ -1,6 +1,7 @@
 package cz.agents.admap.agent.adopt;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Random;
 
 import tt.euclid2i.EvaluatedTrajectory;
@@ -31,7 +32,7 @@ public class FeasibleTrajectoriesDomain {
         this.start = start;
         this.goal = goal;
         this.bounds = bounds;
-        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles);
+        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, Collections.EMPTY_SET, inflatedSpacetimeObstacles);
         this.shortestTrajExamined = false;
         this.random = random;
     }
