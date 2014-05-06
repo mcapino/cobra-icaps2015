@@ -3,6 +3,7 @@ import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,6 +145,13 @@ public class ScenarioCreator {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
             }
         }
+
+//        try {
+//			System.in.read();
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 
         switch (method) {
 

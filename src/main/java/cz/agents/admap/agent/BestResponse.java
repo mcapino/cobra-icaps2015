@@ -1,15 +1,20 @@
 package cz.agents.admap.agent;
 
+import java.awt.Color;
 import java.util.Collection;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.AStarShortestPathSimple;
 import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
+
+import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.VisLayer;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
@@ -34,6 +39,8 @@ import tt.euclidtime3i.sipp.SippUtils;
 import tt.euclidtime3i.sipp.SippWrapper;
 import tt.euclidtime3i.sipp.intervals.Interval;
 import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
+import tt.vis.GraphLayer;
+import tt.vis.GraphLayer.GraphProvider;
 
 public class BestResponse {
 
@@ -62,21 +69,23 @@ public class BestResponse {
 			Collection<tt.euclid2i.Region> staticObstacles,
 			Collection<tt.euclidtime3i.Region> dynamicObstacles) {
 
-		final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
+		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
 
 		// = new ToGoalEdgeExtension(graph, goal, GRID_STEP);
 
-      //visualize the graph
-//		VisManager.registerLayer(GraphLayer.create(
-//				new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-//					@Override
-//					public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-//						return ((ToGoalEdgeExtension) spatialGraph)
-//								.generateFullGraph(start);
-//					}
-//				}, new tt.euclid2i.vis.ProjectionTo2d(), Color.GRAY,
-//				Color.GRAY, 1, 4));
+		//visualize the graph
+		VisLayer layer = GraphLayer.create(
+						new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+							@Override
+							public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+								return (adaptedSpatialGraph)
+										.generateFullGraph(start);
+							}
+						}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
+						Color.BLUE, 1, 4);
+
+		VisManager.registerLayer(layer);
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
@@ -97,11 +106,14 @@ public class BestResponse {
                 new Goal<tt.euclidtime3i.Point>() {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
-                        return current.getPosition().equals(goal) &&
-                                current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
+                        return current.getPosition().equals(goal)
+                        		&& current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
+
+
         if (path != null) {
+        	VisManager.unregisterLayer(layer);
             return new StraightSegmentTrajectory(path, MAX_TIME);
         } else {
             return null;
