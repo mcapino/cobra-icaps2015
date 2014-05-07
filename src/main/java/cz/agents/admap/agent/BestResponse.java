@@ -45,7 +45,7 @@ import tt.vis.GraphLayer.GraphProvider;
 public class BestResponse {
 
     private static final int GRID_STEP = 25;
-    private static final int MAX_TIME = 2000;
+    private static final int MAX_TIME = 10000; // FIXME take the value from arguments.
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
             Collection<Region> obstacles, Rectangle bounds,

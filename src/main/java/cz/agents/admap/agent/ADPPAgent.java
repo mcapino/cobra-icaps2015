@@ -159,6 +159,8 @@ public class ADPPAgent extends PlanningAgent {
             String agentName = newTrajectoryMessage.getAgentName();
             MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
 
+            LOGGER.trace(occupiedRegion.getTrajectory());
+
             if (agentName.compareTo(getName()) != 0) {
                 agentView.put(agentName, occupiedRegion);
                 assertConsistency();
