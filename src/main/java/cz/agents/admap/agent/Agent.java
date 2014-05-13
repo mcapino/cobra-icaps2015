@@ -125,4 +125,8 @@ public abstract class Agent {
 	public int getMessageSentCounter() {
 		return ((InboxBasedCommunicator) communicator).getMessagesSent();
 	}
+	
+	public int getInboxSize() {
+		return ((InboxBasedCommunicator) communicator).getInboxSize();
+	}
 }

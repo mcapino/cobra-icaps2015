@@ -36,6 +36,8 @@ public class ADPPAgent extends PlanningAgent {
 
     List<String> sortedAgents = new LinkedList<String>();
 
+	private boolean consistencyCheckNeeded;
+
     public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
         super(name, start, goal, environment, agentBodyRadius);
     }
@@ -164,7 +166,7 @@ public class ADPPAgent extends PlanningAgent {
 
             if (agentName.compareTo(getName()) != 0) {
                 agentView.put(agentName, occupiedRegion);
-                assertConsistency();
+                consistencyCheckNeeded = true;
             }
         }
 
@@ -172,8 +174,13 @@ public class ADPPAgent extends PlanningAgent {
         	String agentName = ((InformFinished) message.getContent()).getAgentName();
         	if (isMyPredecessor(agentName)) {
         		higherPriorityRobotsFinished = true;
-        		assertConsistency();
+        		consistencyCheckNeeded = true;
         	}
+        }
+        
+        if (consistencyCheckNeeded && getInboxSize() == 0) {
+        	assertConsistency();
+        	consistencyCheckNeeded = false;
         }
     }
 

@@ -1,11 +1,9 @@
 package cz.agents.admap.agent;
 
-import java.awt.Color;
 import java.util.Collection;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.AStarShortestPathSimple;
@@ -13,14 +11,10 @@ import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
 
-import cz.agents.alite.vis.VisManager;
-import cz.agents.alite.vis.layer.VisLayer;
-
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.SegmentedTrajectory;
-import tt.euclid2i.discretization.L1Heuristic;
 import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.discretization.LazyGrid;
 import tt.euclid2i.discretization.ObstacleWrapper;
@@ -39,8 +33,6 @@ import tt.euclidtime3i.sipp.SippUtils;
 import tt.euclidtime3i.sipp.SippWrapper;
 import tt.euclidtime3i.sipp.intervals.Interval;
 import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
-import tt.vis.GraphLayer;
-import tt.vis.GraphLayer.GraphProvider;
 
 public class BestResponse {
 
@@ -75,17 +67,17 @@ public class BestResponse {
 		// = new ToGoalEdgeExtension(graph, goal, GRID_STEP);
 
 		//visualize the graph
-		VisLayer layer = GraphLayer.create(
-						new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-							@Override
-							public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-								return (adaptedSpatialGraph)
-										.generateFullGraph(start);
-							}
-						}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
-						Color.BLUE, 1, 4);
-
-		VisManager.registerLayer(layer);
+//		VisLayer layer = GraphLayer.create(
+//						new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+//							@Override
+//							public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+//								return (adaptedSpatialGraph)
+//										.generateFullGraph(start);
+//							}
+//						}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
+//						Color.BLUE, 1, 4);
+//
+//		VisManager.registerLayer(layer);
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
@@ -113,7 +105,7 @@ public class BestResponse {
 
 
         if (path != null) {
-        	VisManager.unregisterLayer(layer);
+        	//VisManager.unregisterLayer(layer);
             return new StraightSegmentTrajectory(path, MAX_TIME);
         } else {
             return null;

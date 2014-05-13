@@ -67,7 +67,7 @@ public class ScenarioCreator {
         } else {
         	final int AGENT_BODY_RADIUS = 50;
         	EarliestArrivalProblem problem = createProblem(Scenario.RANDOM_IN_FREESPACE, 10, AGENT_BODY_RADIUS, 999);
-        	create(problem, Method.ADPPDG, true);
+        	create(problem, Method.ADPPDG, true, null);
         }
     }
 
@@ -101,6 +101,11 @@ public class ScenarioCreator {
 
 		File file = new File(xml);
 	    params.fileName = file.getName();
+	    
+	    File bgImgFile = new File(xml.replace(".xml", ".png"));
+	    if (!bgImgFile.exists()) {
+	    	bgImgFile = null;
+	    }
 
 	    try {
 			problem = EarliestArrivalProblemXMLDeserializer.deserialize(new FileInputStream(file));
@@ -115,7 +120,7 @@ public class ScenarioCreator {
 	    	killAt(System.currentTimeMillis() + timeout);
 	    }
 
-    	create(problem, method, params.showVis);
+    	create(problem, method, params.showVis, bgImgFile);
     }
 
 
@@ -136,10 +141,10 @@ public class ScenarioCreator {
 	}
 
 
-	public static void create(EarliestArrivalProblem problem, Method method, boolean showVis) {
+	public static void create(EarliestArrivalProblem problem, Method method, boolean showVis, File bgImageFile) {
 
         if (showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", 10);
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", bgImageFile, 10);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
