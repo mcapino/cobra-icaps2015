@@ -19,6 +19,7 @@ import tt.euclid2i.trajectory.SegmentedTrajectories;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
+import tt.euclidtime3i.util.IntersectionCheckerWithProtectedPoint;
 import cz.agents.admap.msg.InformFinished;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Communicator;
@@ -111,7 +112,7 @@ public class ADPPAgent extends PlanningAgent {
     		// The current trajectory is inconsistent
 			LOGGER.trace(getName() + " detected inconsistency");
 
-        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst);
+        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart());
 
         	if (newTrajectory == null) {
         		// Failure
@@ -147,7 +148,7 @@ public class ADPPAgent extends PlanningAgent {
     	LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(sObst, agentBodyRadius);
 
     	boolean consistentWithStaticObstacles = SegmentedTrajectories.isInFreeSpace((SegmentedTrajectory) movingCircle.getTrajectory(), sObstInflated);
-    	boolean consistentWithDynamicObstacles = !IntersectionChecker.intersect(movingCircle, dObst);
+    	boolean consistentWithDynamicObstacles = !IntersectionCheckerWithProtectedPoint.intersect(movingCircle, dObst, getStart());
     	return  consistentWithStaticObstacles && consistentWithDynamicObstacles;
 	}
 

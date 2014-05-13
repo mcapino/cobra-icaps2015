@@ -11,6 +11,7 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
+import tt.euclidtime3i.region.MovingCircleMinusPoint;
 import tt.euclidtime3i.region.StaticObstacle;
 
 /**
@@ -28,7 +29,7 @@ public abstract class PlanningAgent extends Agent {
 		super(name, start, goal, environment, agentBodyRadius);
 	}
 
-	protected EvaluatedTrajectory getBestResponseTrajectory(Collection<tt.euclid2i.Region> staticObst, Collection<Region> dynamicObst) {
+	protected EvaluatedTrajectory getBestResponseTrajectory(Collection<tt.euclid2i.Region> staticObst, Collection<Region> dynamicObst, tt.euclid2i.Point protectedPoint) {
 
 		LOGGER.debug(getName() + " started planning ...");
 		long startedAt = System.currentTimeMillis();
@@ -36,6 +37,8 @@ public abstract class PlanningAgent extends Agent {
 		EvaluatedTrajectory traj;
 		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, agentBodyRadius);
 		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, agentBodyRadius);
+		dObstInflated = subtractProtectedPoint(dObstInflated, protectedPoint);
+		
 
 		if (getPlanningGraph() != null) {
     		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), sObstInflated, dObstInflated);
@@ -68,6 +71,18 @@ public abstract class PlanningAgent extends Agent {
 		}
 		return dObstInflated;
 	}
+	
+	protected static LinkedList<tt.euclidtime3i.Region> subtractProtectedPoint(Collection<tt.euclidtime3i.Region> dObst, tt.euclid2i.Point point) {
+		// Inflate static obstacles
+		LinkedList<tt.euclidtime3i.Region> dObstMinusPoint = new LinkedList<tt.euclidtime3i.Region>();
+		for (tt.euclidtime3i.Region region : dObst) {
+			assert region instanceof MovingCircle;
+			MovingCircle mc = (MovingCircle) region;
+			dObstMinusPoint.add(new MovingCircleMinusPoint(mc, point));
+		}
+		return dObstMinusPoint;
+	}
+
 
 
 
