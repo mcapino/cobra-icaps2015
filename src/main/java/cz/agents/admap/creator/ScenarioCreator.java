@@ -37,6 +37,7 @@ import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.ParameterControlLayer;
+import tt.vis.TimeParameterHolder;
 import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPPAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
@@ -146,7 +147,7 @@ public class ScenarioCreator {
 	public static void create(EarliestArrivalProblem problem, Method method, boolean showVis, File bgImageFile) {
 
         if (showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", bgImageFile, 10);
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", bgImageFile, 2);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
@@ -423,9 +424,6 @@ public class ScenarioCreator {
 
     private static void visualizeAgents(EarliestArrivalProblem problem, List<Agent> agents) {
          int agentIndex = 0;
-         final TimeParameter timeParameter = new TimeParameter(10);
-
-         VisManager.registerLayer(ParameterControlLayer.create(timeParameter));
 
          for (final Agent agent: agents) {
 
@@ -446,7 +444,7 @@ public class ScenarioCreator {
                          return regions;
 
                     }
-            }, new TimeParameterProjectionTo2d(timeParameter), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
+            }, new TimeParameterProjectionTo2d(TimeParameterHolder.time), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
 
             final Point labelLocation = problem.getStart(agentIndex);
             VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {

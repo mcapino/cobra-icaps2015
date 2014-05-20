@@ -18,10 +18,13 @@ import tt.euclidtime3i.region.StaticObstacle;
  * An agent that resolves conflict by finding new conflict-free plans.
  */
 public abstract class PlanningAgent extends Agent {
-
-
+	
+	// Needed to overcome situation when the collision checker detected conflicts on the trajectory that was just returned by 
+	// the best-response rutine.
+	final int RADIUS_BUFFER = 1;
+	
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
-
+	
 	EvaluatedTrajectory trajectory;
 
 	public PlanningAgent(String name, Point start, Point goal,
@@ -35,8 +38,8 @@ public abstract class PlanningAgent extends Agent {
 		long startedAt = System.currentTimeMillis();
 
 		EvaluatedTrajectory traj;
-		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, agentBodyRadius);
-		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, agentBodyRadius);
+		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, agentBodyRadius+RADIUS_BUFFER);
+		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, agentBodyRadius+RADIUS_BUFFER);
 		dObstInflated = subtractProtectedPoint(dObstInflated, protectedPoint);
 		
 

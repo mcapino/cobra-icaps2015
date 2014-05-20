@@ -39,7 +39,7 @@ public class IntersectionCheckerWithProtectedPoint {
 					otherMc.getTrajectory(),
 					protectedPoint,
 					thisMc.getRadius() + otherMc.getRadius(),
-					Math.min(thisMc.getRadius(), otherMc.getRadius())/4);
+					(int) Math.floor(Math.min(thisMc.getRadius(), otherMc.getRadius())/4.0));
 		}
 
 		throw new NotImplementedException("The conflict checking of " + thisRegion.getClass() + " vs. " + otherRegion.getClass() + " not implemented yet");

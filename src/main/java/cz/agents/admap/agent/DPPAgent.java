@@ -106,13 +106,13 @@ public abstract class DPPAgent extends PlanningAgent {
 
 		if (currentTraj == null || !consistent(new MovingCircle(currentTraj, agentBodyRadius), sObst, dObst)) {
     		// The current trajectory is inconsistent
-			LOGGER.trace(getName() + " detected inconsistency");
-
+			LOGGER.trace(getName() + " detected inconsistency. My traj:" + currentTraj + "");
+			
         	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart());
 
         	if (newTrajectory == null) {
         		// Failure
-        		throw new RuntimeException(getName() + ": FAIL: Cannot find a consistent trajectory.");
+        		throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
         	}
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost());
@@ -145,6 +145,7 @@ public abstract class DPPAgent extends PlanningAgent {
 
     	boolean consistentWithStaticObstacles = SegmentedTrajectories.isInFreeSpace((SegmentedTrajectory) movingCircle.getTrajectory(), sObstInflated);
     	boolean consistentWithDynamicObstacles = !IntersectionCheckerWithProtectedPoint.intersect(movingCircle, dObst, getStart());
+    	LOGGER.trace("Consistent with static: " + consistentWithStaticObstacles + " Consistent with dynamic: " + consistentWithDynamicObstacles);
     	return  consistentWithStaticObstacles && consistentWithDynamicObstacles;
 	}
 

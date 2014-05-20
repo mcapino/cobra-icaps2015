@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,8 +22,6 @@ public class SDPPAgent extends DPPAgent {
 	static final Logger LOGGER = Logger.getLogger(SDPPAgent.class);
 	int round;
 	boolean agentViewChangedInLastRound;
-	
-	
 	
     public SDPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
         super(name, start, goal, environment, agentBodyRadius);
