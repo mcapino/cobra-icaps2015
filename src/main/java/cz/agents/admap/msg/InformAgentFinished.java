@@ -2,10 +2,10 @@ package cz.agents.admap.msg;
 
 import cz.agents.alite.communication.content.Content;
 
-public class InformFinished extends Content {
+public class InformAgentFinished extends Content {
     final String agentName;
 
-    public InformFinished(String agentName) {
+    public InformAgentFinished(String agentName) {
         super(null);
         this.agentName = agentName;
     }
@@ -16,7 +16,6 @@ public class InformFinished extends Content {
 
 	@Override
 	public String toString() {
-		return "InformFinished [agentName=" + agentName + "]";
+		return "InformAgentFinished [agentName=" + agentName + "]";
 	}
-
 }

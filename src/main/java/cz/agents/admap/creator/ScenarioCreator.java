@@ -44,6 +44,7 @@ import cz.agents.admap.agent.Agent;
 import cz.agents.admap.agent.DSAAgent;
 import cz.agents.admap.agent.ORCAAgent;
 import cz.agents.admap.agent.PlanningAgent;
+import cz.agents.admap.agent.SDPPAgent;
 import cz.agents.admap.agent.adopt.NotCollidingConstraint;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -80,6 +81,7 @@ public class ScenarioCreator {
 
     enum Method {
         ADPP,   /* Asynchronous Decentralized Prioritized Planning */
+        SDPP,
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA,    /* Stochastic Prioritized Planning */
         MGM,
@@ -163,6 +165,10 @@ public class ScenarioCreator {
 	        case ADPP:
 	            solveADPP(problem, showVis);
 	            break;
+	            
+	        case SDPP:
+	            solveSDPP(problem, showVis);
+	            break;
 
             case ADPPDG:
                 solveADPPDG(problem, showVis);
@@ -221,6 +227,19 @@ public class ScenarioCreator {
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
             	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius);
+            	agent.setPlanningGraph(planningGraph);
+                return agent;
+            }
+        }, showVis);
+    }
+    
+    private static void solveSDPP(final EarliestArrivalProblem problem, boolean showVis) {
+        solve(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, Point start, Point target,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
