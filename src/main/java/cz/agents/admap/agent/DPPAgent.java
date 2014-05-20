@@ -106,7 +106,7 @@ public abstract class DPPAgent extends PlanningAgent {
 
 		if (currentTraj == null || !consistent(new MovingCircle(currentTraj, agentBodyRadius), sObst, dObst)) {
     		// The current trajectory is inconsistent
-			LOGGER.trace(getName() + " detected inconsistency. My traj:" + currentTraj + "");
+			LOGGER.trace(getName() + " detected inconsistency.");
 			
         	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart());
 

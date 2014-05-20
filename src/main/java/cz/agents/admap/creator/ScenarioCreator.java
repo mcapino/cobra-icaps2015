@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,14 @@ import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
+import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.probleminstance.RandomEnvironment;
 import tt.euclid2i.vis.ProjectionTo2d;
+import tt.euclid2i.vis.RegionsLayer;
+import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
+import tt.euclidtime3i.region.MovingCircle;
+import tt.euclidtime3i.util.IntersectionChecker;
 import tt.euclidtime3i.vis.TimeParameter;
 import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
@@ -57,6 +63,7 @@ import cz.agents.alite.communication.channel.DirectCommunicationChannel.Receiver
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.VisLayer;
 
 
 public class ScenarioCreator {
@@ -399,6 +406,7 @@ public class ScenarioCreator {
          // **** create visio of agents ****
          if (showVis) {
              visualizeAgents(problem, agents);
+             visualizeConflicts(agents);
          }
 
          // *** run simulation ***
@@ -461,4 +469,60 @@ public class ScenarioCreator {
             agentIndex++;
         }
     }
+    
+    private static void visualizeConflicts(final List<Agent> agents) {
+        
+    	VisManager.registerLayer(RegionsLayer.create(new RegionsProvider() {
+			
+			@Override
+			public Collection<? extends Region> getRegions() {
+				
+				Collection<MovingCircle> mcs = new LinkedList<MovingCircle>();
+				
+				for(Agent agent : agents) {
+					mcs.add((MovingCircle) agent.getOccupiedRegion());
+				}
+				
+				return IntersectionChecker.computeAllPairwiseConflicts(mcs, 10);
+			}
+		}, Color.RED));
+    	
+    	int agentIndex = 0;
+
+        for (final Agent agent: agents) {
+
+            // create visio
+            VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+
+               @Override
+               public tt.discrete.Trajectory<Point> getTrajectory() {
+                   return agent.getCurrentTrajectory();
+               }
+           }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TIME, 'g'));
+
+           VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
+               new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
+                   @Override
+                   public Collection<tt.euclidtime3i.Region> getRegions() {
+                        Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
+                        return regions;
+
+                   }
+           }, new TimeParameterProjectionTo2d(TimeParameterHolder.time), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
+
+           final Point labelLocation = problem.getStart(agentIndex);
+           VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
+
+               @Override
+               public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
+                   Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
+                   points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
+                   return points;
+               }
+
+           }, new ProjectionTo2d(), Color.BLACK));
+
+           agentIndex++;
+       }
+   }
 }
