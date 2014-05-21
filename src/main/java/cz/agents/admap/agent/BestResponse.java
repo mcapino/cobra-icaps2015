@@ -37,12 +37,12 @@ import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
 public class BestResponse {
 
     private static final int GRID_STEP = 25;
-    private static final int MAX_TIME = 10000; // FIXME take the value from arguments.
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
             Collection<Region> obstacles, Rectangle bounds,
             Collection<tt.euclid2i.Region> staticObstacles,
-            Collection<tt.euclidtime3i.Region> dynamicObstacles) {
+            Collection<tt.euclidtime3i.Region> dynamicObstacles, 
+            int maxTime) {
 
         // create grid discretization
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid
@@ -52,14 +52,14 @@ public class BestResponse {
                     LazyGrid.PATTERN_8_WAY,
                     GRID_STEP);
 
-        return computeBestResponse(start, goal, grid, staticObstacles, dynamicObstacles);
+        return computeBestResponse(start, goal, grid, staticObstacles, dynamicObstacles, maxTime);
     }
 
 	public static EvaluatedTrajectory computeBestResponse(final Point start,
 			final Point goal,
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
 			Collection<tt.euclid2i.Region> staticObstacles,
-			Collection<tt.euclidtime3i.Region> dynamicObstacles) {
+			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime) {
 
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
@@ -81,7 +81,7 @@ public class BestResponse {
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, MAX_TIME, new int[] {1}, dynamicObstacles, GRID_STEP);
+            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, GRID_STEP);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);
@@ -99,14 +99,14 @@ public class BestResponse {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
                         return current.getPosition().equals(goal)
-                        		&& current.getTime() > (MAX_TIME - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
+                        		&& current.getTime() > (maxTime - GRID_STEP - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
 
 
         if (path != null) {
         	//VisManager.unregisterLayer(layer);
-            return new StraightSegmentTrajectory(path, MAX_TIME);
+            return new StraightSegmentTrajectory(path, maxTime);
         } else {
             return null;
         }
@@ -115,7 +115,7 @@ public class BestResponse {
 	public static EvaluatedTrajectory computeBestResponseSIPP(final Point start,
 			final Point goal,
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
-			Collection<tt.euclidtime3i.Region> avoid) {
+			Collection<tt.euclidtime3i.Region> avoid, final int maxTime) {
 
         final SegmentedTrajectory[] trajArr = new SegmentedTrajectory[avoid.size()];
         int[] radiuses = new int[trajArr.length];
@@ -130,21 +130,21 @@ public class BestResponse {
         	i++;
         }
 
-        DynamicObstaclesImpl dynamicEnv = new DynamicObstaclesImpl(trajArr, radiuses, MAX_TIME);
+        DynamicObstaclesImpl dynamicEnv = new DynamicObstaclesImpl(trajArr, radiuses, maxTime);
 
         System.out.println("Creating SIPP Wrapper...");
 
-        SippWrapper wrapper = new SippWrapper(spatialGraph, dynamicEnv, 0, 1, 2, MAX_TIME);
+        SippWrapper wrapper = new SippWrapper(spatialGraph, dynamicEnv, 0, 1, 2, maxTime);
         SippNode startSipp = new SippNode(start, Interval.toInfinity(0), 0);
         SippHeuristic heuristic = new SippHeuristic(new L2Heuristic(goal), 1);
-        SippGoal goalSipp = new SippGoal(goal, MAX_TIME);
+        SippGoal goalSipp = new SippGoal(goal, maxTime);
 
         System.out.println("..Done \nStarting A* search...");
 
         GraphPath<SippNode, SippEdge> path = AStarShortestPathSimple.findPathBetween(wrapper, heuristic, startSipp, goalSipp);
 
         if (path != null) {
-        	final SegmentedTrajectory trajectory = SippUtils.parseTrajectory(path, MAX_TIME);
+        	final SegmentedTrajectory trajectory = SippUtils.parseTrajectory(path, maxTime);
         	return trajectory;
         } else {
         	return null;
@@ -153,7 +153,7 @@ public class BestResponse {
 
 
     static public EvaluatedTrajectory computeRandomRoute(final Point start, final Point goal,
-            Collection<Region> obstacles, Rectangle bounds, Collection<tt.euclidtime3i.Region> avoid, Random random) {
+            Collection<Region> obstacles, Rectangle bounds, Collection<tt.euclidtime3i.Region> avoid, Random random, final int maxTime) {
 
         // create grid discretization
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid
@@ -188,7 +188,7 @@ public class BestResponse {
                 }, random, 0.2);
 
         if (path != null) {
-            return new StraightSegmentTrajectory(path, MAX_TIME);
+            return new StraightSegmentTrajectory(path, maxTime);
         } else {
             return null;
         }

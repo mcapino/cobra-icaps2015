@@ -16,7 +16,7 @@ import tt.euclidtime3i.region.MovingCircle;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
 
-public class DSAAgent extends Agent {
+public class DSAAgent extends PlanningAgent {
 
     Logger LOGGER = Logger.getLogger(DSAAgent.class);
 
@@ -28,8 +28,8 @@ public class DSAAgent extends Agent {
 
 	EvaluatedTrajectory trajectory;
 
-    public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability) {
-        super(name, start, goal, environment, agentSizeRadius);
+    public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability, int maxTime) {
+        super(name, start, goal, environment, agentSizeRadius, maxTime);
         this.group.put(name, new Objectives(start, goal));
         this.environment = environment;
         this.activationProbability = activationProbability;
@@ -54,7 +54,7 @@ public class DSAAgent extends Agent {
             avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
         }
 
-        trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions);
+        trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime);
 
         // broadcast to the others
 

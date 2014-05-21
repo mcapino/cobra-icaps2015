@@ -14,8 +14,8 @@ public class ADPPAgent extends DPPAgent {
 
 	static final Logger LOGGER = Logger.getLogger(ADPPAgent.class);
 
-    public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius) {
-        super(name, start, goal, environment, agentBodyRadius);
+    public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime) {
+        super(name, start, goal, environment, agentBodyRadius, maxTime);
     }
     
     @Override

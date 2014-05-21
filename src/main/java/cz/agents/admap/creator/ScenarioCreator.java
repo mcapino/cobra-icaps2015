@@ -76,7 +76,7 @@ public class ScenarioCreator {
         } else {
         	final int AGENT_BODY_RADIUS = 50;
         	EarliestArrivalProblem problem = createProblem(Scenario.RANDOM_IN_FREESPACE, 10, AGENT_BODY_RADIUS, 999);
-        	create(problem, Method.ADPPDG, true, null);
+        	create(problem, Method.ADPPDG, 10000, true, null);
         }
     }
 
@@ -103,15 +103,16 @@ public class ScenarioCreator {
     	Parameters params = new Parameters();
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
     	String methodStr = Args.getArgumentValue(args, "-method", true);
+    	String maxTimeStr = Args.getArgumentValue(args, "-maxtime", true);
     	params.showVis = Args.isArgumentSet(args, "-showvis");
     	params.verbose = Args.isArgumentSet(args, "-verbose");
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
-
+    	
 
 
 		File file = new File(xml);
 	    params.fileName = file.getName();
-	    
+	    // Load the PNG image as a background
 	    File bgImgFile = new File(xml.replace(".xml", ".png"));
 	    if (!bgImgFile.exists()) {
 	    	bgImgFile = null;
@@ -129,8 +130,11 @@ public class ScenarioCreator {
 	    	int timeout = Integer.parseInt(timeoutStr);
 	    	killAt(System.currentTimeMillis() + timeout);
 	    }
+	    
+	    int maxTime = Integer.parseInt(maxTimeStr);
+	    
 
-    	create(problem, method, params.showVis, bgImgFile);
+    	create(problem, method, maxTime, params.showVis, bgImgFile);
     }
 
 
@@ -151,7 +155,7 @@ public class ScenarioCreator {
 	}
 
 
-	public static void create(EarliestArrivalProblem problem, Method method, boolean showVis, File bgImageFile) {
+	public static void create(EarliestArrivalProblem problem, Method method, final int maxTime, boolean showVis, File bgImageFile) {
 
         if (showVis) {
             VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", bgImageFile, 2);
@@ -171,19 +175,19 @@ public class ScenarioCreator {
         switch (method) {
 
 	        case ADPP:
-	            solveADPP(problem, showVis);
+	            solveADPP(problem, maxTime, showVis);
 	            break;
 	            
 	        case SDPP:
-	            solveSDPP(problem, showVis);
+	            solveSDPP(problem, maxTime, showVis);
 	            break;
 
             case ADPPDG:
-                solveADPPDG(problem, showVis);
+                solveADPPDG(problem, maxTime, showVis);
                 break;
 
             case DSA:
-                solveDSA(problem, showVis);
+                solveDSA(problem, maxTime, showVis);
                 break;
 
             case ADOPT:
@@ -228,52 +232,52 @@ public class ScenarioCreator {
 		return problem;
 	}
 
-    private static void solveADPP(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveADPP(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius);
+            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
         }, showVis);
     }
     
-    private static void solveSDPP(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveSDPP(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius);
+            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
         }, showVis);
     }
 
-    private static void solveADPPDG(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveADPPDG(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius);
+            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
         }, showVis);
     }
 
-    private static void solveDSA(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveDSA(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3);
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, maxTime);
             }
         }, showVis);
     }

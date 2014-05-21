@@ -27,12 +27,18 @@ public abstract class PlanningAgent extends Agent {
 	
 	EvaluatedTrajectory trajectory;
 
+	protected final int maxTime;
+
 	public PlanningAgent(String name, Point start, Point goal,
-			Environment environment, int agentBodyRadius) {
+			Environment environment, int agentBodyRadius, int maxTime) {
 		super(name, start, goal, environment, agentBodyRadius);
+		this.maxTime = maxTime;
 	}
 
-	protected EvaluatedTrajectory getBestResponseTrajectory(Collection<tt.euclid2i.Region> staticObst, Collection<Region> dynamicObst, tt.euclid2i.Point protectedPoint) {
+	protected EvaluatedTrajectory getBestResponseTrajectory(
+			Collection<tt.euclid2i.Region> staticObst,
+			Collection<Region> dynamicObst, 
+			tt.euclid2i.Point protectedPoint) {
 
 		LOGGER.debug(getName() + " started planning ...");
 		long startedAt = System.currentTimeMillis();
@@ -44,9 +50,9 @@ public abstract class PlanningAgent extends Agent {
 		
 
 		if (getPlanningGraph() != null) {
-    		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), sObstInflated, dObstInflated);
+    		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), sObstInflated, dObstInflated, maxTime);
     	} else {
-    		traj = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), sObstInflated, dObstInflated);
+    		traj = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), sObstInflated, dObstInflated, maxTime);
     	}
 
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
@@ -85,8 +91,4 @@ public abstract class PlanningAgent extends Agent {
 		}
 		return dObstMinusPoint;
 	}
-
-
-
-
 }

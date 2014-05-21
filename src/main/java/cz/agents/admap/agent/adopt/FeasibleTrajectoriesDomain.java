@@ -20,21 +20,23 @@ public class FeasibleTrajectoriesDomain {
     Rectangle bounds;
     private boolean shortestTrajExamined;
     private Random random;
+	private int maxTime;
 
     public FeasibleTrajectoriesDomain(
             Point start, Point goal,
             Collection<tt.euclid2i.Region> inflatedSpaceObstacles,
             Collection<tt.euclidtime3i.Region> inflatedSpacetimeObstacles,
-            Rectangle bounds, Random random) {
+            Rectangle bounds, int maxTime, Random random) {
         super();
         this.inflatedSpaceObstacles = inflatedSpaceObstacles;
         this.inflatedSpacetimeObstacles = inflatedSpacetimeObstacles;
         this.start = start;
         this.goal = goal;
         this.bounds = bounds;
-        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, Collections.EMPTY_SET, inflatedSpacetimeObstacles);
+        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, Collections.EMPTY_SET, inflatedSpacetimeObstacles, maxTime);
         this.shortestTrajExamined = false;
         this.random = random;
+        this.maxTime = maxTime;
     }
 
     public EvaluatedTrajectory getNewTrajectory(double maxCost) {
@@ -43,7 +45,7 @@ public class FeasibleTrajectoriesDomain {
             return shortestTraj;
         } else {
             EvaluatedTrajectory randomTraj
-                = BestResponse.computeRandomRoute(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles, random);
+                = BestResponse.computeRandomRoute(start, goal, inflatedSpaceObstacles, bounds, inflatedSpacetimeObstacles, random, maxTime);
             assert randomTraj != null;
             return randomTraj;
         }
