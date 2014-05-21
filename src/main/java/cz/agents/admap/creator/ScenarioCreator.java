@@ -484,7 +484,9 @@ public class ScenarioCreator {
 				Collection<MovingCircle> mcs = new LinkedList<MovingCircle>();
 				
 				for(Agent agent : agents) {
-					mcs.add((MovingCircle) agent.getOccupiedRegion());
+					if (agent.getCurrentTrajectory() != null) {
+						mcs.add((MovingCircle) agent.getOccupiedRegion());
+					}
 				}
 				
 				return IntersectionChecker.computeAllPairwiseConflicts(mcs, 10);
