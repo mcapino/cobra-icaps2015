@@ -323,7 +323,7 @@ public class ADOPTAgent extends Agent {
     }
 
 	@Override
-	public boolean isFinished() {
+	public boolean isTerminated() {
 		return false;
 	}
 

@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import cz.agents.admap.msg.InformAgentFinished;
+import cz.agents.admap.msg.InformGloballyConverged;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.Message;
@@ -35,11 +36,14 @@ public abstract class DPPAgent extends PlanningAgent {
     Map<String, MovingCircle> agentView =  new HashMap<String, MovingCircle>();
 
     boolean higherPriorityAgentsFinished = false;
-    boolean agentFinished = false;
+    private boolean agentTerminated = false;
 
     List<String> sortedAgents = new LinkedList<String>();
 
 	protected boolean agentViewDirty;
+	
+	public int infromNewTrajectoryCounter = 0;
+		
 
     @Override
 	public void setCommunicator(Communicator communicator, List<String> agents) {
@@ -54,11 +58,16 @@ public abstract class DPPAgent extends PlanningAgent {
     }
 
 	protected void broadcastNewTrajectory(EvaluatedTrajectory newTrajectory) {
+		this.infromNewTrajectoryCounter++;
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(newTrajectory, agentBodyRadius)));
 	}
 
     protected void broadcastAgentFinished() {
     	broadcast(new InformAgentFinished(getName()));
+	}
+    
+    protected void broadcastGloballyConverged() {
+    	broadcast(new InformGloballyConverged());
 	}
 
 	protected boolean isHighestPriority() {
@@ -161,7 +170,17 @@ public abstract class DPPAgent extends PlanningAgent {
                 agentViewDirty = true;
             }
         }
+        
+        if (message.getContent() instanceof InformGloballyConverged) {
+        	agentTerminated();
+
+        }
     }
+
+	protected void agentTerminated() {
+    	agentTerminated = true;
+    	logFinalStats();
+	}
 
 	protected boolean isMyPredecessor(String agentName) {
 		for (int i=0; i < sortedAgents.size()-1; i++) {
@@ -173,13 +192,17 @@ public abstract class DPPAgent extends PlanningAgent {
 	}
 
 	@Override
-	public boolean isFinished() {
-		return agentFinished;
+	public boolean isTerminated() {
+		return agentTerminated;
 	}
 
 	@Override
 	public void tick(long time) {
 		super.tick(time);
+	}
+	
+	void logFinalStats() {
+		LOGGER.info(getName() + ": New trajectory messages broadcasted: " + infromNewTrajectoryCounter + "; Replanned: " + replanningCounter);
 	}
 	
 }

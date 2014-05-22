@@ -380,7 +380,7 @@ public class ScenarioCreator {
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
 
                        // Check whether all agents reached their goals
-                       if (agent.isFinished()) {
+                       if (agent.isTerminated()) {
                     	   unfinishedAgents.remove(agent.getName());
                        }
 
@@ -395,7 +395,7 @@ public class ScenarioCreator {
 	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriod, agent.getName(), this);
 	                       }
                        }
-                       return tickPeriod + duration;
+                       return duration;
                    }
 
                    @Override
@@ -423,7 +423,11 @@ public class ScenarioCreator {
 	    	double cost = 0;
 	    	int msgsSent = 0;
 	    	for (Agent agent : agents) {
-	    		LOGGER.info(agent.getName() + " cost: " + String.format("%.2f", agent.getCurrentTrajectory().getCost()) + " Messages sent: " + agent.getMessageSentCounter() );
+				LOGGER.info(agent.getName()
+						+ " cost: "
+						+ String.format("%.2f", agent.getCurrentTrajectory().getCost()) + 
+						" Messages sent: "+ agent.getMessageSentCounter()						
+						);
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    	}

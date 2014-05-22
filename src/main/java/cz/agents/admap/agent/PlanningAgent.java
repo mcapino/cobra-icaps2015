@@ -28,7 +28,9 @@ public abstract class PlanningAgent extends Agent {
 	EvaluatedTrajectory trajectory;
 
 	protected final int maxTime;
-
+	
+	public int replanningCounter = 0;
+	
 	public PlanningAgent(String name, Point start, Point goal,
 			Environment environment, int agentBodyRadius, int maxTime) {
 		super(name, start, goal, environment, agentBodyRadius);
@@ -39,7 +41,8 @@ public abstract class PlanningAgent extends Agent {
 			Collection<tt.euclid2i.Region> staticObst,
 			Collection<Region> dynamicObst, 
 			tt.euclid2i.Point protectedPoint) {
-
+		
+		replanningCounter++;
 		LOGGER.debug(getName() + " started planning ...");
 		long startedAt = System.currentTimeMillis();
 

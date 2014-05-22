@@ -1,21 +1,16 @@
 package cz.agents.admap.agent;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import cz.agents.admap.msg.InformAgentFinished;
+import tt.euclid2i.Point;
+import tt.euclid2i.probleminstance.Environment;
+import tt.euclidtime3i.Region;
 import cz.agents.admap.msg.InformAgentFinishedRound;
 import cz.agents.admap.msg.InformNewRound;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Message;
-import tt.euclid2i.Point;
-import tt.euclid2i.probleminstance.Environment;
-import tt.euclidtime3i.Region;
-import tt.euclidtime3i.region.MovingCircle;
 
 public class SDPPAgent extends DPPAgent {
 
@@ -64,6 +59,8 @@ public class SDPPAgent extends DPPAgent {
 					} else {
 						// The process converged...
 						LOGGER.info("The process converged!");
+						broadcastGloballyConverged();
+						agentTerminated();
 					}
 				} else {
 					broadcastAgentFinishedRound();

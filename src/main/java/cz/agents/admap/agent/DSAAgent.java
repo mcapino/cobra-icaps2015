@@ -85,7 +85,7 @@ public class DSAAgent extends PlanningAgent {
     }
 
 	@Override
-	public boolean isFinished() {
+	public boolean isTerminated() {
 		return false;
 	}
 

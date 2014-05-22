@@ -43,6 +43,11 @@ public class ADPPAgent extends DPPAgent {
         if (agentViewDirty && getInboxSize() == 0) {
         	assertConsistentTrajectory();
         	agentViewDirty = false;
+        	
+        	if (isLowestPriority() && higherPriorityAgentsFinished) {
+        		broadcastGloballyConverged();
+        		agentTerminated();
+        	}
         }		
 	}
 	
@@ -53,9 +58,8 @@ public class ADPPAgent extends DPPAgent {
 	        trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), dObst());
 		}
 
-    	if (!agentFinished && higherPriorityAgentsFinished && lowerPriorityAgentViewFull()) {
+    	if (!isTerminated() && higherPriorityAgentsFinished && lowerPriorityAgentViewFull()) {
     		// we have consistent trajectory and the higher-priority agents are fixed
-    		agentFinished = true;
     		broadcastAgentFinished();
     		LOGGER.info(getName() +  " has finished!");
     	}
