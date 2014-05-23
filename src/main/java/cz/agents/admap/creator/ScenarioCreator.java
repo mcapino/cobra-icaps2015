@@ -357,6 +357,9 @@ public class ScenarioCreator {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
                     	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
+                    	   if (!params.showVis) {
+                    		   System.exit(0);
+                    	   }
                        } else {
 	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
 	                    	   int noOfTicksToSkip = (int) (duration / tickPeriod); // if the tick handling takes more than tickPeriod, we need to skip some ticks
@@ -404,7 +407,7 @@ public class ScenarioCreator {
 	    	}
 	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter);
     	} else {
-    		System.out.println(prefix + "inf;0;0");
+    		System.out.println(prefix + "inf;0;0;0");
     	}
 
     }
