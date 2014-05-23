@@ -17,6 +17,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
 
+import tt.discrete.Trajectory;
 import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2i.Line;
@@ -39,9 +40,12 @@ import tt.jointeuclid2ni.probleminstance.VisUtil;
 import tt.jointeuclid2ni.solver.Parameters;
 import tt.util.AgentColors;
 import tt.util.Args;
+import tt.vis.FastAgentsLayer.ColorProvider;
+import tt.vis.FastAgentsLayer.TrajectoriesProvider;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
+import tt.vis.FastAgentsLayer;
 import tt.vis.ParameterControlLayer;
 import tt.vis.TimeParameterHolder;
 import cz.agents.admap.agent.ADOPTAgent;
@@ -71,13 +75,7 @@ public class ScenarioCreator {
     ////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
-        if (args.length > 1) {
-        	createFromArgs(args);
-        } else {
-        	final int AGENT_BODY_RADIUS = 50;
-        	EarliestArrivalProblem problem = createProblem(Scenario.RANDOM_IN_FREESPACE, 10, AGENT_BODY_RADIUS, 999);
-        	create(problem, Method.ADPPDG, 10000, true, null);
-        }
+        createFromArgs(args);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -104,11 +102,11 @@ public class ScenarioCreator {
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
     	String methodStr = Args.getArgumentValue(args, "-method", true);
     	String maxTimeStr = Args.getArgumentValue(args, "-maxtime", true);
+    	params.maxTime = Integer.parseInt(maxTimeStr);
     	params.showVis = Args.isArgumentSet(args, "-showvis");
     	params.verbose = Args.isArgumentSet(args, "-verbose");
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
-    	
-
+        params.summaryPrefix = Args.getArgumentValue(args, "-summaryprefix", false, "");
 
 		File file = new File(xml);
 	    params.fileName = file.getName();
@@ -117,6 +115,7 @@ public class ScenarioCreator {
 	    if (!bgImgFile.exists()) {
 	    	bgImgFile = null;
 	    }
+	    params.bgImageFile = bgImgFile;
 
 	    try {
 			problem = EarliestArrivalProblemXMLDeserializer.deserialize(new FileInputStream(file));
@@ -128,17 +127,14 @@ public class ScenarioCreator {
 
 	    if (timeoutStr != null) {
 	    	int timeout = Integer.parseInt(timeoutStr);
-	    	killAt(System.currentTimeMillis() + timeout);
+	    	killAt(params.summaryPrefix, System.currentTimeMillis() + timeout);
 	    }
 	    
-	    int maxTime = Integer.parseInt(maxTimeStr);
-	    
-
-    	create(problem, method, maxTime, params.showVis, bgImgFile);
+    	create(problem, method, params);
     }
 
 
-    private static void killAt(final long killAtMs) {
+    private static void killAt(final String summaryPrefix, final long killAtMs) {
     	Thread t = new Thread() {
 			@Override
 			public void run() {
@@ -147,7 +143,7 @@ public class ScenarioCreator {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(false, null, 0);
+				printSummary(summaryPrefix, false, null, 0);
 				System.exit(0);
 			}
     	};
@@ -155,17 +151,17 @@ public class ScenarioCreator {
 	}
 
 
-	public static void create(EarliestArrivalProblem problem, Method method, final int maxTime, boolean showVis, File bgImageFile) {
-
-        if (showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", bgImageFile, 2);
+	public static void create(EarliestArrivalProblem problem, Method method, final Parameters params) {
+		
+        if (params.showVis) {
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, 2);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
             }
         }
 
-//        try {
+//      try {
 //			System.in.read();
 //		} catch (IOException e) {
 //			// TODO Auto-generated catch block
@@ -175,27 +171,27 @@ public class ScenarioCreator {
         switch (method) {
 
 	        case ADPP:
-	            solveADPP(problem, maxTime, showVis);
+	            solveADPP(problem, params);
 	            break;
 	            
 	        case SDPP:
-	            solveSDPP(problem, maxTime, showVis);
+	            solveSDPP(problem, params);
 	            break;
 
             case ADPPDG:
-                solveADPPDG(problem, maxTime, showVis);
+                solveADPPDG(problem, params);
                 break;
 
             case DSA:
-                solveDSA(problem, maxTime, showVis);
+                solveDSA(problem, params);
                 break;
 
             case ADOPT:
-                solveADOPT(problem, showVis);
+                solveADOPT(problem, params);
                 break;
 
             case ORCA:
-                solveORCA(problem, showVis);
+                solveORCA(problem, params);
                 break;
 
             default:
@@ -204,85 +200,57 @@ public class ScenarioCreator {
         }
     }
 
-    enum Scenario {
-    	RANDOM_IN_FREESPACE,
-    	RANDOM_WITH_OBSTACLES,
-    	SUPERCONFLICT,
-    	GEESE
-    }
-
-	private static EarliestArrivalProblem createProblem(Scenario scenario, int nAgents, int agentBodyRadius, int seed) {
-
-		EarliestArrivalProblem problem;
-
-		switch (scenario) {
-            case RANDOM_IN_FREESPACE:
-                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 0, 300, seed), nAgents, agentBodyRadius, seed);
-                break;
-            case RANDOM_WITH_OBSTACLES:
-                problem = new RandomProblem(new RandomEnvironment(1000, 1000, 10, 250, seed), nAgents, agentBodyRadius, seed);
-                break;
-            case SUPERCONFLICT:
-                problem = new SuperconflictProblem(nAgents, agentBodyRadius);
-                break;
-            default:
-                throw new RuntimeException("Unknown scenario");
-        }
-
-		return problem;
-	}
-
-    private static void solveADPP(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
+    private static void solveADPP(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, maxTime);
+            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, showVis);
+        }, params);
     }
     
-    private static void solveSDPP(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
+    private static void solveSDPP(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, maxTime);
+            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, showVis);
+        }, params);
     }
 
-    private static void solveADPPDG(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
+    private static void solveADPPDG(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, maxTime);
+            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, showVis);
+        }, params);
     }
 
-    private static void solveDSA(final EarliestArrivalProblem problem, final int maxTime, boolean showVis) {
+    private static void solveDSA(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, maxTime);
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime);
             }
-        }, showVis);
+        }, params);
     }
 
-    private static void solveADOPT(final EarliestArrivalProblem problem, boolean showVis) {
+    private static void solveADOPT(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
 
             @Override
@@ -290,26 +258,26 @@ public class ScenarioCreator {
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new ADOPTAgent(name, start, target, env, agentBodyRadius, new NotCollidingConstraint());
             }
-        }, showVis);
+        }, params);
     }
 
-    private static void solveORCA(final EarliestArrivalProblem problem, final boolean showVis) {
+    private static void solveORCA(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
 
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, showVis);
+            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, params.showVis);
             	return agent;
             }
-        }, showVis);
+        }, params);
     }
 
     interface AgentFactory {
         Agent createAgent(String name, Point start, Point target, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
     }
 
-    private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, boolean showVis) {
+    private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, final Parameters params) {
 
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
@@ -387,7 +355,7 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
-                    	   printSummary(true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
+                    	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
                        } else {
 	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
 	                    	   int noOfTicksToSkip = (int) (duration / tickPeriod); // if the tick handling takes more than tickPeriod, we need to skip some ticks
@@ -408,7 +376,7 @@ public class ScenarioCreator {
            }
 
          // **** create visio of agents ****
-         if (showVis) {
+         if (params.showVis) {
              visualizeAgents(problem, agents);
              visualizeConflicts(agents);
          }
@@ -417,7 +385,7 @@ public class ScenarioCreator {
          concurrentSimulation.run();
     }
 
-    private static void printSummary(boolean succeeded, List<Agent> agents, long wallClockRuntimeMs) {
+    private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long wallClockRuntimeMs) {
 
     	if (succeeded) {
 	    	double cost = 0;
@@ -431,19 +399,19 @@ public class ScenarioCreator {
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    	}
-	    	System.out.println(String.format("%.2f", cost) + ";" + wallClockRuntimeMs + ";" + msgsSent);
+	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + wallClockRuntimeMs + ";" + msgsSent);
     	} else {
-    		System.out.println("inf;0;0");
+    		System.out.println(prefix + "inf;0;0");
     	}
 
     }
 
-    private static void visualizeAgents(EarliestArrivalProblem problem, List<Agent> agents) {
+    private static void visualizeAgents(final EarliestArrivalProblem problem, final List<Agent> agents) {
          int agentIndex = 0;
 
          for (final Agent agent: agents) {
 
-             // create visio
+             // visualize trajectories
              VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
 
                 @Override
@@ -452,27 +420,48 @@ public class ScenarioCreator {
                 }
             }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TIME, 'g'));
 
-            VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
-                new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
-                    @Override
-                    public Collection<tt.euclidtime3i.Region> getRegions() {
-                         Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
-                         return regions;
+            VisManager.registerLayer(FastAgentsLayer.create(new TrajectoriesProvider() {
+				@Override
+				public Trajectory<Point>[] getTrajectories() {
+					Trajectory<Point>[] trajs = new Trajectory[problem.nAgents()];
+					int i=0;
+					for (Agent agent : agents) {
+						if (agent.getOccupiedRegion() != null) {
+							trajs[i++] = ((MovingCircle)agent.getOccupiedRegion()).getTrajectory();
+						}
+					}
+					return trajs;
+				}
+				
+				@Override
+				public int[] getBodyRadiuses() {
+					int[] radii = new int[problem.nAgents()];
+					int i=0;
+					for (Agent agent : agents) {
+						if (agent.getOccupiedRegion() != null) {
+							radii[i++] = ((MovingCircle)agent.getOccupiedRegion()).getRadius();	
+						}
+					}
+					return radii;
+				}
+			}, new ColorProvider() {
+				
+				@Override
+				public Color getColor(int i) {
+					return  AgentColors.getColorForAgent(i);
+				}
+			}, TimeParameterHolder.time));
+            
+        final Point labelLocation = problem.getStart(agentIndex);
+        VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
+            @Override
+            public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
+                Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
+                points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
+                return points;
+            }
 
-                    }
-            }, new TimeParameterProjectionTo2d(TimeParameterHolder.time), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
-
-            final Point labelLocation = problem.getStart(agentIndex);
-            VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
-
-                @Override
-                public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
-                    Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
-                    points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
-                    return points;
-                }
-
-            }, new ProjectionTo2d(), Color.BLACK));
+        	}, new ProjectionTo2d(), Color.BLACK));
 
             agentIndex++;
         }
@@ -496,43 +485,5 @@ public class ScenarioCreator {
 				return IntersectionChecker.computeAllPairwiseConflicts(mcs, 10);
 			}
 		}, Color.RED));
-    	
-    	int agentIndex = 0;
-
-        for (final Agent agent: agents) {
-
-            // create visio
-            VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
-
-               @Override
-               public tt.discrete.Trajectory<Point> getTrajectory() {
-                   return agent.getCurrentTrajectory();
-               }
-           }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TIME, 'g'));
-
-           VisManager.registerLayer(tt.euclidtime3i.vis.RegionsLayer.create(
-               new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
-                   @Override
-                   public Collection<tt.euclidtime3i.Region> getRegions() {
-                        Collection<tt.euclidtime3i.Region> regions = Collections.singletonList(agent.getOccupiedRegion());
-                        return regions;
-
-                   }
-           }, new TimeParameterProjectionTo2d(TimeParameterHolder.time), AgentColors.getColorForAgent(agentIndex), AgentColors.getColorForAgent(agentIndex)));
-
-           final Point labelLocation = problem.getStart(agentIndex);
-           VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
-
-               @Override
-               public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
-                   Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
-                   points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
-                   return points;
-               }
-
-           }, new ProjectionTo2d(), Color.BLACK));
-
-           agentIndex++;
-       }
    }
 }
