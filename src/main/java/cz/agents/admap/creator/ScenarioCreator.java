@@ -40,6 +40,7 @@ import tt.jointeuclid2ni.probleminstance.VisUtil;
 import tt.jointeuclid2ni.solver.Parameters;
 import tt.util.AgentColors;
 import tt.util.Args;
+import tt.util.Counters;
 import tt.vis.FastAgentsLayer.ColorProvider;
 import tt.vis.FastAgentsLayer.TrajectoriesProvider;
 import tt.vis.LabeledPointLayer;
@@ -385,12 +386,14 @@ public class ScenarioCreator {
          concurrentSimulation.run();
     }
 
-    private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long wallClockRuntimeMs) {
+    private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs) {
 
     	if (succeeded) {
 	    	double cost = 0;
 	    	int msgsSent = 0;
 	    	for (Agent agent : agents) {
+	    		
+	    		
 				LOGGER.info(agent.getName()
 						+ " cost: "
 						+ String.format("%.2f", agent.getCurrentTrajectory().getCost()) + 
@@ -399,7 +402,7 @@ public class ScenarioCreator {
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    	}
-	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + wallClockRuntimeMs + ";" + msgsSent);
+	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter);
     	} else {
     		System.out.println(prefix + "inf;0;0");
     	}

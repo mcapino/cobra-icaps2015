@@ -42,7 +42,7 @@ public abstract class DPPAgent extends PlanningAgent {
 
 	protected boolean agentViewDirty;
 	
-	public int infromNewTrajectoryCounter = 0;
+	public int infromNewTrajectorySentCounter = 0;
 		
 
     @Override
@@ -58,7 +58,7 @@ public abstract class DPPAgent extends PlanningAgent {
     }
 
 	protected void broadcastNewTrajectory(EvaluatedTrajectory newTrajectory) {
-		this.infromNewTrajectoryCounter++;
+		this.infromNewTrajectorySentCounter++;
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(newTrajectory, agentBodyRadius)));
 	}
 
@@ -202,7 +202,20 @@ public abstract class DPPAgent extends PlanningAgent {
 	}
 	
 	void logFinalStats() {
-		LOGGER.info(getName() + ": New trajectory messages broadcasted: " + infromNewTrajectoryCounter + "; Replanned: " + replanningCounter);
+		LOGGER.info(getName() + ": New trajectory messages broadcasted: " + infromNewTrajectorySentCounter + "; Replanned: " + replanningCounter);
 	}
+
+	@Override
+	public void start() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public int getMessageSentCounter() {
+		return this.infromNewTrajectorySentCounter;
+	}
+	
+	
 	
 }

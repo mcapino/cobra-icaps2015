@@ -87,7 +87,7 @@ public class BestResponse {
             = new FreeOnTargetWaitExtension(graph, goal);
 
         // plan
-        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPath.findPathBetween(graphFreeOnTarget,
+        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPathSimple.findPathBetween(graphFreeOnTarget,
                 new HeuristicToGoal<tt.euclidtime3i.Point>() {
                     @Override
                     public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
