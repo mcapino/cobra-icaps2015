@@ -223,10 +223,10 @@ public class ScenarioCreator {
 	
     private static void solveCPP(final EarliestArrivalProblem problem, final Parameters params) {
     	final int RADIUS_GRACE = 1;
-        EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
-        final List<Agent> agents = new LinkedList<Agent>();
+        final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
         long startedAtMs = System.currentTimeMillis();
+        boolean suceeded = true;
         
 		for (int i = 0; i < problem.nAgents(); i++) {
             Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
@@ -244,26 +244,37 @@ public class ScenarioCreator {
 			
 			if (traj != null) {
 				trajs[i] = traj;
-				agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), traj));
 			} else {
-				printSummary(params.summaryPrefix, false, agents, System.currentTimeMillis() - startedAtMs);
+				suceeded = false;
 			}
 		}
 		
+		long finishedAtMs = System.currentTimeMillis();
+		
+		
 		solve(problem, new AgentFactory() {
-			
 			int i=0;
 			
 			@Override
 			public Agent createAgent(String name, Point start, Point target,
 					Environment env, DirectedGraph<Point, Line> planningGraph,
 					int agentBodyRadius) {
-				return agents.get(i++);
+				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
+				i++;
+				return agent;
 			}
 		}, params);
 		
 		
-		printSummary(params.summaryPrefix, true, agents, System.currentTimeMillis() - startedAtMs);
+		final List<Agent> agents = new LinkedList<Agent>();
+		for (int i = 0; i < problem.nAgents(); i++) {
+			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
+		}
+		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs);
+		
+		if (!params.showVis) {
+			System.exit(0);
+		}
     }
     
     private static void solveADPP(final EarliestArrivalProblem problem, final Parameters params) {
