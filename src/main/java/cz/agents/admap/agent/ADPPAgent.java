@@ -26,6 +26,10 @@ public class ADPPAgent extends DPPAgent {
     	}
 
     	assertConsistentTrajectory();
+    	
+    	if (isLowestPriority() && higherPriorityAgentsFinished) {
+    		agentTerminated();
+    	}
     }
 
 	@Override
@@ -46,6 +50,7 @@ public class ADPPAgent extends DPPAgent {
         	
         	if (isLowestPriority() && higherPriorityAgentsFinished) {
         		broadcastGloballyConverged();
+        		LOGGER.info(getName() +  " globally terminated!");
         		agentTerminated();
         	}
         }		

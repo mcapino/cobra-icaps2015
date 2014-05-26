@@ -29,11 +29,11 @@ public class ORCAAgent extends Agent {
 
 	private static final int MAX_NEIGHBORS = 50;
 	private static final float MAX_SPEED = 1;
-	private static final float NEIGHBOR_DIST = 1000;
-	private static final float TIME_HORIZON_AGENT = 400;
+	private static final float NEIGHBOR_DIST = 100;
+	private static final float TIME_HORIZON_AGENT = 100;
 	private static final float TIME_HORIZON_OBSTACLE = 10;
 
-	private static final double NEAR_GOAL_EPS = 0.5f;
+	private static final double NEAR_GOAL_EPS = 1.0f;
 
 	private RVOAgent rvoAgent;
     private HashMap<String, RVOAgent> neighbors;
@@ -48,6 +48,7 @@ public class ORCAAgent extends Agent {
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
+	final static int RADIUS_GRACE = 1;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
@@ -62,7 +63,7 @@ public class ORCAAgent extends Agent {
         rvoAgent.maxNeighbors_ = MAX_NEIGHBORS;
         rvoAgent.maxSpeed_ = MAX_SPEED;
         rvoAgent.neighborDist_ = NEIGHBOR_DIST;
-        rvoAgent.radius_ = agentBodyRadius;
+        rvoAgent.radius_ = agentBodyRadius + RADIUS_GRACE;
         rvoAgent.timeHorizon_ = TIME_HORIZON_AGENT;
         rvoAgent.timeHorizonObst_ = TIME_HORIZON_OBSTACLE;
 

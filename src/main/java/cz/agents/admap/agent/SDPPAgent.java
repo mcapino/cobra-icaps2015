@@ -32,6 +32,9 @@ public class SDPPAgent extends DPPAgent {
     		broadcastAgentFinishedRound();
     		LOGGER.info(getName() +  " has finished planning!");
     		LOGGER.debug(getName() +  ": round " + round + " finished!");
+        	if (isLowestPriority()) {
+        		agentTerminated();
+        	}
     	}
     }
         

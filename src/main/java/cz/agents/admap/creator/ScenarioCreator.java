@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream.GetField;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,18 +18,28 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.AStarShortestPathSimple;
+import org.jgrapht.util.Goal;
+import org.jgrapht.util.HeuristicToGoal;
 
-import tt.discrete.Trajectory;
 import tt.discrete.vis.TrajectoryLayer;
 import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
+import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
+import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.probleminstance.RandomEnvironment;
+import tt.euclid2i.region.Circle;
+import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
+import tt.euclidtime3i.discretization.SeparationConstraintWrapper;
+import tt.euclidtime3i.discretization.Straight;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
 import tt.euclidtime3i.vis.TimeParameter;
@@ -38,6 +50,8 @@ import tt.jointeuclid2ni.probleminstance.RandomProblem;
 import tt.jointeuclid2ni.probleminstance.SuperconflictProblem;
 import tt.jointeuclid2ni.probleminstance.VisUtil;
 import tt.jointeuclid2ni.solver.Parameters;
+import tt.jointtraj.solver.SearchResult;
+import tt.jointtrajineuclidtime3i.solver.PrioritizedPlanningSolver;
 import tt.util.AgentColors;
 import tt.util.Args;
 import tt.util.Counters;
@@ -53,7 +67,9 @@ import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPPAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
+import cz.agents.admap.agent.BestResponse;
 import cz.agents.admap.agent.DSAAgent;
+import cz.agents.admap.agent.FixedTrajectoryAgent;
 import cz.agents.admap.agent.ORCAAgent;
 import cz.agents.admap.agent.PlanningAgent;
 import cz.agents.admap.agent.SDPPAgent;
@@ -68,7 +84,6 @@ import cz.agents.alite.communication.channel.DirectCommunicationChannel.Receiver
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
-import cz.agents.alite.vis.layer.VisLayer;
 
 
 public class ScenarioCreator {
@@ -87,6 +102,7 @@ public class ScenarioCreator {
     private static final int MAX_TIME = 2000;
 
     enum Method {
+    	CPP,	/* Centralized Prioritized Planning */
         ADPP,   /* Asynchronous Decentralized Prioritized Planning */
         SDPP,
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
@@ -170,6 +186,10 @@ public class ScenarioCreator {
 //		}
 
         switch (method) {
+        
+	        case CPP:
+	            solveCPP(problem, params);
+	            break;
 
 	        case ADPP:
 	            solveADPP(problem, params);
@@ -200,7 +220,52 @@ public class ScenarioCreator {
 
         }
     }
-
+	
+    private static void solveCPP(final EarliestArrivalProblem problem, final Parameters params) {
+    	final int RADIUS_GRACE = 1;
+        EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
+        final List<Agent> agents = new LinkedList<Agent>();
+        
+        long startedAtMs = System.currentTimeMillis();
+        
+		for (int i = 0; i < problem.nAgents(); i++) {
+            Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
+            Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
+                        
+            for (int j=0; j<problem.nAgents(); j++) {
+            	if (j < i) {
+            		dObst.add(new MovingCircle(trajs[j], problem.getBodyRadius(i) + problem.getBodyRadius(j) + RADIUS_GRACE));
+            	} else if (j > i) {
+            		sObst.add(new Circle(problem.getStart(j), problem.getBodyRadius(i) + problem.getBodyRadius(j) + RADIUS_GRACE));
+            	}
+            }
+            
+			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), sObst, dObst, params.maxTime);
+			
+			if (traj != null) {
+				trajs[i] = traj;
+				agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), traj));
+			} else {
+				printSummary(params.summaryPrefix, false, agents, System.currentTimeMillis() - startedAtMs);
+			}
+		}
+		
+		solve(problem, new AgentFactory() {
+			
+			int i=0;
+			
+			@Override
+			public Agent createAgent(String name, Point start, Point target,
+					Environment env, DirectedGraph<Point, Line> planningGraph,
+					int agentBodyRadius) {
+				return agents.get(i++);
+			}
+		}, params);
+		
+		
+		printSummary(params.summaryPrefix, true, agents, System.currentTimeMillis() - startedAtMs);
+    }
+    
     private static void solveADPP(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
@@ -407,7 +472,7 @@ public class ScenarioCreator {
 	    	}
 	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter);
     	} else {
-    		System.out.println(prefix + "inf;0;0;0");
+    		System.out.println(prefix + "inf;NA;NA;NA");
     	}
 
     }
@@ -428,8 +493,8 @@ public class ScenarioCreator {
 
             VisManager.registerLayer(FastAgentsLayer.create(new TrajectoriesProvider() {
 				@Override
-				public Trajectory<Point>[] getTrajectories() {
-					Trajectory<Point>[] trajs = new Trajectory[problem.nAgents()];
+				public tt.discrete.Trajectory<Point>[] getTrajectories() {
+					tt.discrete.Trajectory<Point>[] trajs = new Trajectory[problem.nAgents()];
 					int i=0;
 					for (Agent agent : agents) {
 						if (agent.getOccupiedRegion() != null) {
