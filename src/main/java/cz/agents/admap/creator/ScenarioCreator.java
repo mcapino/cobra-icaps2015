@@ -3,25 +3,18 @@ import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.ObjectInputStream.GetField;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPathSimple;
-import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
 
 import tt.discrete.vis.TrajectoryLayer;
@@ -32,36 +25,26 @@ import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
-import tt.euclid2i.probleminstance.RandomEnvironment;
 import tt.euclid2i.region.Circle;
-import tt.euclid2i.trajectory.StraightSegmentTrajectory;
+import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
-import tt.euclidtime3i.discretization.SeparationConstraintWrapper;
-import tt.euclidtime3i.discretization.Straight;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
-import tt.euclidtime3i.vis.TimeParameter;
-import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblemXMLDeserializer;
-import tt.jointeuclid2ni.probleminstance.RandomProblem;
-import tt.jointeuclid2ni.probleminstance.SuperconflictProblem;
 import tt.jointeuclid2ni.probleminstance.VisUtil;
 import tt.jointeuclid2ni.solver.Parameters;
-import tt.jointtraj.solver.SearchResult;
-import tt.jointtrajineuclidtime3i.solver.PrioritizedPlanningSolver;
 import tt.util.AgentColors;
 import tt.util.Args;
 import tt.util.Counters;
+import tt.vis.FastAgentsLayer;
 import tt.vis.FastAgentsLayer.ColorProvider;
 import tt.vis.FastAgentsLayer.TrajectoriesProvider;
 import tt.vis.LabeledPointLayer;
 import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
-import tt.vis.FastAgentsLayer;
-import tt.vis.ParameterControlLayer;
 import tt.vis.TimeParameterHolder;
 import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPPAgent;
@@ -102,6 +85,8 @@ public class ScenarioCreator {
     private static final int MAX_TIME = 2000;
 
     enum Method {
+    	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
+    	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
     	CPP,	/* Centralized Prioritized Planning */
         ADPP,   /* Asynchronous Decentralized Prioritized Planning */
         SDPP,
@@ -187,6 +172,14 @@ public class ScenarioCreator {
 
         switch (method) {
         
+	        case BASE:
+	            solveBASE(problem, params, false);
+	            break;
+	        
+	        case BASEST:
+	            solveBASE(problem, params, true);
+	            break;
+	        
 	        case CPP:
 	            solveCPP(problem, params);
 	            break;
@@ -219,6 +212,68 @@ public class ScenarioCreator {
                 throw new RuntimeException("Unknown method");
 
         }
+    }
+	
+    private static void solveBASE(final EarliestArrivalProblem problem, final Parameters params, boolean useSpaceTimePlanner) {
+        final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
+        
+        long startedAtMs = System.currentTimeMillis();
+        boolean suceeded = true;
+        
+		for (int i = 0; i < problem.nAgents(); i++) {
+            final int iFinal = i;
+            
+            EvaluatedTrajectory traj = null;
+            if (useSpaceTimePlanner) {
+                Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
+                Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
+                traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), sObst, dObst, params.maxTime);
+            } else{
+                GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(problem.getPlanningGraph(), new HeuristicToGoal<Point>() {
+
+    				@Override
+    				public double getCostToGoalEstimate(Point current) {
+    					return current.distance(problem.getTarget(iFinal));
+    				}
+    			}, problem.getStart(i), problem.getTarget(i));
+
+                if (path != null) {
+                	traj = new LineSegmentsConstantSpeedTrajectory(0, path, 1, params.maxTime);
+                }
+            }
+			
+			if (traj != null) {
+				trajs[i] = traj;
+			} else {
+				suceeded = false;
+			}
+		}
+		
+		long finishedAtMs = System.currentTimeMillis();
+		
+		solve(problem, new AgentFactory() {
+			int i=0;
+			
+			@Override
+			public Agent createAgent(String name, Point start, Point target,
+					Environment env, DirectedGraph<Point, Line> planningGraph,
+					int agentBodyRadius) {
+				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
+				i++;
+				return agent;
+			}
+		}, params);
+		
+		
+		final List<Agent> agents = new LinkedList<Agent>();
+		for (int i = 0; i < problem.nAgents(); i++) {
+			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
+		}
+		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs);
+		
+		if (!params.showVis) {
+			System.exit(0);
+		}
     }
 	
     private static void solveCPP(final EarliestArrivalProblem problem, final Parameters params) {
