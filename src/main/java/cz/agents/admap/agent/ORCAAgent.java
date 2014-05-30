@@ -29,9 +29,9 @@ public class ORCAAgent extends Agent {
 
 	private static final int MAX_NEIGHBORS = 50;
 	private static final float MAX_SPEED = 1;
-	private static final float NEIGHBOR_DIST = 100;
+	private static final float NEIGHBOR_DIST = 200;
 	private static final float TIME_HORIZON_AGENT = 100;
-	private static final float TIME_HORIZON_OBSTACLE = 10;
+	private static final float TIME_HORIZON_OBSTACLE = 50;
 
 	private static final double NEAR_GOAL_EPS = 1.0f;
 
@@ -44,11 +44,11 @@ public class ORCAAgent extends Agent {
 	DesiredControl desiredControl;
 
 	private static final long UNKNOWN = -1;
-	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 100.0;
+	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 250.0;
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
-	final static int RADIUS_GRACE = 1;
+	final static int RADIUS_GRACE = +1;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
@@ -147,8 +147,8 @@ public class ORCAAgent extends Agent {
         kdTree.buildAgentTree(rvoAgents);
 
         rvoAgent.computeNeighbors(kdTree);
-        rvoAgent.computeNewVelocity(timeStep);
-        rvoAgent.update(timeStep);
+        Vector2 newVelocity = rvoAgent.computeNewVelocity(timeStep);
+        rvoAgent.update(timeStep, newVelocity);
 
         // broadcast to the others
         broadcast(new InformNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), (double) rvoAgent.radius_));
@@ -166,8 +166,6 @@ public class ORCAAgent extends Agent {
 			Vector desiredDir = new Vector(desiredVelocity);
 			desiredDir.normalize();
 
-			LOGGER.trace("Setting pref. velocity for agent " + getName() + " to " + desiredVelocity);
-
 			// Adjust if the agent is near the goal
 			if (distanceToGoal <= timeStep * desiredSpeed) {
 				// goal will be reached in the next time step
@@ -175,7 +173,7 @@ public class ORCAAgent extends Agent {
 				desiredVelocity = desiredDir;
 				desiredVelocity.scale(speed);
 			}
-
+			
 			rvoAgent.setPrefVelocity(new Vector2(desiredVelocity));
 		}
 	}
