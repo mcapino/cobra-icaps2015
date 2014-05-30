@@ -8,7 +8,7 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.m2e.launchconfig.classpathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="cz.agents.admap.creator.ScenarioCreator"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method ADPP -problemfile /home/capino/projects/deconflictiontools/src/main/resources/problems/ubremen-r27.xml -maxtime 20000 -showvis"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method CPP -problemfile /home/capino/projects/deconflictiontools/src/main/resources/problems/ubremen-r27.xml -maxtime 20000 -showvis"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="adpp"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
 </launchConfiguration>
