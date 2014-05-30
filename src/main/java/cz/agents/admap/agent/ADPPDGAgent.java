@@ -12,6 +12,7 @@ import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
+import tt.euclidtime3i.L2Heuristic;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
@@ -39,7 +40,7 @@ public class ADPPDGAgent extends PlanningAgent {
     @Override
     public void start() {
     	if (getPlanningGraph() != null) {
-    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime);
+    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime);
     	} else {
     		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime);
     	}
@@ -61,7 +62,7 @@ public class ADPPDGAgent extends PlanningAgent {
         	LOGGER.trace(getName() + " started planning...");
 
         	if (getPlanningGraph() != null) {
-        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), Collections.EMPTY_SET, avoidRegions, maxTime);
+        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, avoidRegions, maxTime);
         	} else {
         		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime);
         	}

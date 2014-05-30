@@ -4,15 +4,17 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
+import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
+import tt.euclidtime3i.L2Heuristic;
 import tt.euclidtime3i.Region;
+import tt.euclidtime3i.ShortestPathHeuristic;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.region.MovingCircleMinusPoint;
-import tt.euclidtime3i.region.StaticObstacle;
 
 /**
  * An agent that resolves conflict by finding new conflict-free plans.
@@ -30,6 +32,8 @@ public abstract class PlanningAgent extends Agent {
 	protected final int maxTime;
 	
 	public int replanningCounter = 0;
+
+	private HeuristicToGoal<tt.euclidtime3i.Point> heuristic;
 	
 	public PlanningAgent(String name, Point start, Point goal,
 			Environment environment, int agentBodyRadius, int maxTime) {
@@ -53,7 +57,13 @@ public abstract class PlanningAgent extends Agent {
 		
 
 		if (getPlanningGraph() != null) {
-    		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), sObstInflated, dObstInflated, maxTime);
+			
+			if (heuristic == null) {
+				heuristic = new ShortestPathHeuristic(planningGraph, goal);
+				//heuristic = new L2Heuristic(goal);
+			}
+			
+			traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime);
     	} else {
     		traj = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), sObstInflated, dObstInflated, maxTime);
     	}

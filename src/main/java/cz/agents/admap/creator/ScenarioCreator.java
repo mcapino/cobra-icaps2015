@@ -30,6 +30,7 @@ import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
+import tt.euclidtime3i.ShortestPathHeuristic;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionChecker;
 import tt.jointeuclid2ni.probleminstance.EarliestArrivalProblem;
@@ -227,7 +228,8 @@ public class ScenarioCreator {
             if (useSpaceTimePlanner) {
                 Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
                 Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
-                traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), sObst, dObst, params.maxTime);
+                HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
+				traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime);
             } else{
                 GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(problem.getPlanningGraph(), new HeuristicToGoal<Point>() {
 
@@ -295,7 +297,8 @@ public class ScenarioCreator {
             	}
             }
             
-			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), sObst, dObst, params.maxTime);
+			HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
+			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic , sObst, dObst, params.maxTime);
 			
 			if (traj != null) {
 				trajs[i] = traj;
