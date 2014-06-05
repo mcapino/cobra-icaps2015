@@ -1,6 +1,8 @@
 package cz.agents.alite.common.event;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -9,6 +11,9 @@ import java.util.TreeSet;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+
+import tt.util.Counters;
+import cz.agents.alite.common.event.ActivityLogEntry.Type;
 
 public class DurativeEventProcessor {
 
@@ -26,6 +31,8 @@ public class DurativeEventProcessor {
     
     private long lastEventStartedAtNanos = 0;
     private long currentEventTime = 0;
+    
+    private Collection<ActivityLogEntry> activityLog = new LinkedList<ActivityLogEntry>();
 
     public void run() {
         DurativeEvent event = eventQueue.poll();
@@ -36,12 +43,18 @@ public class DurativeEventProcessor {
             long time = event.getTime();
             String processName = event.getProcess();
             long lastActivityFinishes = getProcessLastActivityFinishedTime(processName);
+            
+            activityLog.add(new ActivityLogEntry(processName, Type.EVENT_RECIEVED, time, 0, 0));
 
             if (time >= lastActivityFinishes) {
 
                 // process is idle
                 long idleTime = time - lastActivityFinishes;
                 processIdleCounter.put(processName, getProcessIdleCounter(processName) + idleTime);
+                
+                if (idleTime > 0) {
+                	 activityLog.add(new ActivityLogEntry(processName, Type.IDLE, lastActivityFinishes, idleTime, 0));
+                }
 
                 while (!running) {
                     synchronized (thread) {
@@ -54,10 +67,16 @@ public class DurativeEventProcessor {
                         }
                     }
                 }
-
+                
+                int expandedStatesBefore = Counters.expandedStatesCounter;
+                
                 long duration = fireEvent(event);
+                
+                int expandedStatesAfter = Counters.expandedStatesCounter;
+                
                 processActiveCounter.put(processName, getProcessActiveCounter(processName) + duration);
                 processLastActivityFinishedTimes.put(processName, time + duration);
+                activityLog.add(new ActivityLogEntry(processName, Type.EVENT_HANDLED, time, duration, expandedStatesAfter - expandedStatesBefore));
             } else {
                 // move to future
                 addEvent(lastActivityFinishes, processName, event.getHandler());
@@ -198,4 +217,8 @@ public class DurativeEventProcessor {
         }
         return sb.toString();
     }
+    
+    public Collection<ActivityLogEntry> getActivityLog() {
+		return activityLog;
+	}
 }

@@ -28,8 +28,8 @@ public class DSAAgent extends PlanningAgent {
 
 	EvaluatedTrajectory trajectory;
 
-    public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability, int maxTime) {
-        super(name, start, goal, environment, agentSizeRadius, maxTime);
+    public DSAAgent(String name, Point start, Point goal, Environment environment, int agentSizeRadius, double activationProbability, int maxTime, int waitMoveDuration) {
+        super(name, start, goal, environment, agentSizeRadius, maxTime, waitMoveDuration);
         this.group.put(name, new Objectives(start, goal));
         this.environment = environment;
         this.activationProbability = activationProbability;
@@ -54,7 +54,7 @@ public class DSAAgent extends PlanningAgent {
             avoidRegions.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius() + agentBodyRadius));
         }
 
-        trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime);
+        trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime, waitMoveDuration);
 
         // broadcast to the others
 

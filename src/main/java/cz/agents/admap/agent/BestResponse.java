@@ -37,13 +37,12 @@ import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
 public class BestResponse {
 
     private static final int GRID_STEP = 25;
-    private static final int WAIT_MOVE_DURATION = 50;
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
             Collection<Region> obstacles, Rectangle bounds,
             Collection<tt.euclid2i.Region> staticObstacles,
             Collection<tt.euclidtime3i.Region> dynamicObstacles, 
-            int maxTime) {
+            int maxTime, int waitMoveDuration) {
 
         // create grid discretization
         final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid
@@ -54,7 +53,7 @@ public class BestResponse {
                     GRID_STEP);
 
         HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new tt.euclidtime3i.L2Heuristic(goal);
-		return computeBestResponse(start, goal, grid, heuristic , staticObstacles, dynamicObstacles, maxTime);
+		return computeBestResponse(start, goal, grid, heuristic , staticObstacles, dynamicObstacles, maxTime, waitMoveDuration);
     }
 
 	public static EvaluatedTrajectory computeBestResponse(final Point start,
@@ -62,7 +61,7 @@ public class BestResponse {
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
 			final HeuristicToGoal<tt.euclidtime3i.Point> heuristic,
 			Collection<tt.euclid2i.Region> staticObstacles,
-			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime) {
+			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime, final int waitMoveDuration) {
 
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
@@ -84,7 +83,7 @@ public class BestResponse {
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, WAIT_MOVE_DURATION);
+            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, waitMoveDuration);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);
@@ -97,7 +96,7 @@ public class BestResponse {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
                         return current.getPosition().equals(goal)
-                        		&& current.getTime() > (maxTime - WAIT_MOVE_DURATION - 1); // last space-time node might not be placed at MAX_TIME
+                        		&& current.getTime() > (maxTime - waitMoveDuration - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
 

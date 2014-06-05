@@ -29,8 +29,8 @@ public abstract class DPPAgent extends PlanningAgent {
 	
 	static final Logger LOGGER = Logger.getLogger(DPPAgent.class);
 	public DPPAgent(String name, Point start, Point goal,
-			Environment environment, int agentBodyRadius, int maxTime) {
-		super(name, start, goal, environment, agentBodyRadius, maxTime);
+			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
+		super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
 	}
 	
     Map<String, MovingCircle> agentView =  new HashMap<String, MovingCircle>();

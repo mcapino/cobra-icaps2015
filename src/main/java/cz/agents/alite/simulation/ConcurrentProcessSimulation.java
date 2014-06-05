@@ -12,7 +12,7 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
     private long eventCount = 0;
     private long runTime;
     private int printouts = 10000;
-
+    
     public ConcurrentProcessSimulation() {
     }
 

@@ -27,8 +27,8 @@ public class ADPPDGAgent extends PlanningAgent {
     Map<String, Trajectory> trajectories =  new HashMap<String, Trajectory>();
     Map<String, MovingCircle> avoids =  new HashMap<String, MovingCircle>();
 
-    public ADPPDGAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime) {
-        super(name, start, goal, environment, agentBodyRadius, maxTime);
+    public ADPPDGAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
+        super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
         this.group.put(name, new Objectives(start, goal));
     }
 
@@ -40,9 +40,9 @@ public class ADPPDGAgent extends PlanningAgent {
     @Override
     public void start() {
     	if (getPlanningGraph() != null) {
-    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime);
+    		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime, waitMoveDuration);
     	} else {
-    		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime);
+    		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, new LinkedList<Region>(), maxTime, waitMoveDuration);
     	}
     	broadcast(new InformNewTrajectory(getName(), new MovingCircle(getCurrentTrajectory(), agentBodyRadius)));
     }
@@ -62,9 +62,9 @@ public class ADPPDGAgent extends PlanningAgent {
         	LOGGER.trace(getName() + " started planning...");
 
         	if (getPlanningGraph() != null) {
-        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, avoidRegions, maxTime);
+        		trajectory = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), new L2Heuristic(goal), Collections.EMPTY_SET, avoidRegions, maxTime, waitMoveDuration);
         	} else {
-        		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime);
+        		trajectory = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), Collections.EMPTY_SET, avoidRegions, maxTime, waitMoveDuration);
         	}
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + trajectory.getCost());

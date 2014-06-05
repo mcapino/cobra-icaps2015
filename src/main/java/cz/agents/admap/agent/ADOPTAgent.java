@@ -26,7 +26,8 @@ public class ADOPTAgent extends Agent {
     double newValueThreshold;
     Constraint constraint;
     
-    final int MAXTIME = 10000;
+    static final int MAXTIME = 10000;
+    static final int WAITMOVEDURATION = 10;
 
     LocalCost localCost = new LocalCost() {
         @Override
@@ -46,7 +47,7 @@ public class ADOPTAgent extends Agent {
         valueBounds = new ValueBounds();
         backtrackThreshold = 0;
         this.constraint = constraint;
-        domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, new LinkedList<tt.euclidtime3i.Region>(), environment.getBoundary().getBoundingBox(), MAXTIME, random);
+        domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, new LinkedList<tt.euclidtime3i.Region>(), environment.getBoundary().getBoundingBox(), MAXTIME, WAITMOVEDURATION, random);
     }
 
     double computeLocalCost(EvaluatedTrajectory value) {
@@ -210,7 +211,10 @@ public class ADOPTAgent extends Agent {
             valueBounds = new ValueBounds();
             valueBounds.updateChildren(getChildren());
 
-            domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, context.getOccupiedRegions(getName(), agentBodyRadius+2), environment.getBoundary().getBoundingBox(), MAXTIME, random);
+            domain = new FeasibleTrajectoriesDomain(start, goal, inflatedObstacles, 
+            		context.getOccupiedRegions(getName(), agentBodyRadius+2), 
+            		environment.getBoundary().getBoundingBox(), 
+            		MAXTIME, WAITMOVEDURATION, random);
 
             maintainThresholdInvariant();
 

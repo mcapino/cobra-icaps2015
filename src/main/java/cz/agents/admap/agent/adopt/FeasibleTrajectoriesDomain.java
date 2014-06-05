@@ -26,14 +26,14 @@ public class FeasibleTrajectoriesDomain {
             Point start, Point goal,
             Collection<tt.euclid2i.Region> inflatedSpaceObstacles,
             Collection<tt.euclidtime3i.Region> inflatedSpacetimeObstacles,
-            Rectangle bounds, int maxTime, Random random) {
+            Rectangle bounds, int maxTime, int waitMoveDuration, Random random) {
         super();
         this.inflatedSpaceObstacles = inflatedSpaceObstacles;
         this.inflatedSpacetimeObstacles = inflatedSpacetimeObstacles;
         this.start = start;
         this.goal = goal;
         this.bounds = bounds;
-        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, Collections.EMPTY_SET, inflatedSpacetimeObstacles, maxTime);
+        this.shortestTraj = BestResponse.computeBestResponse(start, goal, inflatedSpaceObstacles, bounds, Collections.EMPTY_SET, inflatedSpacetimeObstacles, maxTime, waitMoveDuration);
         this.shortestTrajExamined = false;
         this.random = random;
         this.maxTime = maxTime;

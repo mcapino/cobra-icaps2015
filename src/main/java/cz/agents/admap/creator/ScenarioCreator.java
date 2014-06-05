@@ -1,8 +1,11 @@
 package cz.agents.admap.creator;
 import java.awt.Color;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +61,7 @@ import cz.agents.admap.agent.ORCAAgent;
 import cz.agents.admap.agent.PlanningAgent;
 import cz.agents.admap.agent.SDPPAgent;
 import cz.agents.admap.agent.adopt.NotCollidingConstraint;
+import cz.agents.alite.common.event.ActivityLogEntry;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
 import cz.agents.alite.common.event.DurativeEventProcessor;
@@ -82,9 +86,6 @@ public class ScenarioCreator {
 
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 
-
-    private static final int MAX_TIME = 2000;
-
     enum Method {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
@@ -106,11 +107,14 @@ public class ScenarioCreator {
     	String methodStr = Args.getArgumentValue(args, "-method", true);
     	String maxTimeStr = Args.getArgumentValue(args, "-maxtime", true);
     	params.maxTime = Integer.parseInt(maxTimeStr);
+    	String waitDurationStr = Args.getArgumentValue(args, "-waitduration", true);
+    	params.waitMoveDuration = Integer.parseInt(waitDurationStr);
     	params.showVis = Args.isArgumentSet(args, "-showvis");
     	params.verbose = Args.isArgumentSet(args, "-verbose");
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
         params.summaryPrefix = Args.getArgumentValue(args, "-summaryprefix", false, "");
-
+        params.activityLogFile = Args.getArgumentValue(args, "-activitylog", false, null);
+        
 		File file = new File(xml);
 	    params.fileName = file.getName();
 	    // Load the PNG image as a background
@@ -229,7 +233,7 @@ public class ScenarioCreator {
                 Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
                 Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
                 HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
-				traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime);
+				traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.waitMoveDuration);
             } else{
                 GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(problem.getPlanningGraph(), new HeuristicToGoal<Point>() {
 
@@ -282,10 +286,14 @@ public class ScenarioCreator {
     	final int RADIUS_GRACE = 1;
         final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
-        long startedAtMs = System.currentTimeMillis();
+        long programStartedAtNs = System.nanoTime();
         boolean suceeded = true;
         
+        Collection<ActivityLogEntry> activityLog = new LinkedList<ActivityLogEntry>();
+        
 		for (int i = 0; i < problem.nAgents(); i++) {
+			long activityStart = System.nanoTime();
+			int expandedStatesBefore = Counters.expandedStatesCounter;
             Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
             Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
                         
@@ -298,16 +306,23 @@ public class ScenarioCreator {
             }
             
 			HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
-			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic , sObst, dObst, params.maxTime);
+			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic , sObst, dObst, params.maxTime, params.waitMoveDuration);
+			
+			int expandedStatesAfter = Counters.expandedStatesCounter;
 			
 			if (traj != null) {
 				trajs[i] = traj;
 			} else {
 				suceeded = false;
 			}
+			
+			long activityDuration = System.nanoTime() - activityStart;
+			LOGGER.debug("Agent " + i + " finished planning in " + activityDuration/1000000 + "ms");
+			activityLog.add(new ActivityLogEntry("a"+ new DecimalFormat("00").format(i), 
+					ActivityLogEntry.Type.EVENT_HANDLED, activityStart - programStartedAtNs, activityDuration, expandedStatesAfter - expandedStatesBefore));
 		}
 		
-		long finishedAtMs = System.currentTimeMillis();
+		long finishedAtMs = System.nanoTime();
 		
 		
 		solve(problem, new AgentFactory() {
@@ -317,7 +332,7 @@ public class ScenarioCreator {
 			public Agent createAgent(String name, Point start, Point target,
 					Environment env, DirectedGraph<Point, Line> planningGraph,
 					int agentBodyRadius) {
-				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
+				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a" + new DecimalFormat("00").format(i), problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
 				i++;
 				return agent;
 			}
@@ -328,7 +343,11 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs);
+		printSummary(params.summaryPrefix, suceeded, agents, (finishedAtMs - programStartedAtNs)/1000000);
+		
+		if (params.activityLogFile != null) {
+			saveActivityLog(activityLog, params.activityLogFile);
+		}		
 		
 		if (!params.showVis) {
 			System.exit(0);
@@ -341,7 +360,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime);
+            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -354,7 +373,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime);
+            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -367,7 +386,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime);
+            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -380,7 +399,7 @@ public class ScenarioCreator {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime);
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime, params.waitMoveDuration);
             }
         }, params);
     }
@@ -521,9 +540,32 @@ public class ScenarioCreator {
 
          // *** run simulation ***
          concurrentSimulation.run();
+         
+         if (params.activityLogFile != null) {
+        	 saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
+         }
     }
 
-    private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs) {
+    private static void saveActivityLog(Collection<ActivityLogEntry> activityLog, String activityLogFile) {
+    	try {
+			File file = new File(activityLogFile);
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));		
+			writer.write("process;type;start;duration;expstates\n");
+	
+	    	for (ActivityLogEntry entry : activityLog) {
+	    		writer.write(entry.processName + ";" + entry.type + ";" + 
+	    				String.format("%.4f", entry.startTime/1000000000f) + ";" +  
+	    				String.format("%.4f", entry.duration/1000000000f) + ";" +
+	    				entry.expandedStates + "\n");
+	    	}
+	    	writer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+		}
+	}
+
+	private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs) {
 
     	if (succeeded) {
 	    	double cost = 0;
@@ -547,18 +589,20 @@ public class ScenarioCreator {
     }
 
     private static void visualizeAgents(final EarliestArrivalProblem problem, final List<Agent> agents) {
+    	
+    	 int MAX_TRAJ_DURATION = 5000;
          int agentIndex = 0;
 
          for (final Agent agent: agents) {
 
-             // visualize trajectories
+			// visualize trajectories
              VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
 
                 @Override
                 public tt.discrete.Trajectory<Point> getTrajectory() {
                     return agent.getCurrentTrajectory();
                 }
-            }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TIME, 'g'));
+            }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TRAJ_DURATION, 'g'));
 
             VisManager.registerLayer(FastAgentsLayer.create(new TrajectoriesProvider() {
 				@Override

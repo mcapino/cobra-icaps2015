@@ -30,15 +30,17 @@ public abstract class PlanningAgent extends Agent {
 	EvaluatedTrajectory trajectory;
 
 	protected final int maxTime;
+	protected final int waitMoveDuration;
 	
 	public int replanningCounter = 0;
 
 	private HeuristicToGoal<tt.euclidtime3i.Point> heuristic;
 	
 	public PlanningAgent(String name, Point start, Point goal,
-			Environment environment, int agentBodyRadius, int maxTime) {
+			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
 		super(name, start, goal, environment, agentBodyRadius);
 		this.maxTime = maxTime;
+		this.waitMoveDuration = waitMoveDuration;
 	}
 
 	protected EvaluatedTrajectory getBestResponseTrajectory(
@@ -63,9 +65,9 @@ public abstract class PlanningAgent extends Agent {
 				//heuristic = new L2Heuristic(goal);
 			}
 			
-			traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime);
+			traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, waitMoveDuration);
     	} else {
-    		traj = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), sObstInflated, dObstInflated, maxTime);
+    		traj = BestResponse.computeBestResponse(start, goal, inflatedObstacles, environment.getBoundary().getBoundingBox(), sObstInflated, dObstInflated, maxTime, waitMoveDuration);
     	}
 
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
