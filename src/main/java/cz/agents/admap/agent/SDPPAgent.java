@@ -81,9 +81,7 @@ public class SDPPAgent extends DPPAgent {
         		broadcastAgentFinishedRound();
         		LOGGER.debug(getName() +  ": round " + round + " finished!");
         	}
-        	
         }		
-        
 	}
 	
 	protected void assertConsistentTrajectory() {

@@ -22,6 +22,8 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
 import tt.euclid2i.trajectory.SegmentedTrajectories;
 import tt.euclidtime3i.Region;
+import tt.euclidtime3i.discretization.Straight;
+import tt.euclidtime3i.region.CircleMovingToTarget;
 import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.util.IntersectionCheckerWithProtectedPoint;
 
@@ -33,7 +35,7 @@ public abstract class DPPAgent extends PlanningAgent {
 		super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
 	}
 	
-    Map<String, MovingCircle> agentView =  new HashMap<String, MovingCircle>();
+    Map<String, CircleMovingToTarget> agentView =  new HashMap<String, CircleMovingToTarget>();
 
     boolean higherPriorityAgentsFinished = false;
     private boolean agentTerminated = false;
@@ -43,6 +45,9 @@ public abstract class DPPAgent extends PlanningAgent {
 	protected boolean agentViewDirty;
 	
 	public int infromNewTrajectorySentCounter = 0;
+	
+	static final int UNKNOWN = (-1);
+	private int optimalSingleAgentPathDuration = UNKNOWN;
 		
 
     @Override
@@ -57,9 +62,9 @@ public abstract class DPPAgent extends PlanningAgent {
         return trajectory;
     }
 
-	protected void broadcastNewTrajectory(EvaluatedTrajectory newTrajectory) {
+	protected void broadcastNewTrajectory(EvaluatedTrajectory newTrajectory, int targetReachedTime) {
 		this.infromNewTrajectorySentCounter++;
-    	broadcast(new InformNewTrajectory(getName(), new MovingCircle(newTrajectory, agentBodyRadius)));
+    	broadcast(new InformNewTrajectory(getName(), new CircleMovingToTarget(newTrajectory, agentBodyRadius, targetReachedTime)));
 	}
 
     protected void broadcastAgentFinished() {
@@ -81,7 +86,7 @@ public abstract class DPPAgent extends PlanningAgent {
 	protected Collection<tt.euclid2i.Region> sObst() {
 		Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
 
-        for (Entry<String, MovingCircle> entry : agentView.entrySet()) {
+        for (Entry<String, CircleMovingToTarget> entry : agentView.entrySet()) {
         	String name = entry.getKey();
         	MovingCircle movingCircle = entry.getValue();
 
@@ -97,13 +102,13 @@ public abstract class DPPAgent extends PlanningAgent {
 	protected  Collection<Region> dObst() {
 		Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
 
-        for (Entry<String, MovingCircle> entry : agentView.entrySet()) {
+        for (Entry<String, CircleMovingToTarget> entry : agentView.entrySet()) {
         	String name = entry.getKey();
-        	MovingCircle movingCircle = entry.getValue();
+        	CircleMovingToTarget movingCircle = entry.getValue();
 
         	if (getName().compareTo(name) > 0) {
         		// Dynamic obstacles
-        		dObst.add(new MovingCircle(movingCircle.getTrajectory(), movingCircle.getRadius()));
+        		dObst.add(new CircleMovingToTarget(movingCircle.getTrajectory(), movingCircle.getRadius(), movingCircle.getTargetReachedTime() ));
         	} 
         }
         
@@ -114,26 +119,71 @@ public abstract class DPPAgent extends PlanningAgent {
 
 		if (currentTraj == null || !consistent(new MovingCircle(currentTraj, agentBodyRadius), sObst, dObst)) {
     		// The current trajectory is inconsistent
-			LOGGER.trace(getName() + " detected inconsistency.");
+			int currentMaxTime = computeMaxTime(dObst);
+			LOGGER.trace(getName() + " detected inconsistency. Replanning with maxtime=" + currentMaxTime);
 			
-        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart());
+        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart(), currentMaxTime);
 
         	if (newTrajectory == null) {
-        		// Failure
-        		throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        		LOGGER.debug(getName() + " Cannot find a consistent trajectory. Maxtime=" + currentMaxTime + ". dObst=" + dObst() );
+        		
+        		if (higherPriorityAgentsFinished) {
+        			// Failure
+        			throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        		}
         	}
 
 	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost());
 
 	        // broadcast to the others
-	        broadcastNewTrajectory(newTrajectory);
+	        broadcastNewTrajectory(newTrajectory, computeTargetReachedTime(newTrajectory, goal));
         	return newTrajectory;
 		} else {
 			return currentTraj;
 		}
     }
 
-    protected boolean lowerPriorityAgentViewFull() {
+	private int computeMaxTime(Collection<Region> dObst) {
+		
+		if (optimalSingleAgentPathDuration == UNKNOWN && lowerPriorityAgentViewFull()) {
+			LOGGER.trace(getName() + " Computing the length of single-agent shortest path...");
+			optimalSingleAgentPathDuration = getSingleAgentShortestPath(sObst()).getMaxTime();
+			LOGGER.trace(getName() + " Duration of the shortest path is " + optimalSingleAgentPathDuration);
+		} 
+		
+		if (optimalSingleAgentPathDuration != UNKNOWN) {
+		
+			// in the worst-case, we will have to wait until the last reaches the goal
+			int latestReachesGoal = 0;
+			for (Region region : dObst) {
+				assert region instanceof CircleMovingToTarget;
+				int targetReached = ((CircleMovingToTarget) region).getTargetReachedTime(); 
+				if (latestReachesGoal < targetReached) {
+					latestReachesGoal = targetReached;
+				}
+			}
+			return latestReachesGoal + optimalSingleAgentPathDuration + waitMoveDuration;
+		} else {
+			return maxTime;
+		}
+	}
+
+	static private int computeTargetReachedTime(EvaluatedTrajectory traj, Point goal) {
+    	
+    	assert traj instanceof SegmentedTrajectory;
+    	List<Straight> segmentsList = ((SegmentedTrajectory) traj).getSegments();
+    	
+    	Straight[] segments = segmentsList.toArray(new Straight[0]);
+    	for (int i=segments.length-1; i >= 0; i--) {
+    		if (segments[i].getEnd().getPosition().equals(goal) && !segments[i].getStart().getPosition().equals(goal)) {
+    			return segments[i].getEnd().getTime();
+    		}
+    	}
+    	
+    	return 0;
+	}
+
+	protected boolean lowerPriorityAgentViewFull() {
 
     	for (String otherAgentName : sortedAgents) {
     		if (otherAgentName.compareTo(getName()) > 0) {
@@ -163,7 +213,7 @@ public abstract class DPPAgent extends PlanningAgent {
         if (message.getContent() instanceof InformNewTrajectory) {
             InformNewTrajectory newTrajectoryMessage = (InformNewTrajectory) (message.getContent());
             String agentName = newTrajectoryMessage.getAgentName();
-            MovingCircle occupiedRegion = (MovingCircle) newTrajectoryMessage.getRegion();
+            CircleMovingToTarget occupiedRegion = (CircleMovingToTarget) newTrajectoryMessage.getRegion();
 
             if (agentName.compareTo(getName()) != 0) {
                 agentView.put(agentName, occupiedRegion);
@@ -173,7 +223,6 @@ public abstract class DPPAgent extends PlanningAgent {
         
         if (message.getContent() instanceof InformGloballyConverged) {
         	agentTerminated();
-
         }
     }
 

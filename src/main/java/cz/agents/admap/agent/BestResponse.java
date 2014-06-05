@@ -12,6 +12,7 @@ import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
+import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.SegmentedTrajectory;
@@ -20,6 +21,7 @@ import tt.euclid2i.discretization.LazyGrid;
 import tt.euclid2i.discretization.ObstacleWrapper;
 import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
+import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
@@ -65,21 +67,6 @@ public class BestResponse {
 
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
-
-		// = new ToGoalEdgeExtension(graph, goal, GRID_STEP);
-
-		//visualize the graph
-//		VisLayer layer = GraphLayer.create(
-//						new GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-//							@Override
-//							public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-//								return (adaptedSpatialGraph)
-//										.generateFullGraph(start);
-//							}
-//						}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
-//						Color.BLUE, 1, 4);
-//
-//		VisManager.registerLayer(layer);
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
@@ -190,5 +177,23 @@ public class BestResponse {
             return null;
         }
     }
+    
+	public static EvaluatedTrajectory computeShortestPath(
+			final Point start,
+			final Point goal,
+			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
+			HeuristicToGoal<Point> heuristic,
+			Collection<tt.euclid2i.Region> staticObstacles) {
+
+		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
+			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
+
+        GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(adaptedSpatialGraph,
+                heuristic,
+                start,
+                goal);
+        
+        return new LineSegmentsConstantSpeedTrajectory<Point, Line>(0, path, 1, (int) path.getWeight());
+	}
 
 }

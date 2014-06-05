@@ -9,10 +9,13 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -27,9 +30,11 @@ import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.Trajectory;
+import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
 import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
+import tt.euclid2i.util.SeparationDetector;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
@@ -131,17 +136,20 @@ public class ScenarioCreator {
 		}
 
 	    Method method = Method.valueOf(methodStr);
+	    
+	    params.noOfClusters = computeNoOfClusters(problem, params);
+	    LOGGER.info("Number of clusters: " + params.noOfClusters);
 
 	    if (timeoutStr != null) {
 	    	int timeout = Integer.parseInt(timeoutStr);
-	    	killAt(params.summaryPrefix, System.currentTimeMillis() + timeout);
+	    	killAt(System.currentTimeMillis() + timeout, params.summaryPrefix, params.noOfClusters);
 	    }
 	    
     	create(problem, method, params);
     }
 
 
-    private static void killAt(final String summaryPrefix, final long killAtMs) {
+    private static void killAt(final long killAtMs, final String summaryPrefix, final int clusters) {
     	Thread t = new Thread() {
 			@Override
 			public void run() {
@@ -150,7 +158,7 @@ public class ScenarioCreator {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, false, null, 0);
+				printSummary(summaryPrefix, false, null, 0, clusters);
 				System.exit(0);
 			}
     	};
@@ -275,7 +283,7 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs);
+		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs, params.noOfClusters);
 		
 		if (!params.showVis) {
 			System.exit(0);
@@ -343,7 +351,7 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, suceeded, agents, (finishedAtMs - programStartedAtNs)/1000000);
+		printSummary(params.summaryPrefix, suceeded, agents, (finishedAtMs - programStartedAtNs)/1000000, params.noOfClusters);
 		
 		if (params.activityLogFile != null) {
 			saveActivityLog(activityLog, params.activityLogFile);
@@ -432,7 +440,7 @@ public class ScenarioCreator {
     }
 
     private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, final Parameters params) {
-
+    	
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
@@ -509,7 +517,7 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
-                    	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000);
+                    	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
                     	   if (!params.showVis) {
                     		   System.exit(0);
                     	   }
@@ -565,7 +573,7 @@ public class ScenarioCreator {
 		}
 	}
 
-	private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs) {
+	private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs, int clusters) {
 
     	if (succeeded) {
 	    	double cost = 0;
@@ -581,9 +589,9 @@ public class ScenarioCreator {
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    	}
-	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter);
+	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter + ";" + clusters);
     	} else {
-    		System.out.println(prefix + "inf;NA;NA;NA");
+    		System.out.println(prefix + "inf;NA;NA;NA;" + clusters);
     	}
 
     }
@@ -670,4 +678,60 @@ public class ScenarioCreator {
 			}
 		}, Color.RED));
    }
+    
+   static private int computeNoOfClusters(EarliestArrivalProblem problem, Parameters params) {
+	   MovingCircle[] mcs = new MovingCircle[problem.nAgents()];
+	   Set<Set<MovingCircle>> clusters = new HashSet<Set<MovingCircle>>(); 
+	   
+	   for (int i = 0; i < mcs.length; i++) {
+           Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
+           Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
+           HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
+		   EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.waitMoveDuration);
+
+		   mcs[i] = new MovingCircle(traj, problem.getBodyRadius(i));
+		   
+		   Set<Set<MovingCircle>> conflicting = getConflictingClusters(mcs[i], clusters);
+		   
+		   if (conflicting.size() == 0) {
+			   clusters.add(Collections.singleton(mcs[i]));
+		   } else {
+			   assert conflicting.size() > 0;
+			   
+			   Set<MovingCircle> joinedCluster = new HashSet<MovingCircle>();
+			   joinedCluster.add(mcs[i]);
+			   // join all clusters
+			   for (Set<MovingCircle> conflictingCluster : conflicting) {
+				   clusters.remove(conflictingCluster);
+				   joinedCluster.addAll(conflictingCluster);
+			   }
+			   
+			   clusters.add(joinedCluster);
+		   }
+	   }
+	   
+	   return clusters.size();
+   }
+
+
+	static private Set<Set<MovingCircle>> getConflictingClusters(MovingCircle movingCircle, Set<Set<MovingCircle>> clusters) {
+	
+		Set<Set<MovingCircle>> conflictingClusters = new HashSet<Set<MovingCircle>>(); 
+		for (Set<MovingCircle> cluster : clusters) {
+			
+			LinkedList<tt.euclidtime3i.Region> regions = new LinkedList<tt.euclidtime3i.Region>();
+			for(MovingCircle mc : cluster) {
+				regions.add(mc);
+			}
+			
+			if (IntersectionChecker.intersect(movingCircle, regions)) {
+				conflictingClusters.add(cluster);
+			}
+		}
+		
+		return conflictingClusters;
+	}
+
+
+
 }

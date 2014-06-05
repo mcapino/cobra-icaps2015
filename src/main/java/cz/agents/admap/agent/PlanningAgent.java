@@ -8,9 +8,9 @@ import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
+import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
-import tt.euclidtime3i.L2Heuristic;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.ShortestPathHeuristic;
 import tt.euclidtime3i.region.MovingCircle;
@@ -46,7 +46,8 @@ public abstract class PlanningAgent extends Agent {
 	protected EvaluatedTrajectory getBestResponseTrajectory(
 			Collection<tt.euclid2i.Region> staticObst,
 			Collection<Region> dynamicObst, 
-			tt.euclid2i.Point protectedPoint) {
+			tt.euclid2i.Point protectedPoint, 
+			int maxTime) {
 		
 		replanningCounter++;
 		LOGGER.debug(getName() + " started planning ...");
@@ -72,6 +73,24 @@ public abstract class PlanningAgent extends Agent {
 
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
 		return traj;
+	}
+	
+	protected EvaluatedTrajectory getSingleAgentShortestPath(Collection<tt.euclid2i.Region> staticObst) {
+		
+		replanningCounter++;
+		LOGGER.debug(getName() + " started planning ...");
+		long startedAt = System.currentTimeMillis();
+
+		EvaluatedTrajectory shortestTraj = null;
+		Collection<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, agentBodyRadius+RADIUS_BUFFER_GRACE);
+		if (getPlanningGraph() != null) {
+			shortestTraj = BestResponse.computeShortestPath(start, goal, getPlanningGraph(), new L2Heuristic(goal), sObstInflated);
+    	} else {
+    		assert false;
+    	}
+
+		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
+		return shortestTraj;
 	}
 
 	protected static LinkedList<tt.euclid2i.Region> inflateStaticObstacles(Collection<tt.euclid2i.Region> sObst, int radius) {
