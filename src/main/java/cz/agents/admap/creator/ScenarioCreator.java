@@ -138,7 +138,7 @@ public class ScenarioCreator {
 	    Method method = Method.valueOf(methodStr);
 	    
 	    params.noOfClusters = computeNoOfClusters(problem, params);
-	    LOGGER.info("Number of clusters: " + params.noOfClusters);
+	    LOGGER.debug("Number of clusters: " + params.noOfClusters);
 
 	    if (timeoutStr != null) {
 	    	int timeout = Integer.parseInt(timeoutStr);
@@ -731,7 +731,5 @@ public class ScenarioCreator {
 		
 		return conflictingClusters;
 	}
-
-
 
 }

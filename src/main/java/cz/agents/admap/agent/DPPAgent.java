@@ -145,27 +145,31 @@ public abstract class DPPAgent extends PlanningAgent {
 
 	private int computeMaxTime(Collection<Region> dObst) {
 		
-		if (optimalSingleAgentPathDuration == UNKNOWN && lowerPriorityAgentViewFull()) {
-			LOGGER.trace(getName() + " Computing the length of single-agent shortest path...");
-			optimalSingleAgentPathDuration = getSingleAgentShortestPath(sObst()).getMaxTime();
-			LOGGER.trace(getName() + " Duration of the shortest path is " + optimalSingleAgentPathDuration);
-		} 
+		return maxTime;
 		
-		if (optimalSingleAgentPathDuration != UNKNOWN) {
+		// Temporarily disabled, as this is inconsistent with the regular timestep planning method...
 		
-			// in the worst-case, we will have to wait until the last reaches the goal
-			int latestReachesGoal = 0;
-			for (Region region : dObst) {
-				assert region instanceof CircleMovingToTarget;
-				int targetReached = ((CircleMovingToTarget) region).getTargetReachedTime(); 
-				if (latestReachesGoal < targetReached) {
-					latestReachesGoal = targetReached;
-				}
-			}
-			return latestReachesGoal + optimalSingleAgentPathDuration + waitMoveDuration;
-		} else {
-			return maxTime;
-		}
+//		if (optimalSingleAgentPathDuration == UNKNOWN && lowerPriorityAgentViewFull()) {
+//			LOGGER.trace(getName() + " Computing the length of single-agent shortest path...");
+//			optimalSingleAgentPathDuration = getSingleAgentShortestPath(sObst()).getMaxTime();
+//			LOGGER.trace(getName() + " Duration of the shortest path is " + optimalSingleAgentPathDuration);
+//		} 
+//		
+//		if (optimalSingleAgentPathDuration != UNKNOWN) {
+//		
+//			// in the worst-case, we will have to wait until the last reaches the goal
+//			int latestReachesGoal = 0;
+//			for (Region region : dObst) {
+//				assert region instanceof CircleMovingToTarget;
+//				int targetReached = ((CircleMovingToTarget) region).getTargetReachedTime(); 
+//				if (latestReachesGoal < targetReached) {
+//					latestReachesGoal = targetReached;
+//				}
+//			}
+//			return latestReachesGoal + optimalSingleAgentPathDuration + waitMoveDuration;
+//		} else {
+//			return maxTime;
+//		}
 	}
 
 	static private int computeTargetReachedTime(EvaluatedTrajectory traj, Point goal) {
