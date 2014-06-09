@@ -205,7 +205,7 @@ public class ORCAAgent extends Agent {
 	}
 
 	@Override
-	public boolean isTerminated() {
+	public boolean isGlobalTerminationDetected() {
 		return getCurrentPosition().distance(goal) < 1;
 	}
 

@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import java.io.IOException;
 import java.util.Collections;
 
 import org.apache.log4j.Logger;
@@ -33,7 +34,7 @@ public class SDPPAgent extends DPPAgent {
     		LOGGER.info(getName() +  " has finished planning!");
     		LOGGER.debug(getName() +  ": round " + round + " finished!");
         	if (isLowestPriority()) {
-        		agentTerminated();
+        		setGlobalTerminationDetected();
         	}
     	}
     }
@@ -50,7 +51,7 @@ public class SDPPAgent extends DPPAgent {
 			int roundInMsg = ((InformAgentFinishedRound) message.getContent()).getRound();
 			if (isMyPredecessor(agentName) && roundInMsg == round) {
 				if (isLowestPriority() ) {
-					LOGGER.debug(getName() +  ": round " + round + " finished!");
+					LOGGER.debug(getName() +  ": round " + round + " finished! AgentView changed in the last round: " + agentViewChangedInLastRound);
 					// everyone finished in the round
 					round++; 
 					if (agentViewChangedInLastRound) {
@@ -63,7 +64,7 @@ public class SDPPAgent extends DPPAgent {
 						// The process converged...
 						LOGGER.info("The process converged!");
 						broadcastGloballyConverged();
-						agentTerminated();
+						setGlobalTerminationDetected();
 					}
 				} else {
 					broadcastAgentFinishedRound();

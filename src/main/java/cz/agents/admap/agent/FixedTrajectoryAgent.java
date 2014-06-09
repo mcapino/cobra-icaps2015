@@ -25,7 +25,7 @@ public class FixedTrajectoryAgent extends Agent {
 	}
 
 	@Override
-	public boolean isTerminated() {
+	public boolean isGlobalTerminationDetected() {
 		return false;
 	}
 

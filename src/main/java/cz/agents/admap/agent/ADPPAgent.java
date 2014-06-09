@@ -13,6 +13,7 @@ import tt.euclidtime3i.Region;
 public class ADPPAgent extends DPPAgent {
 
 	static final Logger LOGGER = Logger.getLogger(ADPPAgent.class);
+	private boolean agentFinished = false;
 
     public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
         super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
@@ -28,32 +29,34 @@ public class ADPPAgent extends DPPAgent {
     	assertConsistentTrajectory();
     	
     	if (isLowestPriority() && higherPriorityAgentsFinished) {
-    		agentTerminated();
+    		setGlobalTerminationDetected();
     	}
     }
 
 	@Override
 	protected void notify(Message message) {
-		super.notify(message);
-		
-        if (message.getContent() instanceof InformAgentFinished) {
-        	String agentName = ((InformAgentFinished) message.getContent()).getAgentName();
-        	if (isMyPredecessor(agentName)) {
-        		higherPriorityAgentsFinished = true;
-        		agentViewDirty = true;
-        	}
-        }
-		
-        if (agentViewDirty && getInboxSize() == 0) {
-        	assertConsistentTrajectory();
-        	agentViewDirty = false;
-        	
-        	if (isLowestPriority() && higherPriorityAgentsFinished) {
-        		broadcastGloballyConverged();
-        		LOGGER.info(getName() +  " globally terminated!");
-        		agentTerminated();
-        	}
-        }		
+		if (!globalTerminationDetected) {		
+			super.notify(message);
+			
+	        if (message.getContent() instanceof InformAgentFinished) {
+	        	String agentName = ((InformAgentFinished) message.getContent()).getAgentName();
+	        	if (isMyPredecessor(agentName)) {
+	        		higherPriorityAgentsFinished = true;
+	        		agentViewDirty = true;
+	        	}
+	        }
+			
+	        if (agentViewDirty && getInboxSize() == 0) {
+	        	assertConsistentTrajectory();
+	        	agentViewDirty = false;
+	        	
+	        	if (isLowestPriority() && higherPriorityAgentsFinished) {
+	        		broadcastGloballyConverged();
+	        		LOGGER.info(getName() +  " globally terminated!");
+	        		setGlobalTerminationDetected();
+	        	}
+	        }	
+		}
 	}
 	
 	protected void assertConsistentTrajectory() {
@@ -63,8 +66,9 @@ public class ADPPAgent extends DPPAgent {
 	        trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), dObst());
 		}
 
-    	if (!isTerminated() && higherPriorityAgentsFinished && lowerPriorityAgentViewFull()) {
+    	if (!agentFinished && higherPriorityAgentsFinished && lowerPriorityAgentViewFull()) {
     		// we have consistent trajectory and the higher-priority agents are fixed
+    		agentFinished = true;
     		broadcastAgentFinished();
     		LOGGER.info(getName() +  " has finished!");
     	}

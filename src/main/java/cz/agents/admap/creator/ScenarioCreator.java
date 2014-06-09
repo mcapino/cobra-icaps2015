@@ -1,5 +1,6 @@
 package cz.agents.admap.creator;
 import java.awt.Color;
+import java.awt.image.ReplicateScaleFilter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -510,7 +511,7 @@ public class ScenarioCreator {
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
 
                        // Check whether all agents reached their goals
-                       if (agent.isTerminated()) {
+                       if (agent.isGlobalTerminationDetected()) {
                     	   unfinishedAgents.remove(agent.getName());
                        }
 
@@ -518,6 +519,11 @@ public class ScenarioCreator {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
                     	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
+                    	   
+                           if (params.activityLogFile != null) {
+                          	 saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
+                           }
+                    	   
                     	   if (!params.showVis) {
                     		   System.exit(0);
                     	   }
@@ -540,7 +546,7 @@ public class ScenarioCreator {
                concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
            }
 
-         // **** create visio of agents ****
+         // **** create Visio of agents ****
          if (params.showVis) {
              visualizeAgents(problem, agents);
              visualizeConflicts(agents);
@@ -548,10 +554,7 @@ public class ScenarioCreator {
 
          // *** run simulation ***
          concurrentSimulation.run();
-         
-         if (params.activityLogFile != null) {
-        	 saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
-         }
+
     }
 
     private static void saveActivityLog(Collection<ActivityLogEntry> activityLog, String activityLogFile) {
@@ -578,6 +581,7 @@ public class ScenarioCreator {
     	if (succeeded) {
 	    	double cost = 0;
 	    	int msgsSent = 0;
+	    	int totalReplannings = 0;
 	    	for (Agent agent : agents) {
 	    		
 	    		
@@ -588,10 +592,16 @@ public class ScenarioCreator {
 						);
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
+	    		
+	    		if (agent instanceof PlanningAgent) {
+	    			totalReplannings += ((PlanningAgent) agent).replanningCounter;
+	    		}
+	    		
 	    	}
-	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + Counters.expandedStatesCounter + ";" + clusters);
+	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + 
+	    			Counters.expandedStatesCounter + ";" + clusters + ";" + totalReplannings);
     	} else {
-    		System.out.println(prefix + "inf;NA;NA;NA;" + clusters);
+    		System.out.println(prefix + "inf;NA;NA;NA;" + clusters + ";" + "NA");
     	}
 
     }

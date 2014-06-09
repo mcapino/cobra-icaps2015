@@ -38,7 +38,7 @@ public abstract class DPPAgent extends PlanningAgent {
     Map<String, CircleMovingToTarget> agentView =  new HashMap<String, CircleMovingToTarget>();
 
     boolean higherPriorityAgentsFinished = false;
-    private boolean agentTerminated = false;
+    protected boolean globalTerminationDetected = false;
 
     List<String> sortedAgents = new LinkedList<String>();
 
@@ -219,19 +219,28 @@ public abstract class DPPAgent extends PlanningAgent {
             String agentName = newTrajectoryMessage.getAgentName();
             CircleMovingToTarget occupiedRegion = (CircleMovingToTarget) newTrajectoryMessage.getRegion();
 
-            if (agentName.compareTo(getName()) != 0) {
-                agentView.put(agentName, occupiedRegion);
-                agentViewDirty = true;
+            if (agentName.compareTo(getName()) < 0) {
+            	// the messages is from higher-priority agent
+            	agentView.put(agentName, occupiedRegion);
+            	agentViewDirty = true;
+            }
+
+            if (agentName.compareTo(getName()) > 0) {
+            	// the messages is from a lower-priority agent
+            	if (!agentView.containsKey(agentName)) {
+            		agentView.put(agentName, occupiedRegion);
+            		agentViewDirty = true;
+            	}
             }
         }
         
         if (message.getContent() instanceof InformGloballyConverged) {
-        	agentTerminated();
+        	setGlobalTerminationDetected();
         }
     }
 
-	protected void agentTerminated() {
-    	agentTerminated = true;
+	protected void setGlobalTerminationDetected() {
+    	globalTerminationDetected = true;
     	logFinalStats();
 	}
 
@@ -245,8 +254,8 @@ public abstract class DPPAgent extends PlanningAgent {
 	}
 
 	@Override
-	public boolean isTerminated() {
-		return agentTerminated;
+	public boolean isGlobalTerminationDetected() {
+		return globalTerminationDetected;
 	}
 
 	@Override

@@ -120,7 +120,7 @@ public abstract class Agent {
     	this.planningGraph = planningGraph;
     }
 
-    public abstract boolean isTerminated();
+    public abstract boolean isGlobalTerminationDetected();
 
 	public int getMessageSentCounter() {
 		return ((InboxBasedCommunicator) communicator).getMessagesSent();
