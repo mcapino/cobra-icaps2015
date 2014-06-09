@@ -140,9 +140,11 @@ public class ScenarioCreator {
 	    
 	    params.noOfClusters = computeNoOfClusters(problem, params);
 	    LOGGER.debug("Number of clusters: " + params.noOfClusters);
-
+	    
+	    params.runtimeDeadlineMs = 3600*1000; /* default timeout is 1 hour */
 	    if (timeoutStr != null) {
 	    	int timeout = Integer.parseInt(timeoutStr);
+	    	params.runtimeDeadlineMs = timeout;
 	    	killAt(System.currentTimeMillis() + timeout, params.summaryPrefix, params.noOfClusters);
 	    }
 	    
@@ -176,13 +178,6 @@ public class ScenarioCreator {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
             }
         }
-
-//      try {
-//			System.in.read();
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
 
         switch (method) {
         
@@ -502,7 +497,7 @@ public class ScenarioCreator {
 
                // start periodic ticks
                final long tickPeriod = (long) 1e8;
-               final long simulateUntil = 120 * (long) 1e9;
+               final long simulateUntil = (long) (params.runtimeDeadlineMs * 10e6);  
                DurativeEventHandler tickhandler =  new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
