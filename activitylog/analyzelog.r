@@ -21,13 +21,14 @@ log$duration.str <- ""
 log$duration.str[round(log$duration*1000) > 10] <- paste(round(log$duration[round(log$duration*1000) > 10]*1000), "ms")
 
 
-ggplot(log[log$start < 2 & log$type=="EVENT_HANDLED", ], aes(x=process, ymin=(start), ymax=(start+duration), color=process)) + 
+ggplot(log[log$type=="EVENT_HANDLED", ], aes(x=process, ymin=(start), ymax=(start+duration), color=process)) + 
   geom_linerange(size=8) + 
   geom_point(aes(y=start), colour="black", size=1) + 
   geom_text(aes(y=start+duration/2, label=duration.str), colour="black", angle=0, size=3) +
   geom_text(aes(y=start+duration/2-duration/5, label=expstates), colour="blue", angle=0, size=3) +
   geom_text(aes(y=start+duration/2-2*duration/5, label=us.per.state), colour="blue", angle=0, size=3) +
   facet_wrap(~alg, ncol=3) +
+  coord_cartesian(ylim=c(0,1)) +
   theme_bw()  
   
 
