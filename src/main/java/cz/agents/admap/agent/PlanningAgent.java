@@ -23,7 +23,7 @@ public abstract class PlanningAgent extends Agent {
 	
 	// Needed to overcome situation when the collision checker detected conflicts on the trajectory that was just returned by 
 	// the best-response rutine.
-	float RADIUS_BUFFER_GRACE_COEF = 1.1f;
+	float RADIUS_BUFFER_GRACE_COEF = 1.15f;
 	
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
 	
