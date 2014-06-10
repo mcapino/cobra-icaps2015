@@ -22,8 +22,9 @@ import tt.euclidtime3i.region.MovingCircleMinusPoint;
 public abstract class PlanningAgent extends Agent {
 	
 	// Needed to overcome situation when the collision checker detected conflicts on the trajectory that was just returned by 
-	// the best-response rutine.
-	float RADIUS_BUFFER_GRACE_COEF = 1.15f;
+	// the best-response routine. This discrepancy can happen due to the different sampling step used for collision checking 
+	// in planning and in collision checking in consistency check.
+	float RADIUS_BUFFER_GRACE_COEF = 1.2f;
 	
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
 	
