@@ -63,14 +63,14 @@ public class BestResponse {
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
 			final HeuristicToGoal<tt.euclidtime3i.Point> heuristic,
 			Collection<tt.euclid2i.Region> staticObstacles,
-			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime, final int waitMoveDuration) {
+			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime, final int timeStep) {
 
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, waitMoveDuration, true);
+            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, timeStep, true);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);
@@ -83,7 +83,7 @@ public class BestResponse {
                     @Override
                     public boolean isGoal(tt.euclidtime3i.Point current) {
                         return current.getPosition().equals(goal)
-                        		&& current.getTime() > (maxTime - waitMoveDuration - 1); // last space-time node might not be placed at MAX_TIME
+                        		&& current.getTime() > (maxTime - timeStep - 1); // last space-time node might not be placed at MAX_TIME
                     }
                 });
 

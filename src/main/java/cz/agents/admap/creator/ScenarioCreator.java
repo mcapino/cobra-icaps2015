@@ -114,8 +114,8 @@ public class ScenarioCreator {
     	String methodStr = Args.getArgumentValue(args, "-method", true);
     	String maxTimeStr = Args.getArgumentValue(args, "-maxtime", true);
     	params.maxTime = Integer.parseInt(maxTimeStr);
-    	String waitDurationStr = Args.getArgumentValue(args, "-waitduration", true);
-    	params.waitMoveDuration = Integer.parseInt(waitDurationStr);
+    	String timeStepStr = Args.getArgumentValue(args, "-timestep", true);
+    	params.timeStep = Integer.parseInt(timeStepStr);
     	params.showVis = Args.isArgumentSet(args, "-showvis");
     	params.verbose = Args.isArgumentSet(args, "-verbose");
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
@@ -173,7 +173,7 @@ public class ScenarioCreator {
 	public static void create(EarliestArrivalProblem problem, Method method, final Parameters params) {
 		
         if (params.showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.waitMoveDuration/4);
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.timeStep/4);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
@@ -238,7 +238,7 @@ public class ScenarioCreator {
                 Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
                 Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
                 HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
-				traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.waitMoveDuration);
+				traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.timeStep);
             } else{
                 GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(problem.getPlanningGraph(), new HeuristicToGoal<Point>() {
 
@@ -311,7 +311,7 @@ public class ScenarioCreator {
             }
             
 			HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
-			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic , sObst, dObst, params.maxTime, params.waitMoveDuration);
+			EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic , sObst, dObst, params.maxTime, params.timeStep);
 			
 			int expandedStatesAfter = Counters.expandedStatesCounter;
 			
@@ -365,7 +365,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
+            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -378,7 +378,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
+            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -391,7 +391,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.waitMoveDuration);
+            	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -404,7 +404,7 @@ public class ScenarioCreator {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime, params.waitMoveDuration);
+                return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime, params.timeStep);
             }
         }, params);
     }
@@ -682,7 +682,7 @@ public class ScenarioCreator {
            Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
            Collection<tt.euclidtime3i.Region> dObst = new LinkedList<tt.euclidtime3i.Region>();
            HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(problem.getPlanningGraph(), problem.getTarget(i));
-		   EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.waitMoveDuration);
+		   EvaluatedTrajectory traj = BestResponse.computeBestResponse(problem.getStart(i), problem.getTarget(i), problem.getPlanningGraph(), heuristic ,sObst, dObst, params.maxTime, params.timeStep);
 
 		   mcs[i] = new MovingCircle(traj, problem.getBodyRadius(i));
 		   
