@@ -78,6 +78,7 @@ import cz.agents.alite.communication.channel.DirectCommunicationChannel.Receiver
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 
 
 public class ScenarioCreator {
@@ -172,7 +173,7 @@ public class ScenarioCreator {
 	public static void create(EarliestArrivalProblem problem, Method method, final Parameters params) {
 		
         if (params.showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, 2);
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.waitMoveDuration/4);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
@@ -607,15 +608,15 @@ public class ScenarioCreator {
          int agentIndex = 0;
 
          for (final Agent agent: agents) {
-
-			// visualize trajectories
-             VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+        	 
+			 // visualize trajectories
+             VisManager.registerLayer(KeyToggleLayer.create("t", TrajectoryLayer.create(new TrajectoryProvider<Point>() {
 
                 @Override
                 public tt.discrete.Trajectory<Point> getTrajectory() {
                     return agent.getCurrentTrajectory();
                 }
-            }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TRAJ_DURATION, 'g'));
+            }, new ProjectionTo2d(), AgentColors.getColorForAgent(agentIndex), 1, MAX_TRAJ_DURATION, 'g')));
 
             VisManager.registerLayer(FastAgentsLayer.create(new TrajectoriesProvider() {
 				@Override
@@ -649,17 +650,6 @@ public class ScenarioCreator {
 				}
 			}, TimeParameterHolder.time));
             
-        final Point labelLocation = problem.getStart(agentIndex);
-        VisManager.registerLayer(LabeledPointLayer.create(new LabeledPointsProvider<tt.euclid2i.Point>() {
-            @Override
-            public Collection<LabeledPoint<tt.euclid2i.Point>> getLabeledPoints() {
-                Collection<LabeledPoint<tt.euclid2i.Point>> points = new LinkedList<LabeledPointLayer.LabeledPoint<tt.euclid2i.Point>>();
-                points.add(new LabeledPoint<tt.euclid2i.Point>(labelLocation, agent.getStatus()));
-                return points;
-            }
-
-        	}, new ProjectionTo2d(), Color.BLACK));
-
             agentIndex++;
         }
     }

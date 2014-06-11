@@ -8,7 +8,7 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.m2e.launchconfig.classpathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="cz.agents.admap.creator.ScenarioCreator"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method SDPP -problemfile instances/empty/99.xml -maxtime 15000 -waitduration 27 -timeout 1200000 -summary -summaryprefix ubremen;199;20;27;20;15000;ADPP; -activitylog instances/empty/99.xml.SDPP.log"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method SDPP -problemfile instances/ubremen/130.xml -maxtime 5000 -waitduration 20 -timeout 600000 -summary -summaryprefix empty-bounded;34;4;20;5;5000;SDPP; -activitylog instances/empty/34.xml.SDPP.log -showvis"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="adpp"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/home/capino/projects/deconfliction/repo/experiments/adpp"/>
