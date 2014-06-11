@@ -70,7 +70,7 @@ public class BestResponse {
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, timeStep, true);
+            = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, timeStep, timeStep);
 
         DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
             = new FreeOnTargetWaitExtension(graph, goal);
