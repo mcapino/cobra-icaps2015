@@ -32,6 +32,7 @@ public class DurativeEventProcessor {
     private long lastEventStartedAtNanos = 0;
     private long currentEventTime = 0;
     
+    private boolean keepActivityLog = false;
     private Collection<ActivityLogEntry> activityLog = new LinkedList<ActivityLogEntry>();
 
     public void run() {
@@ -44,7 +45,8 @@ public class DurativeEventProcessor {
             String processName = event.getProcess();
             long lastActivityFinishes = getProcessLastActivityFinishedTime(processName);
             
-            activityLog.add(new ActivityLogEntry(processName, Type.EVENT_RECIEVED, time, 0, 0));
+            if (keepActivityLog)
+            	activityLog.add(new ActivityLogEntry(processName, Type.EVENT_RECIEVED, time, 0, 0));
 
             if (time >= lastActivityFinishes) {
 
@@ -52,7 +54,7 @@ public class DurativeEventProcessor {
                 long idleTime = time - lastActivityFinishes;
                 processIdleCounter.put(processName, getProcessIdleCounter(processName) + idleTime);
                 
-                if (idleTime > 0) {
+                if (keepActivityLog && idleTime > 0) {
                 	 activityLog.add(new ActivityLogEntry(processName, Type.IDLE, lastActivityFinishes, idleTime, 0));
                 }
 
@@ -76,7 +78,8 @@ public class DurativeEventProcessor {
                 
                 processActiveCounter.put(processName, getProcessActiveCounter(processName) + duration);
                 processLastActivityFinishedTimes.put(processName, time + duration);
-                activityLog.add(new ActivityLogEntry(processName, Type.EVENT_HANDLED, time, duration, expandedStatesAfter - expandedStatesBefore));
+                if (keepActivityLog)
+                	activityLog.add(new ActivityLogEntry(processName, Type.EVENT_HANDLED, time, duration, expandedStatesAfter - expandedStatesBefore));
             } else {
                 // move to future
                 addEvent(lastActivityFinishes, processName, event.getHandler());
@@ -220,5 +223,9 @@ public class DurativeEventProcessor {
     
     public Collection<ActivityLogEntry> getActivityLog() {
 		return activityLog;
+	}
+    
+    public void setKeepActivityLog(boolean keepActivityLog) {
+		this.keepActivityLog = keepActivityLog;
 	}
 }

@@ -59,7 +59,7 @@ public class ORCAAgent extends Agent {
 	
 	final static int TIME_MULTIPLIER = 10;
 
-	private static final int SIMULATION_SPEED_MULTIPLIER = 10;
+	private static final int SIMULATION_SPEED_MULTIPLIER = 1;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
@@ -135,7 +135,8 @@ public class ORCAAgent extends Agent {
     				(int) Math.round(rvoTraj.get(i).getTime() * (double) simulationSpeedMultiplier));
     	}
     	
-		TimePointArrayTrajectory traj = new TimePointArrayTrajectory(timePointArray, RVOAgent.evaluateCost(timePointArray, goal));
+    	double cost = RVOAgent.evaluateCost(timePointArray, goal);
+		TimePointArrayTrajectory traj = new TimePointArrayTrajectory(timePointArray, cost);
     	return traj;
     }
     

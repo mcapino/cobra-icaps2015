@@ -84,6 +84,7 @@ import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 public class ScenarioCreator {
 
 
+
 	////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
@@ -108,8 +109,9 @@ public class ScenarioCreator {
 
 
     private static EarliestArrivalProblem problem;
-    protected static final int ORCA_SPEED_MULTIPLIER = 10;
 
+    private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
+    
     public static void createFromArgs(String[] args) {
     	Parameters params = new Parameters();
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
@@ -275,7 +277,7 @@ public class ScenarioCreator {
 				i++;
 				return agent;
 			}
-		}, params);
+		}, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
 		
 		
 		final List<Agent> agents = new LinkedList<Agent>();
@@ -343,7 +345,7 @@ public class ScenarioCreator {
 				i++;
 				return agent;
 			}
-		}, params);
+		}, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
 		
 		
 		final List<Agent> agents = new LinkedList<Agent>();
@@ -371,7 +373,7 @@ public class ScenarioCreator {
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, params);
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
     
     private static void solveSDPP(final EarliestArrivalProblem problem, final Parameters params) {
@@ -384,7 +386,7 @@ public class ScenarioCreator {
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, params);
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
 
     private static void solveADPPDG(final EarliestArrivalProblem problem, final Parameters params) {
@@ -397,7 +399,7 @@ public class ScenarioCreator {
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, params);
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
 
     private static void solveDSA(final EarliestArrivalProblem problem, final Parameters params) {
@@ -408,7 +410,7 @@ public class ScenarioCreator {
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime, params.timeStep);
             }
-        }, params);
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
 
     private static void solveADOPT(final EarliestArrivalProblem problem, final Parameters params) {
@@ -419,7 +421,7 @@ public class ScenarioCreator {
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new ADOPTAgent(name, start, target, env, agentBodyRadius, new NotCollidingConstraint());
             }
-        }, params);
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
 
     private static void solveORCA(final EarliestArrivalProblem problem, final Parameters params) {
@@ -431,14 +433,14 @@ public class ScenarioCreator {
             	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, params.showVis);
             	return agent;
             }
-        }, params);
+        }, 1000000000, (long) (params.maxTime*1e9), params);
     }
 
     interface AgentFactory {
         Agent createAgent(String name, Point start, Point target, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
     }
 
-    private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, final Parameters params) {
+    private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, final long tickPeriodNs, final long simulateTicksUntilNs, final Parameters params) {
     	
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
@@ -460,6 +462,7 @@ public class ScenarioCreator {
         // Create concurrent process simulation
         final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
         concurrentSimulation.setPrintouts(1000);
+        concurrentSimulation.setKeepActivityLog(params.activityLogFile != null);
 
         // Create the communication channels and communicators for each agent
         ReceiverTable receiverTable = new DirectCommunicationChannel.DefaultReceiverTable();
@@ -499,8 +502,6 @@ public class ScenarioCreator {
                });
 
                // start periodic ticks
-               final long tickPeriod = (long) 1e8;
-               final long simulateUntil = (long) (params.runtimeDeadlineMs * 10e6);  
                DurativeEventHandler tickhandler =  new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
@@ -526,10 +527,10 @@ public class ScenarioCreator {
                     		   System.exit(0);
                     	   }
                        } else {
-	                       if (concurrentSimulation.getWallclockRuntime() < simulateUntil) {
-	                    	   int noOfTicksToSkip = (int) (duration / tickPeriod); // if the tick handling takes more than tickPeriod, we need to skip some ticks
+	                       if (concurrentSimulation.getWallclockRuntime() < simulateTicksUntilNs) {
+	                    	   int noOfTicksToSkip = (int) (duration / tickPeriodNs); // if the tick handling takes more than tickPeriod, we need to skip some ticks
 
-	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriod, agent.getName(), this);
+	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriodNs, agent.getName(), this);
 	                       }
                        }
                        return duration;
@@ -540,7 +541,7 @@ public class ScenarioCreator {
                        return concurrentSimulation;
                    }
                };
-
+               
                concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
            }
 
