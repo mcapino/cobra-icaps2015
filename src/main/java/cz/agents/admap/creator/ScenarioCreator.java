@@ -83,7 +83,8 @@ import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 
 public class ScenarioCreator {
 
-    ////////////////////////////////////////////////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
         createFromArgs(args);
@@ -107,6 +108,7 @@ public class ScenarioCreator {
 
 
     private static EarliestArrivalProblem problem;
+    protected static final int ORCA_SPEED_MULTIPLIER = 10;
 
     public static void createFromArgs(String[] args) {
     	Parameters params = new Parameters();
@@ -517,7 +519,7 @@ public class ScenarioCreator {
                     	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
                     	   
                            if (params.activityLogFile != null) {
-                          	 saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
+                        	   saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
                            }
                     	   
                     	   if (!params.showVis) {
@@ -586,6 +588,7 @@ public class ScenarioCreator {
 						+ String.format("%.2f", agent.getCurrentTrajectory().getCost()) + 
 						" Messages sent: "+ agent.getMessageSentCounter()						
 						);
+				
 	    		cost += agent.getCurrentTrajectory().getCost();
 	    		msgsSent += agent.getMessageSentCounter();
 	    		

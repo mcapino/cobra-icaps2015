@@ -1,6 +1,8 @@
 package cz.agents.admap.agent;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -17,8 +19,11 @@ import tt.euclid2d.Vector;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
+import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Polygon;
+import tt.euclid2i.trajectory.TimePointArrayTrajectory;
+import tt.euclid2i.util.Util;
 import util.DesiredControl;
 import cz.agents.admap.msg.InformNewPosition;
 import cz.agents.alite.communication.Message;
@@ -28,10 +33,10 @@ public class ORCAAgent extends Agent {
 	static final Logger LOGGER = Logger.getLogger(ORCAAgent.class);
 
 	private static final int MAX_NEIGHBORS = 50;
-	private static final float MAX_SPEED = 1;
+	private static final float MAX_SPEED = 1f;
 	private static final float NEIGHBOR_DIST = 200;
 	private static final float TIME_HORIZON_AGENT = 100;
-	private static final float TIME_HORIZON_OBSTACLE = 50;
+	private static final float TIME_HORIZON_OBSTACLE = 10;
 
 	private static final double NEAR_GOAL_EPS = 1.0f;
 
@@ -48,12 +53,19 @@ public class ORCAAgent extends Agent {
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
+
+	private int simulationSpeedMultiplier;
 	final static int RADIUS_GRACE = +1;
+	
+	final static int TIME_MULTIPLIER = 10;
+
+	private static final int SIMULATION_SPEED_MULTIPLIER = 10;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
 
         this.showVis = showVis;
+        this.simulationSpeedMultiplier = SIMULATION_SPEED_MULTIPLIER;
 
         rvoAgent = new RVOAgent();
 
@@ -61,7 +73,7 @@ public class ORCAAgent extends Agent {
         rvoAgent.velocity_ = new Vector2(0,0);
 
         rvoAgent.maxNeighbors_ = MAX_NEIGHBORS;
-        rvoAgent.maxSpeed_ = MAX_SPEED;
+        rvoAgent.maxSpeed_ = MAX_SPEED * simulationSpeedMultiplier;
         rvoAgent.neighborDist_ = NEIGHBOR_DIST;
         rvoAgent.radius_ = agentBodyRadius + RADIUS_GRACE;
         rvoAgent.timeHorizon_ = TIME_HORIZON_AGENT;
@@ -76,11 +88,15 @@ public class ORCAAgent extends Agent {
         	rvoAgent.initVisualization();
         }
 
+        
         LinkedList<tt.euclid2i.Region> ttObstacles = new LinkedList<tt.euclid2i.Region>();
-        ttObstacles.addAll(environment.getObstacles());
         ttObstacles.add(environment.getBoundary());
+        ttObstacles.addAll(environment.getObstacles());
+        
+        Collection<Region> ttObstaclesInflated = Util.inflateRegions(ttObstacles, agentBodyRadius);
 
-        desiredControl = new GraphBasedController(planningGraph, goal, ttObstacles, MAX_SPEED, DESIRED_CONTROL_NODE_SEARCH_RADIUS, false);
+        desiredControl = new GraphBasedController(planningGraph, goal, ttObstaclesInflated, 
+        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS, false);
 
         kdTree = new KdTree();
 
@@ -106,10 +122,23 @@ public class ORCAAgent extends Agent {
     }
 
     @Override
-    public EvaluatedTrajectory getCurrentTrajectory() {
-        return rvoAgent.getEvaluatedTrajectory(goal);
-    }
+	public EvaluatedTrajectory getCurrentTrajectory() {
+		return getEvaluatedTrajectory(goal);
+	}
 
+	public EvaluatedTrajectory getEvaluatedTrajectory(Point goal) {
+		ArrayList<tt.euclidtime3i.Point> rvoTraj = new ArrayList<tt.euclidtime3i.Point>(rvoAgent.timePointTrajectory);
+    	tt.euclidtime3i.Point[] timePointArray = new tt.euclidtime3i.Point[rvoTraj.size()];
+    	for (int i=0; i<rvoTraj.size(); i++) {
+    		timePointArray[i] = new tt.euclidtime3i.Point(
+    				rvoTraj.get(i).getPosition(),
+    				(int) Math.round(rvoTraj.get(i).getTime() * (double) simulationSpeedMultiplier));
+    	}
+    	
+		TimePointArrayTrajectory traj = new TimePointArrayTrajectory(timePointArray, RVOAgent.evaluateCost(timePointArray, goal));
+    	return traj;
+    }
+    
     @Override
     public void start() {
 
@@ -121,17 +150,18 @@ public class ORCAAgent extends Agent {
 		super.tick(time);
 
         if (showVis) {
-	        try {
-	            Thread.sleep(20);
-	        } catch (InterruptedException e) {}
-
-			if (lastTickTime == UNKNOWN) {
-				lastTickTime = time;
-				return;
-			}
+//	        try {
+//	            Thread.sleep(5);
+//	        } catch (InterruptedException e) {}
         }
+        
+		if (lastTickTime == UNKNOWN) {
+			lastTickTime = time;
+			return;
+		}
 
-		float timeStep = (float) ((time - lastTickTime)/1000000000.0);
+		float timeStep = (float) ((time - lastTickTime)/1e9f);
+		lastTickTime = time;
 
 		doStep(timeStep);
 	}
