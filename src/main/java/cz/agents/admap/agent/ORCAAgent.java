@@ -93,9 +93,9 @@ public class ORCAAgent extends Agent {
         ttObstacles.add(environment.getBoundary());
         ttObstacles.addAll(environment.getObstacles());
         
-        Collection<Region> ttObstaclesInflated = Util.inflateRegions(ttObstacles, agentBodyRadius);
+        Collection<Region> ttObstaclesLessInflated = Util.inflateRegions(ttObstacles, agentBodyRadius-1);
 
-        desiredControl = new GraphBasedController(planningGraph, goal, ttObstaclesInflated, 
+        desiredControl = new GraphBasedController(planningGraph, goal, ttObstaclesLessInflated, 
         		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS, false);
 
         kdTree = new KdTree();
