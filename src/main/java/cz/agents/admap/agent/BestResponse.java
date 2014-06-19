@@ -24,6 +24,7 @@ import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
+import tt.euclidtime3i.discretization.ControlEffortWrapper;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
 import tt.euclidtime3i.discretization.Straight;
 import tt.euclidtime3i.region.MovingCircle;
@@ -72,11 +73,12 @@ public class BestResponse {
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
             = new ConstantSpeedTimeExtension(adaptedSpatialGraph, maxTime, new int[] {1}, dynamicObstacles, timeStep, timeStep);
 
-        DirectedGraph<tt.euclidtime3i.Point, Straight> graphFreeOnTarget
-            = new FreeOnTargetWaitExtension(graph, goal);
+        graph = new FreeOnTargetWaitExtension(graph, goal);
+        
+        graph = new ControlEffortWrapper(graph, 0.01);
 
         // plan
-        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPathSimple.findPathBetween(graphFreeOnTarget,
+        final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPathSimple.findPathBetween(graph,
                 heuristic,
                 new tt.euclidtime3i.Point(start.x, start.y, 0),
                 new Goal<tt.euclidtime3i.Point>() {

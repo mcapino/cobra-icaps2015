@@ -177,7 +177,7 @@ public class ScenarioCreator {
 	public static void create(EarliestArrivalProblem problem, Method method, final Parameters params) {
 		
         if (params.showVis) {
-            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.timeStep/4);
+            VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.timeStep/2);
             VisUtil.visualizeProblem(problem);
             if (problem.getPlanningGraph() != null) {
             	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
@@ -430,7 +430,7 @@ public class ScenarioCreator {
             @Override
             public Agent createAgent(String name, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
-            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, params.showVis);
+            	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, params.maxTime, params.timeStep, params.showVis);
             	return agent;
             }
         }, 1000000000, (long) (params.maxTime*1e9), params);
@@ -551,6 +551,11 @@ public class ScenarioCreator {
              visualizeConflicts(agents);
          }
 
+// wait for a key press before solving ...         
+//      try {
+//			System.in.read();
+//		} catch (IOException e) {}
+
          // *** run simulation ***
          concurrentSimulation.run();
 
@@ -614,7 +619,7 @@ public class ScenarioCreator {
          for (final Agent agent: agents) {
         	 
 			 // visualize trajectories
-             VisManager.registerLayer(KeyToggleLayer.create("t", TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+             VisManager.registerLayer(KeyToggleLayer.create("t", true, TrajectoryLayer.create(new TrajectoryProvider<Point>() {
 
                 @Override
                 public tt.discrete.Trajectory<Point> getTrajectory() {

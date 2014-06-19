@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -8,13 +9,15 @@ import java.util.LinkedList;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
-import org.jgrapht.alg.GraphBasedController;
 
 import rvolib.KdTree;
 import rvolib.RVOAgent;
 import rvolib.RVOObstacle;
 import rvolib.RVOUtil;
 import rvolib.Vector2;
+import tt.discrete.Trajectory;
+import tt.discrete.vis.TrajectoryLayer;
+import tt.discrete.vis.TrajectoryLayer.TrajectoryProvider;
 import tt.euclid2d.Vector;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
@@ -24,12 +27,22 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Polygon;
 import tt.euclid2i.trajectory.TimePointArrayTrajectory;
 import tt.euclid2i.util.Util;
+import tt.euclid2i.vis.ProjectionTo2d;
+import tt.euclidtime3i.L2Heuristic;
 import util.DesiredControl;
+import util.GraphBasedOptimalPolicyController;
+import util.TrajectoryBasedController;
 import cz.agents.admap.msg.InformNewPosition;
 import cz.agents.alite.communication.Message;
+import cz.agents.alite.vis.VisManager;
 
 public class ORCAAgent extends Agent {
-
+	
+	
+	public static enum DesiredVelocityControlMethod {OPTIMAL_ON_GRAPH, TRAJECTORY};
+	private DesiredVelocityControlMethod desiredVelocityControlMethod = DesiredVelocityControlMethod.OPTIMAL_ON_GRAPH;
+	
+	
 	static final Logger LOGGER = Logger.getLogger(ORCAAgent.class);
 
 	private static final int MAX_NEIGHBORS = 50;
@@ -49,19 +62,20 @@ public class ORCAAgent extends Agent {
 	DesiredControl desiredControl;
 
 	private static final long UNKNOWN = -1;
-	private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 250.0;
+	//private static final double DESIRED_CONTROL_NODE_SEARCH_RADIUS = 250.0;
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
 
 	private int simulationSpeedMultiplier;
-	final static int RADIUS_GRACE = +1;
+
+	final static float RADIUS_GRACE_MULTIPLIER = 1.2f;
 	
 	final static int TIME_MULTIPLIER = 10;
 
 	private static final int SIMULATION_SPEED_MULTIPLIER = 1;
 
-    public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, boolean showVis) {
+    public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, int maxTime, int timeStep, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
 
         this.showVis = showVis;
@@ -75,7 +89,7 @@ public class ORCAAgent extends Agent {
         rvoAgent.maxNeighbors_ = MAX_NEIGHBORS;
         rvoAgent.maxSpeed_ = MAX_SPEED * simulationSpeedMultiplier;
         rvoAgent.neighborDist_ = NEIGHBOR_DIST;
-        rvoAgent.radius_ = agentBodyRadius + RADIUS_GRACE;
+        rvoAgent.radius_ = (float) Math.ceil(agentBodyRadius + 1);
         rvoAgent.timeHorizon_ = TIME_HORIZON_AGENT;
         rvoAgent.timeHorizonObst_ = TIME_HORIZON_OBSTACLE;
 
@@ -93,11 +107,30 @@ public class ORCAAgent extends Agent {
         ttObstacles.add(environment.getBoundary());
         ttObstacles.addAll(environment.getObstacles());
         
-        Collection<Region> ttObstaclesLessInflated = Util.inflateRegions(ttObstacles, agentBodyRadius-1);
-
-        desiredControl = new GraphBasedController(planningGraph, goal, ttObstaclesLessInflated, 
-        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS, false);
-
+        if (desiredVelocityControlMethod == DesiredVelocityControlMethod.OPTIMAL_ON_GRAPH) {
+        	Collection<Region> ttObstaclesLessInflated = Util.inflateRegions(ttObstacles, agentBodyRadius-1);
+        	
+        	double DESIRED_CONTROL_NODE_SEARCH_RADIUS = ((float) Math.ceil(agentBodyRadius * RADIUS_GRACE_MULTIPLIER) * 3) + 1; // approx. sqrt(2) * 2 * radius
+        	
+			desiredControl = new GraphBasedOptimalPolicyController(planningGraph, goal, ttObstaclesLessInflated, 
+	        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS , false);    	
+        } 
+        
+        if (desiredVelocityControlMethod == DesiredVelocityControlMethod.TRAJECTORY) {
+        	final EvaluatedTrajectory desiredTraj = BestResponse.computeBestResponse(start, goal, planningGraph, new L2Heuristic(goal), 
+        			Collections.EMPTY_SET, Collections.EMPTY_SET, maxTime, timeStep);
+        	
+        	VisManager.registerLayer(TrajectoryLayer.create(new TrajectoryProvider<Point>() {
+        		
+        		@Override
+        		public Trajectory getTrajectory() {
+        			return desiredTraj;
+        		}
+        	}, new ProjectionTo2d(), Color.BLUE, timeStep/12, maxTime, 't'));
+        	
+        	desiredControl = new TrajectoryBasedController(desiredTraj, MAX_SPEED,	timeStep/12);        	
+        }
+		
         kdTree = new KdTree();
 
         // Add obstacles
@@ -151,9 +184,9 @@ public class ORCAAgent extends Agent {
 		super.tick(time);
 
         if (showVis) {
-//	        try {
-//	            Thread.sleep(5);
-//	        } catch (InterruptedException e) {}
+	        try {
+	            Thread.sleep(0);
+	        } catch (InterruptedException e) {}
         }
         
 		if (lastTickTime == UNKNOWN) {
@@ -168,11 +201,12 @@ public class ORCAAgent extends Agent {
 	}
 
     private void doStep(float timeStep) {
+    	
+    	LOGGER.trace(getName() + " -- doStep");
+    	
 		setPreferredVelocity(timeStep);
 
 		RVOAgent[] rvoAgents = neighbors.values().toArray(new RVOAgent[neighbors.values().size()]);
-
-		LOGGER.debug(getName() + " neighbors: " + neighbors);
 
 		kdTree.clearAgents();
         kdTree.buildAgentTree(rvoAgents);
@@ -193,9 +227,12 @@ public class ORCAAgent extends Agent {
 			rvoAgent.setPrefVelocity(new Vector2(0, 0));
 		} else {
 			Vector desiredVelocity = desiredControl.getDesiredControl(rvoAgent.position_.toPoint2d());
+			assert !Double.isNaN(desiredVelocity.x) && !Double.isNaN(desiredVelocity.y);
 			double desiredSpeed = desiredVelocity.length();
 			Vector desiredDir = new Vector(desiredVelocity);
-			desiredDir.normalize();
+			if (desiredDir.length() != 0) {
+				desiredDir.normalize();
+			}
 
 			// Adjust if the agent is near the goal
 			if (distanceToGoal <= timeStep * desiredSpeed) {
