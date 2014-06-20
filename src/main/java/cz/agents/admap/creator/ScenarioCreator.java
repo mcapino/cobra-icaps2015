@@ -461,7 +461,7 @@ public class ScenarioCreator {
 
         // Create concurrent process simulation
         final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
-        concurrentSimulation.setPrintouts(1000);
+        concurrentSimulation.setPrintouts(1000000);
         concurrentSimulation.setKeepActivityLog(params.activityLogFile != null);
 
         // Create the communication channels and communicators for each agent
