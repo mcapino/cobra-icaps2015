@@ -30,12 +30,20 @@ import tt.euclidtime3i.util.IntersectionCheckerWithProtectedPoint;
 public abstract class DPPAgent extends PlanningAgent {
 	
 	static final Logger LOGGER = Logger.getLogger(DPPAgent.class);
+
+
 	public DPPAgent(String name, Point start, Point goal,
-			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
+			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration, 
+			Collection<tt.euclid2i.Region> sObst) {
 		super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
+		this.sObst = sObst;
 	}
 	
     Map<String, CircleMovingToTarget> agentView =  new HashMap<String, CircleMovingToTarget>();
+    
+    
+    final static boolean SOBST_KNOWN_AT_START = true;
+    private Collection<tt.euclid2i.Region> sObst;
 
     boolean higherPriorityAgentsFinished = false;
     protected boolean globalTerminationDetected = false;
@@ -84,19 +92,23 @@ public abstract class DPPAgent extends PlanningAgent {
 	}
 	
 	protected Collection<tt.euclid2i.Region> sObst() {
-		Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
-
-        for (Entry<String, CircleMovingToTarget> entry : agentView.entrySet()) {
-        	String name = entry.getKey();
-        	MovingCircle movingCircle = entry.getValue();
-
-        	if (getName().compareTo(name) < 0) {
-        		// Static obstacles
-        		sObst.add(new Circle(movingCircle.getTrajectory().get(0), movingCircle.getRadius()));
-        	}
-        }
-        
-        return sObst;
+		if (SOBST_KNOWN_AT_START) {
+			return this.sObst;
+		} else {		
+			Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
+	
+	        for (Entry<String, CircleMovingToTarget> entry : agentView.entrySet()) {
+	        	String name = entry.getKey();
+	        	MovingCircle movingCircle = entry.getValue();
+	
+	        	if (getName().compareTo(name) < 0) {
+	        		// Static obstacles
+	        		sObst.add(new Circle(movingCircle.getTrajectory().get(0), movingCircle.getRadius()));
+	        	}
+	        }
+	        
+	        return sObst;
+		}
 	}
 	
 	protected  Collection<Region> dObst() {
@@ -121,23 +133,28 @@ public abstract class DPPAgent extends PlanningAgent {
     		// The current trajectory is inconsistent
 			int currentMaxTime = computeMaxTime(dObst);
 			LOGGER.trace(getName() + " detected inconsistency. Replanning with maxtime=" + currentMaxTime);
-			
-        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, getStart(), currentMaxTime);
+					
+        	EvaluatedTrajectory newTrajectory = getBestResponseTrajectory(sObst, dObst, SOBST_KNOWN_AT_START ? null : getStart(), currentMaxTime);
 
-        	if (newTrajectory == null) {
+        	if (newTrajectory != null) {
+    	        // broadcast to the others
+        		LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost());
+    	        broadcastNewTrajectory(newTrajectory, computeTargetReachedTime(newTrajectory, goal));
+            	return newTrajectory;
+        	} else {
         		LOGGER.debug(getName() + " Cannot find a consistent trajectory. Maxtime=" + currentMaxTime + ". dObst=" + dObst() );
         		
-        		if (higherPriorityAgentsFinished) {
-        			// Failure
+        		if (SOBST_KNOWN_AT_START) {
         			throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        		} else {
+        			if (higherPriorityAgentsFinished) {
+        				throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        			} else {
+        				return currentTraj;
+        			}
         		}
         	}
 
-	        LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost());
-
-	        // broadcast to the others
-	        broadcastNewTrajectory(newTrajectory, computeTargetReachedTime(newTrajectory, goal));
-        	return newTrajectory;
 		} else {
 			return currentTraj;
 		}
@@ -187,17 +204,20 @@ public abstract class DPPAgent extends PlanningAgent {
     	return 0;
 	}
 
-	protected boolean lowerPriorityAgentViewFull() {
+	protected boolean allStartRegionsOfLowerPriorityRobotsKnown() {
+		if (SOBST_KNOWN_AT_START) {
+			return true;
+		} else {
+	    	for (String otherAgentName : sortedAgents) {
+	    		if (otherAgentName.compareTo(getName()) > 0) {
+	    			if (!agentView.containsKey(otherAgentName)) {
+	    				return false;
+	    			}
+	    		}
+	    	}
+	    	return true;
+		}
 
-    	for (String otherAgentName : sortedAgents) {
-    		if (otherAgentName.compareTo(getName()) > 0) {
-    			if (!agentView.containsKey(otherAgentName)) {
-    				return false;
-    			}
-    		}
-    	}
-
-    	return true;
    	}
 
 	protected boolean consistent(MovingCircle movingCircle, Collection<tt.euclid2i.Region> sObst, Collection<Region> dObst) {
@@ -225,7 +245,7 @@ public abstract class DPPAgent extends PlanningAgent {
             	agentViewDirty = true;
             }
 
-            if (agentName.compareTo(getName()) > 0) {
+            if (agentName.compareTo(getName()) > 0 && !SOBST_KNOWN_AT_START) {
             	// the messages is from a lower-priority agent
             	if (!agentView.containsKey(agentName)) {
             		agentView.put(agentName, occupiedRegion);

@@ -94,13 +94,17 @@ public class ScenarioCreator {
     ///////////////////////////////////////////////////////////////////////
 
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
+	final static int RADIUS_GRACE = 1;
 
     enum Method {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
-    	CPP,	/* Centralized Prioritized Planning */
-        ADPP,   /* Asynchronous Decentralized Prioritized Planning */
-        SDPP,
+    	PP,		/* Centralized Prioritized Planning */
+    	RPP,	/* Centralized Revised Prioritized Planning */
+    	ADPP,	/* Asynchronous Decentralized Prioritized Planning */
+        ADRPP,  /* Asynchronous Decentralized Revised Prioritized Planning */
+        SDPP,   /* Synchronous  Decentralized Prioritized Planning */
+        SDRPP,	/* Asynchronous Decentralized Revised Prioritized Planning */
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA,    /* Stochastic Prioritized Planning */
         MGM,
@@ -194,16 +198,28 @@ public class ScenarioCreator {
 	            solveBASE(problem, params, true);
 	            break;
 	        
-	        case CPP:
-	            solveCPP(problem, params);
+	        case PP:
+	            solvePP(problem, false, params);
 	            break;
 
+	        case RPP:
+	            solvePP(problem, true, params);
+	            break;
+	        
 	        case ADPP:
-	            solveADPP(problem, params);
+	            solveADPP(problem, false, params);
+	            break;    
+	            
+	        case ADRPP:
+	            solveADPP(problem, true, params);
+	            break;
+	        
+	        case SDPP:
+	            solveSDPP(problem, true, params);
 	            break;
 	            
-	        case SDPP:
-	            solveSDPP(problem, params);
+	        case SDRPP:
+	            solveSDPP(problem, true, params);
 	            break;
 
             case ADPPDG:
@@ -270,7 +286,7 @@ public class ScenarioCreator {
 			int i=0;
 			
 			@Override
-			public Agent createAgent(String name, Point start, Point target,
+			public Agent createAgent(String name, int i, Point start, Point target,
 					Environment env, DirectedGraph<Point, Line> planningGraph,
 					int agentBodyRadius) {
 				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
@@ -291,8 +307,7 @@ public class ScenarioCreator {
 		}
     }
 	
-    private static void solveCPP(final EarliestArrivalProblem problem, final Parameters params) {
-    	final int RADIUS_GRACE = 1;
+    private static void solvePP(final EarliestArrivalProblem problem, boolean avoidStartRegions, final Parameters params) {
         final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
         long programStartedAtNs = System.nanoTime();
@@ -309,7 +324,7 @@ public class ScenarioCreator {
             for (int j=0; j<problem.nAgents(); j++) {
             	if (j < i) {
             		dObst.add(new MovingCircle(trajs[j], problem.getBodyRadius(i) + problem.getBodyRadius(j) + RADIUS_GRACE));
-            	} else if (j > i) {
+            	} else if (j > i && avoidStartRegions) {
             		sObst.add(new Circle(problem.getStart(j), problem.getBodyRadius(i) + problem.getBodyRadius(j) + RADIUS_GRACE));
             	}
             }
@@ -319,26 +334,28 @@ public class ScenarioCreator {
 			
 			int expandedStatesAfter = Counters.expandedStatesCounter;
 			
-			if (traj != null) {
-				trajs[i] = traj;
-			} else {
-				suceeded = false;
-			}
-			
 			long activityDuration = System.nanoTime() - activityStart;
-			LOGGER.debug("Agent " + i + " finished planning in " + activityDuration/1000000 + "ms");
+			
 			activityLog.add(new ActivityLogEntry("a"+ new DecimalFormat("00").format(i), 
 					ActivityLogEntry.Type.EVENT_HANDLED, activityStart - programStartedAtNs, activityDuration, expandedStatesAfter - expandedStatesBefore));
+			
+			if (traj != null) {
+				trajs[i] = traj;
+				LOGGER.debug("Agent " + i + " successfully finished planning in " + activityDuration/1000000 + "ms");
+			} else {
+				LOGGER.debug("Agent " + i + " FAILED to find a trajectory! Spent " + activityDuration/1000000 + "ms planning.");
+				suceeded = false;
+				break;
+			}
+			
 		}
 		
 		long finishedAtMs = System.nanoTime();
 		
 		
 		solve(problem, new AgentFactory() {
-			int i=0;
-			
 			@Override
-			public Agent createAgent(String name, Point start, Point target,
+			public Agent createAgent(String name, int i,Point start, Point target,
 					Environment env, DirectedGraph<Point, Line> planningGraph,
 					int agentBodyRadius) {
 				FixedTrajectoryAgent agent = new FixedTrajectoryAgent("a" + new DecimalFormat("00").format(i), problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]);
@@ -363,26 +380,42 @@ public class ScenarioCreator {
 		}
     }
     
-    private static void solveADPP(final EarliestArrivalProblem problem, final Parameters params) {
+    private static void solveADPP(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
+            	Collection<Region> sObst = new LinkedList<>();
+            	
+                for (int j=0; j<problem.nAgents(); j++) {
+                	if (j > i && avoidStartRegions) {
+                		sObst.add(new Circle(problem.getStart(j), problem.getBodyRadius(j)));
+                	}
+                }
+            	
+				PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
         }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
     
-    private static void solveSDPP(final EarliestArrivalProblem problem, final Parameters params) {
+    private static void solveSDPP(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-            	PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
+            	Collection<Region> sObst = new LinkedList<>();
+            	
+                for (int j=0; j<problem.nAgents(); j++) {
+                	if (j > i && avoidStartRegions) {
+                		sObst.add(new Circle(problem.getStart(j), problem.getBodyRadius(j)));
+                	}
+                }
+                
+				PlanningAgent agent = new SDPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
@@ -392,7 +425,7 @@ public class ScenarioCreator {
     private static void solveADPPDG(final EarliestArrivalProblem problem, final Parameters params) {
         solve(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
             	ADPPDGAgent agent = new ADPPDGAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep);
@@ -406,7 +439,7 @@ public class ScenarioCreator {
         solve(problem, new AgentFactory() {
 
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i,  Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new DSAAgent(name, start, target, env, agentBodyRadius, 0.3, params.maxTime, params.timeStep);
             }
@@ -417,7 +450,7 @@ public class ScenarioCreator {
         solve(problem, new AgentFactory() {
 
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
                 return new ADOPTAgent(name, start, target, env, agentBodyRadius, new NotCollidingConstraint());
             }
@@ -428,7 +461,7 @@ public class ScenarioCreator {
         solve(problem, new AgentFactory() {
 
             @Override
-            public Agent createAgent(String name, Point start, Point target,
+            public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
             	ORCAAgent agent = new ORCAAgent(name, start, target, env, planningGraph, agentBodyRadius, params.maxTime, params.timeStep, params.showVis);
             	return agent;
@@ -437,7 +470,7 @@ public class ScenarioCreator {
     }
 
     interface AgentFactory {
-        Agent createAgent(String name, Point start, Point target, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
+        Agent createAgent(String name, int priority, Point start, Point target, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
     }
 
     private static void solve(final EarliestArrivalProblem problem, final AgentFactory agentFactory, final long tickPeriodNs, final long simulateTicksUntilNs, final Parameters params) {
@@ -445,8 +478,9 @@ public class ScenarioCreator {
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
-            agents.add(agentFactory.createAgent(
+            agents.add(agentFactory.createAgent(            		
                     "a" + new DecimalFormat("00").format(i),
+                    i,
                     problem.getStart(i),
                     problem.getTarget(i),
                     problem.getEnvironment(),

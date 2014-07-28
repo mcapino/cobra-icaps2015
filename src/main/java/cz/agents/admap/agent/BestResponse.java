@@ -1,9 +1,11 @@
 package cz.agents.admap.agent;
 
+import java.awt.Color;
 import java.util.Collection;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
 import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.AStarShortestPathSimple;
@@ -11,6 +13,8 @@ import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
 
+import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.VisLayer;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
@@ -23,6 +27,8 @@ import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
+import tt.euclid2i.vis.RegionsLayer;
+import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.ControlEffortWrapper;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
@@ -36,6 +42,9 @@ import tt.euclidtime3i.sipp.SippUtils;
 import tt.euclidtime3i.sipp.SippWrapper;
 import tt.euclidtime3i.sipp.intervals.Interval;
 import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
+import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
+import tt.vis.GraphLayer;
+import tt.vis.TimeParameterHolder;
 
 public class BestResponse {
 
@@ -63,11 +72,46 @@ public class BestResponse {
 			final Point goal,
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
 			final HeuristicToGoal<tt.euclidtime3i.Point> heuristic,
-			Collection<tt.euclid2i.Region> staticObstacles,
-			Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime, final int timeStep) {
+			final Collection<tt.euclid2i.Region> staticObstacles,
+			final Collection<tt.euclidtime3i.Region> dynamicObstacles, final int maxTime, final int timeStep) {
 
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
+		
+		 // --- debug visio --- begin
+	     //visualize the graph
+		 VisLayer graphLayer = GraphLayer.create(
+					new GraphLayer.GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+						@Override
+						public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+							return ((ObstacleWrapper<Point, Line>) adaptedSpatialGraph).generateFullGraph(start);
+						}
+					}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
+					Color.BLUE, 1, 4);
+		 
+		 VisLayer sobstLayer = RegionsLayer.create(new tt.euclid2i.vis.RegionsLayer.RegionsProvider() {
+			@Override
+			public Collection<? extends Region> getRegions() {
+				return staticObstacles;
+			}
+		 }, Color.ORANGE);
+		 
+		 VisLayer dobstLayer = tt.euclidtime3i.vis.RegionsLayer.create(new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
+			
+			@Override
+			public Collection<tt.euclidtime3i.Region> getRegions() {
+				return dynamicObstacles;
+			}
+		}, new TimeParameterProjectionTo2d(TimeParameterHolder.time), Color.BLACK, null);
+		 
+	      
+	    VisManager.registerLayer(graphLayer);
+	    VisManager.registerLayer(sobstLayer);
+	    VisManager.registerLayer(dobstLayer);
+	    
+		// --- debug visio --- end
+	    
+	    
 
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> graph
@@ -91,7 +135,9 @@ public class BestResponse {
 
 
         if (path != null) {
-        	//VisManager.unregisterLayer(layer);
+        	VisManager.unregisterLayer(graphLayer);
+        	VisManager.unregisterLayer(sobstLayer);
+        	VisManager.unregisterLayer(dobstLayer);
             return new StraightSegmentTrajectory(path, maxTime);
         } else {
             return null;

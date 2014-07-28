@@ -1,5 +1,6 @@
 package cz.agents.admap.agent;
 
+import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.log4j.Logger;
@@ -15,8 +16,8 @@ public class ADPPAgent extends DPPAgent {
 	static final Logger LOGGER = Logger.getLogger(ADPPAgent.class);
 	private boolean agentFinished = false;
 
-    public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
-        super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
+    public ADPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration, Collection<tt.euclid2i.Region> sObst) {
+        super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration, sObst);
     }
     
     @Override
@@ -61,12 +62,12 @@ public class ADPPAgent extends DPPAgent {
 	
 	protected void assertConsistentTrajectory() {
 		if (getCurrentTrajectory() == null) {
-	    	trajectory = assertConsistentTrajectory(getCurrentTrajectory(), Collections.<tt.euclid2i.Region> emptySet(), Collections.<Region> emptySet());
+	    	trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), Collections.<Region> emptySet());
 		} else {
 	        trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), dObst());
 		}
 
-    	if (!agentFinished && higherPriorityAgentsFinished && lowerPriorityAgentViewFull()) {
+    	if (!agentFinished && higherPriorityAgentsFinished && allStartRegionsOfLowerPriorityRobotsKnown()) {
     		// we have consistent trajectory and the higher-priority agents are fixed
     		agentFinished = true;
     		broadcastAgentFinished();

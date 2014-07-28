@@ -24,7 +24,8 @@ public abstract class PlanningAgent extends Agent {
 	// Needed to overcome situation when the collision checker detected conflicts on the trajectory that was just returned by 
 	// the best-response routine. This discrepancy can happen due to the different sampling step used for collision checking 
 	// in planning and in collision checking in consistency check.
-	float RADIUS_BUFFER_GRACE_COEF = 1.2f;
+	float DOBST_RADIUS_BUFFER_GRACE_COEF = 1.1f;
+	float SOBST_RADIUS_BUFFER_GRACE_COEF = 1.15f;
 	
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
 	
@@ -55,9 +56,11 @@ public abstract class PlanningAgent extends Agent {
 		long startedAt = System.currentTimeMillis();
 
 		EvaluatedTrajectory traj;
-		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, (int) Math.ceil(agentBodyRadius*RADIUS_BUFFER_GRACE_COEF));
-		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, (int) Math.ceil(agentBodyRadius*RADIUS_BUFFER_GRACE_COEF));
-		dObstInflated = subtractProtectedPoint(dObstInflated, protectedPoint);
+		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, (int) Math.ceil(agentBodyRadius*SOBST_RADIUS_BUFFER_GRACE_COEF));
+		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, (int) Math.ceil(agentBodyRadius*DOBST_RADIUS_BUFFER_GRACE_COEF));
+		if (protectedPoint != null) {
+			dObstInflated = subtractProtectedPoint(dObstInflated, protectedPoint);
+		}
 		
 
 		if (getPlanningGraph() != null) {
@@ -83,7 +86,7 @@ public abstract class PlanningAgent extends Agent {
 		long startedAt = System.currentTimeMillis();
 
 		EvaluatedTrajectory shortestTraj = null;
-		Collection<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, (int) Math.ceil(agentBodyRadius*RADIUS_BUFFER_GRACE_COEF));
+		Collection<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, (int) Math.ceil(agentBodyRadius*DOBST_RADIUS_BUFFER_GRACE_COEF));
 		if (getPlanningGraph() != null) {
 			shortestTraj = BestResponse.computeShortestPath(start, goal, getPlanningGraph(), new L2Heuristic(goal), sObstInflated);
     	} else {

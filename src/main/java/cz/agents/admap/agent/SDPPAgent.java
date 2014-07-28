@@ -1,6 +1,7 @@
 package cz.agents.admap.agent;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 
 import org.apache.log4j.Logger;
@@ -19,8 +20,8 @@ public class SDPPAgent extends DPPAgent {
 	int round;
 	boolean agentViewChangedInLastRound;
 	
-    public SDPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
-        super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
+    public SDPPAgent(String name, Point start, Point goal, Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration, Collection<tt.euclid2i.Region> sObst) {
+        super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration, sObst);
     }
     
     @Override
