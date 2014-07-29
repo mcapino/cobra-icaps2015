@@ -107,7 +107,7 @@ public abstract class Agent {
     }
 
     public void tick(long time) {
-    	//LOGGER.info(getName() + " Tick @ " + time/1000000000.0 + "s");
+    	//LOGGER.info(getName() + " Tick @ " + time/1000000000.0 + "s");    	
     }
 
     public String getStatus() { return getName(); }
@@ -121,6 +121,8 @@ public abstract class Agent {
     }
 
     public abstract boolean isGlobalTerminationDetected();
+    
+    public abstract boolean hasSucceeded();
 
 	public int getMessageSentCounter() {
 		return ((InboxBasedCommunicator) communicator).getMessagesSent();

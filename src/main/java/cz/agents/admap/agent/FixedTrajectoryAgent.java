@@ -34,6 +34,9 @@ public class FixedTrajectoryAgent extends Agent {
 		return 1;
 	}
 	
-	
+	@Override
+	public boolean hasSucceeded() {
+		return true;
+	}
 
 }

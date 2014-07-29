@@ -10,8 +10,9 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+import cz.agents.admap.msg.InformAgentFailed;
 import cz.agents.admap.msg.InformAgentFinished;
-import cz.agents.admap.msg.InformGloballyConverged;
+import cz.agents.admap.msg.InformSuccessfulConvergence;
 import cz.agents.admap.msg.InformNewTrajectory;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.Message;
@@ -56,6 +57,7 @@ public abstract class DPPAgent extends PlanningAgent {
 	
 	static final int UNKNOWN = (-1);
 	private int optimalSingleAgentPathDuration = UNKNOWN;
+	private boolean succeeded;
 		
 
     @Override
@@ -79,8 +81,13 @@ public abstract class DPPAgent extends PlanningAgent {
     	broadcast(new InformAgentFinished(getName()));
 	}
     
-    protected void broadcastGloballyConverged() {
-    	broadcast(new InformGloballyConverged());
+    protected void broadcastFailure() {
+    	broadcast(new InformAgentFailed(getName()));
+	}
+    
+    
+    protected void broadcastSuccessfulConvergence() {
+    	broadcast(new InformSuccessfulConvergence());
 	}
 
 	protected boolean isHighestPriority() {
@@ -145,10 +152,10 @@ public abstract class DPPAgent extends PlanningAgent {
         		LOGGER.debug(getName() + " Cannot find a consistent trajectory. Maxtime=" + currentMaxTime + ". dObst=" + dObst() );
         		
         		if (SOBST_KNOWN_AT_START) {
-        			throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        			return null;
         		} else {
         			if (higherPriorityAgentsFinished) {
-        				throw new RuntimeException(getName() + ": FAILURE: Cannot find a consistent trajectory.");
+        				return null;
         			} else {
         				return currentTraj;
         			}
@@ -254,13 +261,19 @@ public abstract class DPPAgent extends PlanningAgent {
             }
         }
         
-        if (message.getContent() instanceof InformGloballyConverged) {
-        	setGlobalTerminationDetected();
+        if (message.getContent() instanceof InformSuccessfulConvergence) {
+        	setGlobalTerminationDetected(true);
+        }
+        
+        if (message.getContent() instanceof InformAgentFailed) {
+        	
+        	setGlobalTerminationDetected(false);
         }
     }
 
-	protected void setGlobalTerminationDetected() {
+	protected void setGlobalTerminationDetected(boolean succeeded) {
     	globalTerminationDetected = true;
+    	this.succeeded = succeeded;
     	logFinalStats();
 	}
 
@@ -279,6 +292,11 @@ public abstract class DPPAgent extends PlanningAgent {
 	}
 
 	@Override
+	public boolean hasSucceeded() {
+		return succeeded;
+	}
+
+	@Override
 	public void tick(long time) {
 		super.tick(time);
 	}
@@ -292,12 +310,10 @@ public abstract class DPPAgent extends PlanningAgent {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
 	public int getMessageSentCounter() {
 		return this.infromNewTrajectorySentCounter;
 	}
-	
-	
 	
 }

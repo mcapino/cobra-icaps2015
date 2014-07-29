@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import org.apache.log4j.Logger;
 
+import cz.agents.admap.msg.InformAgentFailed;
 import cz.agents.admap.msg.InformAgentFinished;
 import cz.agents.alite.communication.Message;
 import tt.euclid2i.Point;
@@ -29,8 +30,8 @@ public class ADPPAgent extends DPPAgent {
 
     	assertConsistentTrajectory();
     	
-    	if (isLowestPriority() && higherPriorityAgentsFinished) {
-    		setGlobalTerminationDetected();
+    	if (isLowestPriority() && higherPriorityAgentsFinished && trajectory != null) {
+    		setGlobalTerminationDetected(true);
     	}
     }
 
@@ -46,15 +47,19 @@ public class ADPPAgent extends DPPAgent {
 	        		agentViewDirty = true;
 	        	}
 	        }
+	        
+	        if (message.getContent() instanceof InformAgentFailed) {
+	        	agentFinished = true;
+	        }
 			
-	        if (agentViewDirty && getInboxSize() == 0) {
+	        if (agentViewDirty && getInboxSize() == 0 && !agentFinished) {
 	        	assertConsistentTrajectory();
 	        	agentViewDirty = false;
 	        	
-	        	if (isLowestPriority() && higherPriorityAgentsFinished) {
-	        		broadcastGloballyConverged();
+	        	if (isLowestPriority() && higherPriorityAgentsFinished && getCurrentTrajectory() != null) {
+	        		broadcastSuccessfulConvergence();
 	        		LOGGER.info(getName() +  " globally terminated!");
-	        		setGlobalTerminationDetected();
+	        		setGlobalTerminationDetected(true);
 	        	}
 	        }	
 		}
@@ -66,13 +71,22 @@ public class ADPPAgent extends DPPAgent {
 		} else {
 	        trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), dObst());
 		}
-
-    	if (!agentFinished && higherPriorityAgentsFinished && allStartRegionsOfLowerPriorityRobotsKnown()) {
-    		// we have consistent trajectory and the higher-priority agents are fixed
+		
+		if (trajectory != null) {
+			// trajectory found
+	    	if (!agentFinished && higherPriorityAgentsFinished && allStartRegionsOfLowerPriorityRobotsKnown()) {
+	    		// we have consistent trajectory and the higher-priority agents are fixed
+	    		agentFinished = true;
+	    		broadcastAgentFinished();
+	    		LOGGER.info(getName() +  " has finished!");
+	    	}
+		} else {
+			// trajectory not found
     		agentFinished = true;
-    		broadcastAgentFinished();
-    		LOGGER.info(getName() +  " has finished!");
-    	}
+    		broadcastFailure();  
+    		setGlobalTerminationDetected(false);
+    		LOGGER.info(getName() +  " has FAILED !!!");
+		}
 	}
 
     

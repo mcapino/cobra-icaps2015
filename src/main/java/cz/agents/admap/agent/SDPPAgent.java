@@ -34,8 +34,8 @@ public class SDPPAgent extends DPPAgent {
     		broadcastAgentFinishedRound();
     		LOGGER.info(getName() +  " has finished planning!");
     		LOGGER.debug(getName() +  ": round " + round + " finished!");
-        	if (isLowestPriority()) {
-        		setGlobalTerminationDetected();
+        	if (isLowestPriority() && trajectory != null) {
+        		setGlobalTerminationDetected(true);
         	}
     	}
     }
@@ -51,7 +51,7 @@ public class SDPPAgent extends DPPAgent {
 			String agentName = ((InformAgentFinishedRound) message.getContent()).getAgentName();
 			int roundInMsg = ((InformAgentFinishedRound) message.getContent()).getRound();
 			if (isMyPredecessor(agentName) && roundInMsg == round) {
-				if (isLowestPriority() ) {
+				if (isLowestPriority()) {
 					LOGGER.debug(getName() +  ": round " + round + " finished! AgentView changed in the last round: " + agentViewChangedInLastRound);
 					// everyone finished in the round
 					round++; 
@@ -64,8 +64,8 @@ public class SDPPAgent extends DPPAgent {
 					} else {
 						// The process converged...
 						LOGGER.info("The process converged!");
-						broadcastGloballyConverged();
-						setGlobalTerminationDetected();
+						broadcastSuccessfulConvergence();
+						setGlobalTerminationDetected(true);
 					}
 				} else {
 					broadcastAgentFinishedRound();
@@ -88,9 +88,15 @@ public class SDPPAgent extends DPPAgent {
 	
 	protected void assertConsistentTrajectory() {
 		if (getCurrentTrajectory() == null) {
-	    	trajectory = assertConsistentTrajectory(getCurrentTrajectory(), Collections.<tt.euclid2i.Region> emptySet(), Collections.<Region> emptySet());
+	    	trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), Collections.<Region> emptySet());
 		} else {
 	        trajectory = assertConsistentTrajectory(getCurrentTrajectory(), sObst(), dObst());
+		}
+		
+		if (trajectory == null) {
+			// trajectory not found
+    		broadcastFailure();    		
+    		LOGGER.info(getName() +  " has failed!");
 		}
 	}
 	

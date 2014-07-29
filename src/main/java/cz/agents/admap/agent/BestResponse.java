@@ -49,6 +49,7 @@ import tt.vis.TimeParameterHolder;
 public class BestResponse {
 
     private static final int GRID_STEP = 25;
+    private static final boolean DEBUG_VIS = false;
 
     static public EvaluatedTrajectory computeBestResponse(final Point start, final Point goal,
             Collection<Region> obstacles, Rectangle bounds,
@@ -78,38 +79,42 @@ public class BestResponse {
 		final ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line> adaptedSpatialGraph
 			= new ObstacleWrapper<tt.euclid2i.Point, tt.euclid2i.Line>(spatialGraph, staticObstacles);
 		
-		 // --- debug visio --- begin
-	     //visualize the graph
-		 VisLayer graphLayer = GraphLayer.create(
-					new GraphLayer.GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
-						@Override
-						public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
-							return ((ObstacleWrapper<Point, Line>) adaptedSpatialGraph).generateFullGraph(start);
-						}
-					}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
-					Color.BLUE, 1, 4);
-		 
-		 VisLayer sobstLayer = RegionsLayer.create(new tt.euclid2i.vis.RegionsLayer.RegionsProvider() {
-			@Override
-			public Collection<? extends Region> getRegions() {
-				return staticObstacles;
-			}
-		 }, Color.ORANGE);
-		 
-		 VisLayer dobstLayer = tt.euclidtime3i.vis.RegionsLayer.create(new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
-			
-			@Override
-			public Collection<tt.euclidtime3i.Region> getRegions() {
-				return dynamicObstacles;
-			}
-		}, new TimeParameterProjectionTo2d(TimeParameterHolder.time), Color.BLACK, null);
-		 
-	      
-	    VisManager.registerLayer(graphLayer);
-	    VisManager.registerLayer(sobstLayer);
-	    VisManager.registerLayer(dobstLayer);
-	    
-		// --- debug visio --- end
+		VisLayer graphLayer;VisLayer sobstLayer;VisLayer dobstLayer;
+		
+		if (DEBUG_VIS) {
+			 // --- debug visio --- begin
+		     //visualize the graph
+			 graphLayer = GraphLayer.create(
+						new GraphLayer.GraphProvider<tt.euclid2i.Point, tt.euclid2i.Line>() {
+							@Override
+							public Graph<tt.euclid2i.Point, tt.euclid2i.Line> getGraph() {
+								return ((ObstacleWrapper<Point, Line>) adaptedSpatialGraph).generateFullGraph(start);
+							}
+						}, new tt.euclid2i.vis.ProjectionTo2d(), Color.BLUE,
+						Color.BLUE, 1, 4);
+			 
+			 sobstLayer = RegionsLayer.create(new tt.euclid2i.vis.RegionsLayer.RegionsProvider() {
+				@Override
+				public Collection<? extends Region> getRegions() {
+					return staticObstacles;
+				}
+			 }, Color.ORANGE);
+			 
+			 dobstLayer = tt.euclidtime3i.vis.RegionsLayer.create(new tt.euclidtime3i.vis.RegionsLayer.RegionsProvider() {
+				
+				@Override
+				public Collection<tt.euclidtime3i.Region> getRegions() {
+					return dynamicObstacles;
+				}
+			}, new TimeParameterProjectionTo2d(TimeParameterHolder.time), Color.BLACK, null);
+			 
+		      
+		    VisManager.registerLayer(graphLayer);
+		    VisManager.registerLayer(sobstLayer);
+		    VisManager.registerLayer(dobstLayer);
+		    
+			// --- debug visio --- end
+		}
 	    
 	    
 
@@ -135,9 +140,11 @@ public class BestResponse {
 
 
         if (path != null) {
-        	VisManager.unregisterLayer(graphLayer);
-        	VisManager.unregisterLayer(sobstLayer);
-        	VisManager.unregisterLayer(dobstLayer);
+        	if (DEBUG_VIS) {
+	        	VisManager.unregisterLayer(graphLayer);
+	        	VisManager.unregisterLayer(sobstLayer);
+	        	VisManager.unregisterLayer(dobstLayer);
+        	}
             return new StraightSegmentTrajectory(path, maxTime);
         } else {
             return null;

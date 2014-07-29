@@ -215,7 +215,7 @@ public class ScenarioCreator {
 	            break;
 	        
 	        case SDPP:
-	            solveSDPP(problem, true, params);
+	            solveSDPP(problem, false, params);
 	            break;
 	            
 	        case SDRPP:
@@ -551,7 +551,7 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
-                    	   printSummary(params.summaryPrefix, true, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
+                    	   printSummary(params.summaryPrefix, agent.hasSucceeded(), agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
                     	   
                            if (params.activityLogFile != null) {
                         	   saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
@@ -616,20 +616,18 @@ public class ScenarioCreator {
 
 	private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs, int clusters) {
 
-    	if (succeeded) {
+    	
 	    	double cost = 0;
 	    	int msgsSent = 0;
 	    	int totalReplannings = 0;
 	    	for (Agent agent : agents) {
-	    		
-	    		
 				LOGGER.info(agent.getName()
 						+ " cost: "
-						+ String.format("%.2f", agent.getCurrentTrajectory().getCost()) + 
+						+ (agent.getCurrentTrajectory() != null ? String.format("%.2f", agent.getCurrentTrajectory().getCost()) : "inf") + 
 						" Messages sent: "+ agent.getMessageSentCounter()						
 						);
 				
-	    		cost += agent.getCurrentTrajectory().getCost();
+	    		cost += agent.getCurrentTrajectory() != null ? agent.getCurrentTrajectory().getCost() : 0;
 	    		msgsSent += agent.getMessageSentCounter();
 	    		
 	    		if (agent instanceof PlanningAgent) {
@@ -637,12 +635,9 @@ public class ScenarioCreator {
 	    		}
 	    		
 	    	}
-	    	System.out.println(prefix + String.format("%.2f", cost) + ";" + timeToConvergeMs + ";" + msgsSent + ";" + 
+	    	
+	    	System.out.println(prefix + (succeeded ? String.format("%.2f", cost) : "inf") + ";" + timeToConvergeMs + ";" + msgsSent + ";" + 
 	    			Counters.expandedStatesCounter + ";" + clusters + ";" + totalReplannings);
-    	} else {
-    		System.out.println(prefix + "inf;NA;NA;NA;" + clusters + ";" + "NA");
-    	}
-
     }
 
     private static void visualizeAgents(final EarliestArrivalProblem problem, final List<Agent> agents) {

@@ -330,7 +330,9 @@ public class ADOPTAgent extends Agent {
 	public boolean isGlobalTerminationDetected() {
 		return false;
 	}
-
-
-
+	
+	@Override
+	public boolean hasSucceeded() {
+		return true;
+	}
 }

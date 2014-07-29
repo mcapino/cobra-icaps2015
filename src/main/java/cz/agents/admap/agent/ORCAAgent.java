@@ -74,6 +74,8 @@ public class ORCAAgent extends Agent {
 	final static int TIME_MULTIPLIER = 10;
 
 	private static final int SIMULATION_SPEED_MULTIPLIER = 1;
+	
+	private boolean succeeded = false;
 
     public ORCAAgent(String name, Point start, Point goal, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, int maxTime, int timeStep, boolean showVis) {
         super(name, start, goal, environment, agentBodyRadius);
@@ -214,7 +216,11 @@ public class ORCAAgent extends Agent {
         rvoAgent.computeNeighbors(kdTree);
         Vector2 newVelocity = rvoAgent.computeNewVelocity(timeStep);
         rvoAgent.update(timeStep, newVelocity);
-
+        
+        if (getCurrentPosition().distance(goal) < 0.9) {
+        	succeeded = true;
+        }
+        
         // broadcast to the others
         broadcast(new InformNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), (double) rvoAgent.radius_));
     }
@@ -276,7 +282,9 @@ public class ORCAAgent extends Agent {
 	public boolean isGlobalTerminationDetected() {
 		return getCurrentPosition().distance(goal) < 1;
 	}
-
-
-
+	
+	@Override
+	public boolean hasSucceeded() {
+		return succeeded;
+	}
 }

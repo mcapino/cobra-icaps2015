@@ -88,5 +88,10 @@ public class DSAAgent extends PlanningAgent {
 	public boolean isGlobalTerminationDetected() {
 		return false;
 	}
+	
+	@Override
+	public boolean hasSucceeded() {
+		return true;
+	}
 
 }
