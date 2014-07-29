@@ -71,7 +71,7 @@ public class ORCAAgent extends Agent {
 
 	final static float RADIUS_GRACE_MULTIPLIER = 1.2f;
 	
-	final static int TIME_MULTIPLIER = 10;
+	//final static int TIME_MULTIPLIER = 10;
 
 	private static final int SIMULATION_SPEED_MULTIPLIER = 1;
 	

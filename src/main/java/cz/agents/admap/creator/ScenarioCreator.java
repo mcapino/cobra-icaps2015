@@ -620,20 +620,22 @@ public class ScenarioCreator {
 	    	double cost = 0;
 	    	int msgsSent = 0;
 	    	int totalReplannings = 0;
-	    	for (Agent agent : agents) {
-				LOGGER.info(agent.getName()
-						+ " cost: "
-						+ (agent.getCurrentTrajectory() != null ? String.format("%.2f", agent.getCurrentTrajectory().getCost()) : "inf") + 
-						" Messages sent: "+ agent.getMessageSentCounter()						
-						);
-				
-	    		cost += agent.getCurrentTrajectory() != null ? agent.getCurrentTrajectory().getCost() : 0;
-	    		msgsSent += agent.getMessageSentCounter();
-	    		
-	    		if (agent instanceof PlanningAgent) {
-	    			totalReplannings += ((PlanningAgent) agent).replanningCounter;
-	    		}
-	    		
+	    	if (agents != null) {
+		    	for (Agent agent : agents) {
+					LOGGER.info(agent.getName()
+							+ " cost: "
+							+ (agent.getCurrentTrajectory() != null ? String.format("%.2f", agent.getCurrentTrajectory().getCost()) : "inf") + 
+							" Messages sent: "+ agent.getMessageSentCounter()						
+							);
+					
+		    		cost += agent.getCurrentTrajectory() != null ? agent.getCurrentTrajectory().getCost() : 0;
+		    		msgsSent += agent.getMessageSentCounter();
+		    		
+		    		if (agent instanceof PlanningAgent) {
+		    			totalReplannings += ((PlanningAgent) agent).replanningCounter;
+		    		}
+		    		
+		    	}
 	    	}
 	    	
 	    	System.out.println(prefix + (succeeded ? String.format("%.2f", cost) : "inf") + ";" + timeToConvergeMs + ";" + msgsSent + ";" + 
