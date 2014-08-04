@@ -129,15 +129,19 @@ public class ScenarioCreator {
     	String timeoutStr = Args.getArgumentValue(args, "-timeout", false);
         params.summaryPrefix = Args.getArgumentValue(args, "-summaryprefix", false, "");
         params.activityLogFile = Args.getArgumentValue(args, "-activitylog", false, null);
+        String bgImgFileName = Args.getArgumentValue(args, "-bgimg", false, null);
+        
         
 		File file = new File(xml);
 	    params.fileName = file.getName();
-	    // Load the PNG image as a background
-	    File bgImgFile = new File(xml.replace(".xml", ".png"));
-	    if (!bgImgFile.exists()) {
-	    	bgImgFile = null;
-	    }
-	    params.bgImageFile = bgImgFile;
+	    
+	    // Load the PNG image as a background, if provided
+	    if (bgImgFileName != null) {
+		    File bgImgFile = new File(bgImgFileName);
+		    if (bgImgFile.exists()) {
+		    	params.bgImageFile = bgImgFile;
+		    }        	
+        }
 
 	    try {
 			problem = EarliestArrivalProblemXMLDeserializer.deserialize(new FileInputStream(file));
@@ -696,7 +700,7 @@ public class ScenarioCreator {
     
     private static void visualizeConflicts(final List<Agent> agents) {
         
-    	VisManager.registerLayer(RegionsLayer.create(new RegionsProvider() {
+    	KeyToggleLayer conflictLayerToggle = KeyToggleLayer.create("c", false, RegionsLayer.create(new RegionsProvider() {
 			
 			@Override
 			public Collection<? extends Region> getRegions() {
@@ -712,6 +716,8 @@ public class ScenarioCreator {
 				return IntersectionChecker.computeAllPairwiseConflicts(mcs, 10);
 			}
 		}, Color.RED));
+    	
+    	VisManager.registerLayer(conflictLayerToggle);
    }
     
    static private int computeNoOfClusters(EarliestArrivalProblem problem, Parameters params) {
