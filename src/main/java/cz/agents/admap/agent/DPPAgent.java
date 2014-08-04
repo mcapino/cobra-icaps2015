@@ -265,8 +265,7 @@ public abstract class DPPAgent extends PlanningAgent {
         	setGlobalTerminationDetected(true);
         }
         
-        if (message.getContent() instanceof InformAgentFailed) {
-        	
+        if (message.getContent() instanceof InformAgentFailed) {        	
         	setGlobalTerminationDetected(false);
         }
     }

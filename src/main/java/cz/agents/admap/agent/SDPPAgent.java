@@ -95,7 +95,8 @@ public class SDPPAgent extends DPPAgent {
 		
 		if (trajectory == null) {
 			// trajectory not found
-    		broadcastFailure();    		
+    		broadcastFailure();
+    		setGlobalTerminationDetected(true);
     		LOGGER.info(getName() +  " has failed!");
 		}
 	}
