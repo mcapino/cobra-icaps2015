@@ -118,6 +118,7 @@ public class ScenarioCreator {
     
     public static void createFromArgs(String[] args) {
     	Parameters params = new Parameters();
+    	 	
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
     	String methodStr = Args.getArgumentValue(args, "-method", true);
     	String maxTimeStr = Args.getArgumentValue(args, "-maxtime", true);
