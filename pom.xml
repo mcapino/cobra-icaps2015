@@ -73,7 +73,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>orca</groupId>
+            <groupId>cz.agents.alite</groupId>
             <artifactId>orca</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
@@ -107,8 +107,8 @@
         </dependency>
         <dependency>
             <groupId>org.jgrapht</groupId>
-            <artifactId>jgrapht</artifactId>
-            <version>0.9</version>
+            <artifactId>jgrapht-core</artifactId>
+            <version>0.9.0</version>
         </dependency>
         <dependency>
             <groupId>math.javageom</groupId>
