@@ -198,7 +198,7 @@ public class ORCAAgent extends Agent {
 
         if (showVis) {
 	        try {
-	            Thread.sleep(5);
+	            Thread.sleep(0);
 	        } catch (InterruptedException e) {}
         }
         

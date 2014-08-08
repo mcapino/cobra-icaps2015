@@ -313,7 +313,7 @@ public class ScenarioCreator {
         final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
         long programStartedAtNs = System.nanoTime();
-        boolean suceeded = true;
+        boolean succeeded = true;
         
         Collection<ActivityLogEntry> activityLog = new LinkedList<ActivityLogEntry>();
         
@@ -346,7 +346,7 @@ public class ScenarioCreator {
 				LOGGER.debug("Agent " + i + " successfully finished planning in " + activityDuration/1000000 + "ms");
 			} else {
 				LOGGER.debug("Agent " + i + " FAILED to find a trajectory! Spent " + activityDuration/1000000 + "ms planning.");
-				suceeded = false;
+				succeeded = false;
 				break;
 			}
 			
@@ -371,7 +371,7 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, suceeded, agents, (finishedAtMs - programStartedAtNs)/1000000, params.noOfClusters);
+		printSummary(params.summaryPrefix, succeeded, agents, (finishedAtMs - programStartedAtNs)/1000000, params.noOfClusters);
 		
 		if (params.activityLogFile != null) {
 			saveActivityLog(activityLog, params.activityLogFile);
