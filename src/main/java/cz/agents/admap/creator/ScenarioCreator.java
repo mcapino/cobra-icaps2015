@@ -188,9 +188,6 @@ public class ScenarioCreator {
         if (params.showVis) {
             VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.timeStep/2);
             VisUtil.visualizeProblem(problem);
-            if (problem.getPlanningGraph() != null) {
-            	VisUtil.visualizeGraph(problem.getPlanningGraph(), null);
-            }
         }
 
         switch (method) {
