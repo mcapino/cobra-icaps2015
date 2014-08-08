@@ -112,8 +112,8 @@ public class ORCAAgent extends Agent {
         if (desiredVelocityControlMethod == DesiredVelocityControlMethod.OPTIMAL_ON_GRAPH) {
         	Collection<Region> ttObstaclesLessInflated = Util.inflateRegions(ttObstacles, agentBodyRadius-1);
         	
-        	double DESIRED_CONTROL_NODE_SEARCH_RADIUS = ((float) Math.ceil(agentBodyRadius * RADIUS_GRACE_MULTIPLIER) * 3) + 1; // approx. sqrt(2) * 2 * radius
-        	
+        	double DESIRED_CONTROL_NODE_SEARCH_RADIUS = longestEdgeLength(planningGraph)+1; // Used to be: ((float) Math.ceil(agentBodyRadius * RADIUS_GRACE_MULTIPLIER) * 3) + 1; // approx. sqrt(2) * 2 * radius
+        		
 			desiredControl = new GraphBasedOptimalPolicyController(planningGraph, goal, ttObstaclesLessInflated, 
 	        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS , false);    	
         } 
@@ -152,7 +152,18 @@ public class ORCAAgent extends Agent {
  		neighbors.put(getName(), rvoAgent);
     }
 
-    public synchronized Point getGoal() {
+    private double longestEdgeLength(DirectedGraph<Point, Line> planningGraph) {
+    	double longestEdgeLength = 0;
+    	for (Line edge : planningGraph.edgeSet()) {
+			if (longestEdgeLength < edge.getDistance()) {
+				longestEdgeLength = edge.getDistance();
+			}
+		}
+    	
+    	return longestEdgeLength;
+	}
+
+	public synchronized Point getGoal() {
         return goal;
     }
 
@@ -187,7 +198,7 @@ public class ORCAAgent extends Agent {
 
         if (showVis) {
 	        try {
-	            Thread.sleep(0);
+	            Thread.sleep(5);
 	        } catch (InterruptedException e) {}
         }
         
