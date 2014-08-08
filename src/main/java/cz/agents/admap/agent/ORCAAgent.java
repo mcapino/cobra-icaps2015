@@ -198,7 +198,7 @@ public class ORCAAgent extends Agent {
 
         if (showVis) {
 	        try {
-	            Thread.sleep(0);
+	            Thread.sleep(10);
 	        } catch (InterruptedException e) {}
         }
         
@@ -291,7 +291,7 @@ public class ORCAAgent extends Agent {
 
 	@Override
 	public boolean isGlobalTerminationDetected() {
-		return getCurrentPosition().distance(goal) < 1;
+		return getCurrentPosition().distance(goal) < 0.9;
 	}
 	
 	@Override
