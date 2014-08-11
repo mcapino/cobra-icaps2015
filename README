@@ -3,20 +3,24 @@ Decentralized Multi-robot Planning
 
 Compiling
 ---------
-The dependencies are managed uding Maven. To compile the project run:
+The dependencies are managed using Maven. To compile the project and create a jar archive with dependencies run:	
 
 $ mvn package
 
-The compiled project together with all dependencies will be in 
-	target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar
+The jar archive with all dependencies will be in:
+
+target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 Alternatively, you can open the project in your favorite IDE, i.e. in Eclipse.
 
 Getting started
---------------------
+---------------
 
-The planners are run through cz.agents.admap.creator.ScenarioCreator class. E.g. 
+The planners are run through cz.agents.admap.creator.ScenarioCreator class. 
 
-java -jar target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -problemfile instances/willow-r30-docks/56.xml -maxtime 15000 -timestep 45 -summary -showvis -bgimg /home/capino/projects/deconflictiontools/src/main/resources/environments/willow-darker.png
+For example the following command will run the ADRPP on the problem instance 
+described in file problems/ubremen-r27.xml.
+
+java -jar target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -problemfile problems/ubremen-r27.xml -method ADRPP -maxtime 15000 -timestep 45 -summary -showvis
 
 
