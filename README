@@ -18,9 +18,39 @@ Getting started
 
 The planners are run through cz.agents.admap.creator.ScenarioCreator class. 
 
-For example the following command will run the ADRPP on the problem instance 
-described in file problems/ubremen-r27.xml.
+Parameters:
+  -problemfile 		Path to an xml file with problem description.
+  -method			Specifies method to be used to solve the problem. One of {PP, RPP, SDPP, SDRPP, ADPP, ADRPP, ORCA}.
+  -maxtime			Specifies the maximum time considered during trajectory planning.
+  -timestep			The discretization of time-dimension used during trajectory planning.
+  -showvis          Turns on/off the visualization.
+  
+Detailed information can be derived from the source code, in particular from the method cz.agents.admap.creator.ScenarioCreator.createFromArgs().  
 
-java -jar target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -problemfile problems/ubremen-r27.xml -method ADRPP -maxtime 15000 -timestep 45 -summary -showvis
+Example: 
+--------
 
+	Tshe following command will run the ADRPP on the example problem instance described in file problems/ubremen-n15.xml.
+
+	$ java -jar target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -problemfile problems/ubremen-n15.xml -method ADRPP -maxtime 15000 -timestep 45 -showvis
+
+Visualization control: 
+----------------------
+
+When the visualization window pops-up, use the following keys to toggle various useful visualization layers:
+  m - missions/tasks of agents
+  t - trajectories of agents
+  g - planning graph
+  c - conflicts between trajectories (may slow down the visualization if toggled on)
+  p - polygons representing obstacles 
+  
+The movement of agents can be simulated by pressing (and holding) the following keys:
+  q - move time forwards
+  a - move time backwards
+  <space> - reset time to 0
+  
+Dragging with right mouse button pressed moves the viewport. Mouse wheel zooms the view.
+  
+  
+  
 
