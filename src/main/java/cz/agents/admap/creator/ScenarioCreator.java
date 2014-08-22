@@ -83,8 +83,6 @@ import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 
 public class ScenarioCreator {
 
-
-
 	////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
@@ -92,7 +90,8 @@ public class ScenarioCreator {
     }
 
     ///////////////////////////////////////////////////////////////////////
-
+    
+    static long startedAt;
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 	final static int RADIUS_GRACE = 1;
 
@@ -117,6 +116,7 @@ public class ScenarioCreator {
     private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
     
     public static void createFromArgs(String[] args) {
+    	startedAt = System.currentTimeMillis();
     	Parameters params = new Parameters();
     	 	
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
@@ -175,7 +175,7 @@ public class ScenarioCreator {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, false, null, 0, clusters);
+				printSummary(summaryPrefix, Status.TIMEOUT, null, 0, clusters);
 				System.exit(0);
 			}
     	};
@@ -250,7 +250,7 @@ public class ScenarioCreator {
         final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
         long startedAtMs = System.currentTimeMillis();
-        boolean suceeded = true;
+        Status status = Status.SUCCESS;
         
 		for (int i = 0; i < problem.nAgents(); i++) {
             final int iFinal = i;
@@ -278,7 +278,7 @@ public class ScenarioCreator {
 			if (traj != null) {
 				trajs[i] = traj;
 			} else {
-				suceeded = false;
+				status = Status.FAIL;
 			}
 		}
 		
@@ -302,7 +302,7 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, suceeded, agents, finishedAtMs - startedAtMs, params.noOfClusters);
+		printSummary(params.summaryPrefix, status, agents, finishedAtMs - startedAtMs, params.noOfClusters);
 		
 		if (!params.showVis) {
 			System.exit(0);
@@ -313,7 +313,7 @@ public class ScenarioCreator {
         final EvaluatedTrajectory[] trajs = new EvaluatedTrajectory[problem.nAgents()];
         
         long programStartedAtNs = System.nanoTime();
-        boolean succeeded = true;
+        Status status = Status.SUCCESS;
         
         Collection<ActivityLogEntry> activityLog = new LinkedList<ActivityLogEntry>();
         
@@ -346,7 +346,7 @@ public class ScenarioCreator {
 				LOGGER.debug("Agent " + i + " successfully finished planning in " + activityDuration/1000000 + "ms");
 			} else {
 				LOGGER.debug("Agent " + i + " FAILED to find a trajectory! Spent " + activityDuration/1000000 + "ms planning.");
-				succeeded = false;
+				status = Status.FAIL;
 				break;
 			}
 			
@@ -371,7 +371,7 @@ public class ScenarioCreator {
 		for (int i = 0; i < problem.nAgents(); i++) {
 			agents.add(new FixedTrajectoryAgent("a"+i, problem.getStart(i), problem.getTarget(i) , problem.getEnvironment(), problem.getBodyRadius(i), trajs[i]));
 		}
-		printSummary(params.summaryPrefix, succeeded, agents, (finishedAtMs - programStartedAtNs)/1000000, params.noOfClusters);
+		printSummary(params.summaryPrefix, status, agents, (finishedAtMs - programStartedAtNs)/1000000, params.noOfClusters);
 		
 		if (params.activityLogFile != null) {
 			saveActivityLog(activityLog, params.activityLogFile);
@@ -553,7 +553,7 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
-                    	   printSummary(params.summaryPrefix, agent.hasSucceeded(), agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
+                    	   printSummary(params.summaryPrefix, agent.hasSucceeded() ? Status.SUCCESS : Status.FAIL, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
                     	   
                            if (params.activityLogFile != null) {
                         	   saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
@@ -615,8 +615,10 @@ public class ScenarioCreator {
 		} finally {
 		}
 	}
+    
+    enum Status {SUCCESS, FAIL, TIMEOUT}
 
-	private static void printSummary(String prefix, boolean succeeded, List<Agent> agents, long timeToConvergeMs, int clusters) {
+	private static void printSummary(String prefix, Status status, List<Agent> agents, long timeToConvergeMs, int clusters) {
 
     	
 	    	double cost = 0;
@@ -639,8 +641,12 @@ public class ScenarioCreator {
 		    		
 		    	}
 	    	}
+	    	long scenarioSimulationRuntime = System.currentTimeMillis() - startedAt; 
 	    	
-	    	System.out.println(prefix + (succeeded ? String.format("%.2f", cost) : "inf") + ";" + timeToConvergeMs + ";" + msgsSent + ";" + 
+	    	
+	    	System.out.println(prefix + (status == Status.SUCCESS ? String.format("%.2f", cost) : "inf") + ";" + 
+	    			status + ";" + scenarioSimulationRuntime + ";" + 
+	    			timeToConvergeMs + ";" + msgsSent + ";" + 
 	    			Counters.expandedStatesCounter + ";" + clusters + ";" + totalReplannings);
     }
 

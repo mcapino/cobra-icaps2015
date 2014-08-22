@@ -24,8 +24,8 @@ public abstract class PlanningAgent extends Agent {
 	// Needed to overcome situation when the collision checker detected conflicts on the trajectory that was just returned by 
 	// the best-response routine. This discrepancy can happen due to the different sampling step used for collision checking 
 	// in planning and in collision checking in consistency check.
-	float DOBST_RADIUS_BUFFER_GRACE_COEF = 1.1f;
-	float SOBST_RADIUS_BUFFER_GRACE_COEF = 1.15f;
+	float DOBST_RADIUS_BUFFER_GRACE_COEF = 1.15f;
+	float SOBST_RADIUS_BUFFER_GRACE_COEF = 1.2f;
 	
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
 	
