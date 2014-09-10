@@ -57,6 +57,7 @@ import tt.vis.LabeledPointLayer.LabeledPoint;
 import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.TimeParameterHolder;
 import cz.agents.admap.agent.ADOPTAgent;
+import cz.agents.admap.agent.ADPMAgent;
 import cz.agents.admap.agent.ADPPAgent;
 import cz.agents.admap.agent.ADPPDGAgent;
 import cz.agents.admap.agent.Agent;
@@ -86,7 +87,7 @@ public class ScenarioCreator {
 	////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {
-        createFromArgs(args);
+    	createFromArgs(args);
     }
 
     ///////////////////////////////////////////////////////////////////////
@@ -104,6 +105,8 @@ public class ScenarioCreator {
         ADRPP,  /* Asynchronous Decentralized Revised Prioritized Planning */
         SDPP,   /* Synchronous  Decentralized Prioritized Planning */
         SDRPP,	/* Asynchronous Decentralized Revised Prioritized Planning */
+        ADPM,   /* Asynchronous Decentralized Penalty Method */
+        RRPM,   /* Round-robin  Decentralized Penalty Method */
         ADPPDG, /* Asynchronous Decentralized Prioritized Planning with Dynamic Grouping */
         DSA,    /* Stochastic Prioritized Planning */
         MGM,
@@ -189,7 +192,7 @@ public class ScenarioCreator {
             VisUtil.initVisualization(problem, "Trajectory Tools ("+method.toString()+")", params.bgImageFile, params.timeStep/2);
             VisUtil.visualizeProblem(problem);
         }
-
+        
         switch (method) {
         
 	        case BASE:
@@ -222,6 +225,10 @@ public class ScenarioCreator {
 	            
 	        case SDRPP:
 	            solveSDPP(problem, true, params);
+	            break;
+	            
+	        case ADPM:
+	            solveADPM(problem, true, params);
 	            break;
 
             case ADPPDG:
@@ -397,6 +404,27 @@ public class ScenarioCreator {
                 }
             	
 				PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
+            	agent.setPlanningGraph(planningGraph);
+                return agent;
+            }
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
+    }
+    
+    private static void solveADPM(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {
+        solve(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, int i, Point start, Point target,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+            	Collection<Region> sObst = new LinkedList<>();
+            	
+                for (int j=0; j<problem.nAgents(); j++) {
+                	if (j > i && avoidStartRegions) {
+                		sObst.add(new Circle(problem.getStart(j), problem.getBodyRadius(j)));
+                	}
+                }
+            	
+				PlanningAgent agent = new ADPMAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }

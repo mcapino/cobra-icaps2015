@@ -10,7 +10,7 @@ import tt.util.NotImplementedException;
 
 public class IntersectionCheckerWithProtectedPoint {
 
-    public static boolean intersect(Region thisRegion, Collection<Region> obstacleCollection, Point protectedPoint) {
+    public static boolean intersect(Region thisRegion, Collection<? extends Region> obstacleCollection, Point protectedPoint) {
         assert(thisRegion != null);
         assert(!obstacleCollection.contains(null));
 
