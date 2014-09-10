@@ -27,5 +27,8 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/alite"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/deconflictiontools"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/alite-trajectorytools2"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
