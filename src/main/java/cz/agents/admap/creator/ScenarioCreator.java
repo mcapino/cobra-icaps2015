@@ -79,6 +79,8 @@ import cz.agents.alite.communication.channel.DirectCommunicationChannel.Receiver
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.common.ScreenTextLayer;
+import cz.agents.alite.vis.layer.common.ScreenTextLayer.TextProvider;
 import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 
 
@@ -411,7 +413,27 @@ public class ScenarioCreator {
     }
     
     private static void solveADPM(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {
-        solve(problem, new AgentFactory() {
+        
+    	final Collection<ADPMAgent> agents = new LinkedList<ADPMAgent>();
+    	
+    	// custom visualization -- print penalties for debug
+        VisManager.registerLayer(ScreenTextLayer.create(50, 20, Color.BLACK, new TextProvider() {
+			
+			@Override
+			public String getText() {
+				StringBuilder sb =  new StringBuilder("Penalties: ");
+				double sumPenalty = 0;
+				for (ADPMAgent agent : agents) {
+					double penalty = agent.getPenalty(1);
+					sb.append(agent.getName() + ":" + String.format("%.2f", penalty) + ", ");
+					sumPenalty += penalty;
+				}
+				sb.append("sum:" + String.format("%.2f", sumPenalty));
+				return sb.toString();
+			}
+		}));
+    	
+    	solve(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, int i, Point start, Point target,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
@@ -424,11 +446,15 @@ public class ScenarioCreator {
                 	}
                 }
             	
-				PlanningAgent agent = new ADPMAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
-            	agent.setPlanningGraph(planningGraph);
+				ADPMAgent agent = new ADPMAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
+            	agents.add(agent);
+				agent.setPlanningGraph(planningGraph);
                 return agent;
             }
         }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
+        
+
+        
     }
     
     private static void solveSDPP(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {

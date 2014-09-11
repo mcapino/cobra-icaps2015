@@ -42,11 +42,16 @@ public class ADPMAgent extends PlanningAgent {
 	
 	TrajectoryOptimizer trajectoryOptimizer;
 
+	private int timeStep;
+	private int constraintSamplingInterval;
+
 	public ADPMAgent(String name, Point start, Point goal,
 			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration, 
 			Collection<tt.euclid2i.Region> sObst) {
 		super(name, start, goal, environment, agentBodyRadius, maxTime, waitMoveDuration);
 		this.sObst = sObst;
+		this.timeStep = waitMoveDuration;
+		this.constraintSamplingInterval = waitMoveDuration / 10;
 	}
 	
 	class AgentViewRecord {
@@ -63,7 +68,7 @@ public class ADPMAgent extends PlanningAgent {
 	}
 	
     Map<String, AgentViewRecord> agentView =  new HashMap<String, AgentViewRecord>();
-    final static boolean SOBST_KNOWN_AT_START = true;
+    
     private Collection<tt.euclid2i.Region> sObst;
 
     boolean higherPriorityAgentsFinished = false;
@@ -80,6 +85,8 @@ public class ADPMAgent extends PlanningAgent {
 	static final int UNKNOWN = (-1);
 
 	private static final double EPS = 1;
+
+	private static final double RADIUS_BUFFER_COEF = 1.2;
 	
 	private boolean agentFinished = false;
 	private boolean succeeded;
@@ -123,53 +130,33 @@ public class ADPMAgent extends PlanningAgent {
 	}
 	
 	protected Collection<tt.euclid2i.Region> sObst() {
-		if (SOBST_KNOWN_AT_START) {
-			return this.sObst;
-		} else {		
-			Collection<tt.euclid2i.Region> sObst = new LinkedList<tt.euclid2i.Region>();
-	
-	        for (Entry<String, AgentViewRecord> entry : agentView.entrySet()) {
-	        	String name = entry.getKey();
-	        	MovingCircle movingCircle = entry.getValue().occupiedRegion;
-	
-	        	if (getName().compareTo(name) < 0) {
-	        		// Static obstacles
-	        		sObst.add(new Circle(movingCircle.getTrajectory().get(0), movingCircle.getRadius()));
-	        	}
-	        }
-	        
-	        return sObst;
-		}
+		return this.sObst;
 	}
 	
 	protected  Collection<MovingCircle> dObst() {
 		Collection<MovingCircle> dObst = new LinkedList<MovingCircle>();
 
         for (Entry<String, AgentViewRecord> entry : agentView.entrySet()) {
-        	String name = entry.getKey();
-        	CircleMovingToTarget movingCircle = entry.getValue().occupiedRegion;
-
-        	if (getName().compareTo(name) > 0) {
-        		// Dynamic obstacles
-        		dObst.add(new CircleMovingToTarget(movingCircle.getTrajectory(), movingCircle.getRadius(), movingCircle.getTargetReachedTime() ));
-        	} 
+        	if (!entry.getKey().equals(getName())) {
+	        	CircleMovingToTarget movingCircle = entry.getValue().occupiedRegion;
+	        	dObst.add(new CircleMovingToTarget(movingCircle.getTrajectory(), movingCircle.getRadius(), movingCircle.getTargetReachedTime() ));
+        	}
         }
         
         return dObst;
 	}
 
-	protected PenalizedEvaluatedTrajectory assertOptimalTrajectory(PenalizedEvaluatedTrajectory currentTraj, Collection<tt.euclid2i.Region> sObst, Collection<MovingCircle> dObst, double penalty) {
-
-		if (currentTraj == null || !consistent(new MovingCircle(currentTraj.getTrajectory(), agentBodyRadius), sObst, dObst)) {
+	protected PenalizedEvaluatedTrajectory assertOptimalTrajectory(PenalizedEvaluatedTrajectory currentTraj, Collection<tt.euclid2i.Region> sObst, Collection<MovingCircle> dObst, double penaltyWeight) {
+	
+		double currentPenalty = getPenalty(1);
+		if (currentTraj == null || currentPenalty > 0) {
     		// The current trajectory is inconsistent
 			int currentMaxTime = computeMaxTime(dObst);
-			LOGGER.trace(getName() + " detected inconsistency. Replanning with penalty=" + penalty + " maxtime=" + currentMaxTime);
+			LOGGER.trace(getName() + ": Current penalty p=" + d4(currentPenalty) +  ", w*p=" + d4(penaltyWeight * currentPenalty) +"  Replanning with w=" + d4(penaltyWeight) + " maxtime=" + currentMaxTime);
 			
 			if (trajectoryOptimizer == null) {
-				// Initialize trajectory optimizer
+				// Initialize trajectory optimizer if it has not been used yet
 				int speed = 1;
-				int constraintSamplingInterval = waitMoveDuration / 4;
-				int timeStep = waitMoveDuration;
 				HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(planningGraph, goal);
 				trajectoryOptimizer = new AStarTrajectoryOptimizer(planningGraph, 
 						new tt.euclidtime3i.Point(start, 0), new tt.euclidtime3i.Point(goal, maxTime), 
@@ -181,7 +168,7 @@ public class ADPMAgent extends PlanningAgent {
         	
         	int i = 0;
         	for (MovingCircle movingCircle : dObst) {
-        		penaltyFunctions[i] = new BumpSeparationPenaltyFunction(penalty, movingCircle.getRadius() + agentBodyRadius, 1);
+        		penaltyFunctions[i] = new BumpSeparationPenaltyFunction(penaltyWeight, (movingCircle.getRadius() + agentBodyRadius) * RADIUS_BUFFER_COEF, 1);
         		otherTrajectories[i] = movingCircle.getTrajectory();
         		i++;
         	}
@@ -190,21 +177,12 @@ public class ADPMAgent extends PlanningAgent {
         	
         	if (newTrajectory != null) {
     	        // broadcast to the others
-        		LOGGER.trace(getName() + " has a new trajectory. Cost: " + newTrajectory.getCost() + " from which is penalty: " + newTrajectory.getPenalty());
-    	        broadcastNewTrajectory(newTrajectory.getTrajectory(), computeTargetReachedTime(newTrajectory, goal), penalty);
+        		LOGGER.trace(getName() + " has a new trajectory. Cost: " + d4(newTrajectory.getCost()) + " from which is penalty w*p=" + d4(newTrajectory.getPenalty()));
+    	        broadcastNewTrajectory(newTrajectory.getTrajectory(), computeTargetReachedTime(newTrajectory, goal), penaltyWeight);
             	return newTrajectory;
         	} else {
         		LOGGER.debug(getName() + " Cannot find a consistent trajectory. Maxtime=" + currentMaxTime + ". dObst=" + dObst() );
-        		
-        		if (SOBST_KNOWN_AT_START) {
-        			return null;
-        		} else {
-        			if (higherPriorityAgentsFinished) {
-        				return null;
-        			} else {
-        				return currentTraj;
-        			}
-        		}
+      			return null;
         	}
 
 		} else {
@@ -229,22 +207,6 @@ public class ADPMAgent extends PlanningAgent {
     	
     	return 0;
 	}
-
-	protected boolean allStartRegionsOfLowerPriorityRobotsKnown() {
-		if (SOBST_KNOWN_AT_START) {
-			return true;
-		} else {
-	    	for (String otherAgentName : sortedAgents) {
-	    		if (otherAgentName.compareTo(getName()) > 0) {
-	    			if (!agentView.containsKey(otherAgentName)) {
-	    				return false;
-	    			}
-	    		}
-	    	}
-	    	return true;
-		}
-
-   	}
 
 	protected boolean consistent(MovingCircle movingCircle, Collection<tt.euclid2i.Region> sObst, Collection<MovingCircle> dObst) {
 
@@ -358,16 +320,15 @@ public class ADPMAgent extends PlanningAgent {
 	        trajectory = assertOptimalTrajectory(getCurrentTrajectory(), sObst(), dObst(), getAgentViewMaxWeight() + EPS);
 		}
 		
-		if (trajectory.getPenalty() == 0) {
-			// trajectory found
-	    	if (!agentFinished && higherPriorityAgentsFinished && allStartRegionsOfLowerPriorityRobotsKnown()) {
-	    		// we have consistent trajectory and the higher-priority agents are fixed
-	    		agentFinished = true;
-	    		broadcastAgentFinished();
-	    		LOGGER.info(getName() +  " has finished!");
-	    	}
-		}
-		
+//		if (trajectory.getPenalty() < 0.01) {
+//			// trajectory found
+//	    	if (!agentFinished && higherPriorityAgentsFinished) {
+//	    		// we have consistent trajectory and the higher-priority agents are fixed
+//	    		agentFinished = true;
+//	    		broadcastAgentFinished();
+//	    		LOGGER.info(getName() +  " has finished!");
+//	    	}
+//		}
 	}
 
 	private double getAgentViewMaxWeight() {
@@ -378,6 +339,29 @@ public class ADPMAgent extends PlanningAgent {
 			}
 		}
 		return maxWeight;
+	}	
+	
+	public double getPenalty(double penaltyWeight) {
+		if (trajectory == null) {
+			return Double.POSITIVE_INFINITY;
+		} else {
+			Collection<MovingCircle> dObst = dObst();
+	    	PenaltyFunction[] penaltyFunctions = new PenaltyFunction[dObst.size()];
+	    	Trajectory[] otherTrajectories = new Trajectory[dObst.size()];
+	    	
+	    	int i = 0;
+	    	for (MovingCircle movingCircle : dObst) {
+	    		penaltyFunctions[i] = new BumpSeparationPenaltyFunction(penaltyWeight, (movingCircle.getRadius() + agentBodyRadius) * RADIUS_BUFFER_COEF, 1);
+	    		otherTrajectories[i] = movingCircle.getTrajectory();
+	    		i++;
+	    	}
+	    	
+	    	assert trajectory.getTrajectory() instanceof SegmentedTrajectory;
+	    	return AStarTrajectoryOptimizer.computePenaltyForTrajectory((SegmentedTrajectory)trajectory.getTrajectory(), penaltyFunctions, otherTrajectories, constraintSamplingInterval);
+		}
 	}
 	
+	public static String d4(double num) {
+		return String.format("%.4f", num);
+	}
 }
