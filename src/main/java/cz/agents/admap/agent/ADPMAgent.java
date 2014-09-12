@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
+import org.jgrapht.DirectedGraph;
 import org.jgrapht.util.HeuristicToGoal;
 
 import cz.agents.admap.msg.InformAgentFailed;
@@ -156,11 +157,13 @@ public class ADPMAgent extends PlanningAgent {
 			
 			if (trajectoryOptimizer == null) {
 				// Initialize trajectory optimizer if it has not been used yet
-				int speed = 1;
 				HeuristicToGoal<tt.euclidtime3i.Point> heuristic = new ShortestPathHeuristic(planningGraph, goal);
-				trajectoryOptimizer = new AStarTrajectoryOptimizer(planningGraph, 
+	            DirectedGraph<tt.euclidtime3i.Point, Straight> motions = BestResponse.createMotions(planningGraph, goal, dObst, maxTime, timeStep);
+            		
+				
+	            trajectoryOptimizer = new AStarTrajectoryOptimizer(motions, 
 						new tt.euclidtime3i.Point(start, 0), new tt.euclidtime3i.Point(goal, maxTime), 
-						speed, waitMoveDuration, timeStep, heuristic, constraintSamplingInterval);
+						heuristic, constraintSamplingInterval);
 			}
 					
         	PenaltyFunction[] penaltyFunctions = new PenaltyFunction[dObst.size()];
