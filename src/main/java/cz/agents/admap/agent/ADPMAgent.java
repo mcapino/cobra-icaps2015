@@ -163,7 +163,7 @@ public class ADPMAgent extends PlanningAgent {
 				
 	            trajectoryOptimizer = new AStarTrajectoryOptimizer(motions, 
 						new tt.euclidtime3i.Point(start, 0), new tt.euclidtime3i.Point(goal, maxTime), 
-						heuristic, constraintSamplingInterval);
+						heuristic, timeStep, constraintSamplingInterval);
 			}
 					
         	PenaltyFunction[] penaltyFunctions = new PenaltyFunction[dObst.size()];

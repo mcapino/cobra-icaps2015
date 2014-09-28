@@ -115,7 +115,7 @@ public class ORCAAgent extends Agent {
         	double DESIRED_CONTROL_NODE_SEARCH_RADIUS = longestEdgeLength(planningGraph)+1; // Used to be: ((float) Math.ceil(agentBodyRadius * RADIUS_GRACE_MULTIPLIER) * 3) + 1; // approx. sqrt(2) * 2 * radius
         		
 			desiredControl = new GraphBasedOptimalPolicyController(planningGraph, goal, ttObstaclesLessInflated, 
-	        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS , false);    	
+	        		MAX_SPEED * simulationSpeedMultiplier, DESIRED_CONTROL_NODE_SEARCH_RADIUS , showVis);    	
         } 
         
         if (desiredVelocityControlMethod == DesiredVelocityControlMethod.TRAJECTORY) {
