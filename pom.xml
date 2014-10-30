@@ -2,9 +2,9 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Decentralized Multi-Agent Planning</name>
+    <name>Multi-Agent Planning for Relocation Tasks</name>
     <groupId>cz.agents.alite</groupId>
-    <artifactId>admap</artifactId>
+    <artifactId>map4rt</artifactId>
     <version>1.0-SNAPSHOT</version>
 	<organization>
 		<name>Agent Technology Center (ATG)</name>
