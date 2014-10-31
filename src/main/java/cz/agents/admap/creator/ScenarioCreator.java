@@ -1,6 +1,5 @@
 package cz.agents.admap.creator;
 import java.awt.Color;
-import java.awt.image.ReplicateScaleFilter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,11 +30,9 @@ import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.Trajectory;
-import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
 import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
-import tt.euclid2i.util.SeparationDetector;
 import tt.euclid2i.vis.ProjectionTo2d;
 import tt.euclid2i.vis.RegionsLayer;
 import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
@@ -52,9 +49,6 @@ import tt.util.Counters;
 import tt.vis.FastAgentsLayer;
 import tt.vis.FastAgentsLayer.ColorProvider;
 import tt.vis.FastAgentsLayer.TrajectoriesProvider;
-import tt.vis.LabeledPointLayer;
-import tt.vis.LabeledPointLayer.LabeledPoint;
-import tt.vis.LabeledPointLayer.LabeledPointsProvider;
 import tt.vis.TimeParameterHolder;
 import cz.agents.admap.agent.ADOPTAgent;
 import cz.agents.admap.agent.ADPMAgent;
@@ -97,10 +91,12 @@ public class ScenarioCreator {
     static long startedAt;
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 	final static int RADIUS_GRACE = 1;
-
+		
     enum Method {
+    	
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
+    	DFCFS,  /* Distributed First-come First-served*/
     	PP,		/* Centralized Prioritized Planning */
     	RPP,	/* Centralized Revised Prioritized Planning */
     	ADPP,	/* Asynchronous Decentralized Prioritized Planning */
@@ -203,6 +199,10 @@ public class ScenarioCreator {
 	        
 	        case BASEST:
 	            solveBASE(problem, params, true);
+	            break;
+	            
+	        case DFCFS:
+	            solveDFCFS(problem, params);
 	            break;
 	        
 	        case PP:
@@ -389,6 +389,21 @@ public class ScenarioCreator {
 		if (!params.showVis) {
 			System.exit(0);
 		}
+    }
+    
+    private static void solveDFCFS(final EarliestArrivalProblem problem, final Parameters params) {
+        solve(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, int i, Point start, Point target,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+            	Collection<Region> sObst = new LinkedList<>();
+          	
+				PlanningAgent agent = new ADPPAgent(name, start, target, env, agentBodyRadius, params.maxTime, params.timeStep, sObst);
+            	agent.setPlanningGraph(planningGraph);
+                return agent;
+            }
+        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
     }
     
     private static void solveADPP(final EarliestArrivalProblem problem, final boolean avoidStartRegions, final Parameters params) {

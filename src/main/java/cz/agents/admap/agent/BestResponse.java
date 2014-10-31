@@ -2,19 +2,14 @@ package cz.agents.admap.agent;
 
 import java.awt.Color;
 import java.util.Collection;
-import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.Graph;
 import org.jgrapht.GraphPath;
-import org.jgrapht.alg.AStarShortestPath;
 import org.jgrapht.alg.AStarShortestPathSimple;
-import org.jgrapht.alg.RandomWalkPlanner;
 import org.jgrapht.util.Goal;
 import org.jgrapht.util.HeuristicToGoal;
 
-import cz.agents.alite.vis.VisManager;
-import cz.agents.alite.vis.layer.VisLayer;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
@@ -23,12 +18,10 @@ import tt.euclid2i.SegmentedTrajectory;
 import tt.euclid2i.discretization.L2Heuristic;
 import tt.euclid2i.discretization.LazyGrid;
 import tt.euclid2i.discretization.ObstacleWrapper;
-import tt.euclid2i.discretization.ToGoalEdgeExtension;
 import tt.euclid2i.region.Rectangle;
 import tt.euclid2i.trajectory.LineSegmentsConstantSpeedTrajectory;
 import tt.euclid2i.trajectory.StraightSegmentTrajectory;
 import tt.euclid2i.vis.RegionsLayer;
-import tt.euclid2i.vis.RegionsLayer.RegionsProvider;
 import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.ControlEffortWrapper;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
@@ -45,6 +38,8 @@ import tt.euclidtime3i.sipprrts.DynamicObstaclesImpl;
 import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.vis.GraphLayer;
 import tt.vis.TimeParameterHolder;
+import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.VisLayer;
 
 public class BestResponse {
 
@@ -185,49 +180,7 @@ public class BestResponse {
 	}
 
 
-    static public EvaluatedTrajectory computeRandomRoute(final Point start, final Point goal,
-            Collection<Region> obstacles, Rectangle bounds, Collection<tt.euclidtime3i.Region> avoid, Random random, final int maxTime) {
-
-        // create grid discretization
-        final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> grid
-            = new LazyGrid(start,
-                    obstacles,
-                    bounds,
-                    LazyGrid.PATTERN_8_WAY,
-                    GRID_STEP);
-
-        final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph
-            = new ToGoalEdgeExtension(grid, goal, GRID_STEP);
-
-        // time-extension
-        DirectedGraph<tt.euclidtime3i.Point, Straight> graph
-            = new ConstantSpeedTimeExtension(spatialGraph, Integer.MAX_VALUE, new int[] {1}, avoid, ConstantSpeedTimeExtension.DISABLE_WAIT_MOVE);
-
-        // plan
-        final GraphPath<tt.euclidtime3i.Point, Straight> path = RandomWalkPlanner
-                .findPathBetween(graph,
-                new HeuristicToGoal<tt.euclidtime3i.Point>() {
-                    @Override
-                    public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
-                        return (current.getPosition()).distance(goal);
-                    }
-                },
-                new tt.euclidtime3i.Point(start.x, start.y, 0),
-                new Goal<tt.euclidtime3i.Point>() {
-                    @Override
-                    public boolean isGoal(tt.euclidtime3i.Point current) {
-                        return current.getPosition().equals(goal); // last space-time node might not be placed at MAX_TIME
-                    }
-                }, random, 0.2);
-
-        if (path != null) {
-            return new StraightSegmentTrajectory(path, maxTime);
-        } else {
-            return null;
-        }
-    }
-    
-	public static EvaluatedTrajectory computeShortestPath(
+    public static EvaluatedTrajectory computeShortestPath(
 			final Point start,
 			final Point goal,
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
