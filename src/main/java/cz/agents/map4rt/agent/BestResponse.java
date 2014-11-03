@@ -129,7 +129,7 @@ public class BestResponse {
 	
 	public static DirectedGraph<tt.euclidtime3i.Point,Straight> createMotions(DirectedGraph<Point, Line> spatialGraph, Point goal, Collection<? extends tt.euclidtime3i.Region> dynamicObstacles, int maxTime, int timeStep) {
         DirectedGraph<tt.euclidtime3i.Point, Straight> motions
-            = new ConstantSpeedTimeExtension(spatialGraph, maxTime, new int[] {1}, dynamicObstacles, timeStep, timeStep);
+            = new ConstantSpeedTimeExtension(spatialGraph, maxTime, new float[] {0.05f}, dynamicObstacles, timeStep, timeStep);
         motions = new FreeOnTargetWaitExtension(motions, goal);
         motions = new ControlEffortWrapper(motions, 0.01);
         return motions;

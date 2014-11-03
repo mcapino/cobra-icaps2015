@@ -9,7 +9,6 @@ import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Point;
-import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
 import tt.euclidtime3i.Region;
@@ -63,7 +62,11 @@ public abstract class PlanningAgent extends Agent {
 			heuristic = new ShortestPathHeuristic(planningGraph, goal);
 			
 		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, waitMoveDuration);
-
+		
+		if (traj == null) {
+			LOGGER.warn(" !!!!! No trajectory found !!!! ");
+		}
+		
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
 		return traj;
 	}
@@ -90,27 +93,14 @@ public abstract class PlanningAgent extends Agent {
 		return dObstInflated;
 	}
 	
-	protected static LinkedList<tt.euclidtime3i.Region> subtractProtectedPoint(Collection<tt.euclidtime3i.Region> dObst, tt.euclid2i.Point point) {
-		// Inflate static obstacles
-		LinkedList<tt.euclidtime3i.Region> dObstMinusPoint = new LinkedList<tt.euclidtime3i.Region>();
-		for (tt.euclidtime3i.Region region : dObst) {
-			assert region instanceof MovingCircle;
-			MovingCircle mc = (MovingCircle) region;
-			dObstMinusPoint.add(new MovingCircleMinusPoint(mc, point));
-		}
-		return dObstMinusPoint;
-	}
-
 	@Override
 	public EvaluatedTrajectory getCurrentTrajectory() {
 		return currentTrajectory;
 	}
 
-
-
 	@Override
 	public Point getCurrentPos() {
-		if (currentTrajectory != null && time <= currentTrajectory.getMinTime()) {
+		if (currentTrajectory != null && currentTrajectory.get(time) != null) {
 			currentPos = currentTrajectory.get(time);
 		} 
 		return currentPos;

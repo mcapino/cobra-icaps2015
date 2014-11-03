@@ -1,4 +1,5 @@
 package cz.agents.map4rt;
+import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,6 +19,7 @@ import org.jgrapht.DirectedGraph;
 
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
+import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
 import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import tt.jointeuclid2ni.probleminstance.RelocationTaskCoordinationProblem;
@@ -26,7 +28,11 @@ import tt.jointeuclid2ni.probleminstance.VisUtil;
 import tt.jointeuclid2ni.solver.Parameters;
 import tt.util.AgentColors;
 import tt.util.Args;
+import tt.vis.FastTrajectoriesLayer;
+import tt.vis.FastTrajectoriesLayer.ColorProvider;
+import tt.vis.FastTrajectoriesLayer.TrajectoriesProvider;
 import tt.vis.LabeledCircleLayer;
+import tt.vis.TrajectoriesLayer;
 import cz.agents.alite.common.event.ActivityLogEntry;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -44,6 +50,11 @@ import cz.agents.map4rt.agent.PlanningAgent;
 
 
 public class ScenarioCreator {
+	
+	/* Units: 
+	 * 1 time unit = 1ms; 
+	 * 1 space unit = depending on the map, 2cm typically. 
+	 */
 
 	////////////////////////////////////////////////////////////////////////
 
@@ -228,7 +239,9 @@ public class ScenarioCreator {
         for (Agent agent : agents) {
         	unfinishedAgents.add(agent.getName());
         }
-
+        
+        final long simulationStartedAtMs = System.currentTimeMillis();
+        
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
 
@@ -250,7 +263,21 @@ public class ScenarioCreator {
                DurativeEventHandler tickhandler =  new DurativeEventHandler() {
                    @Override
                    public long handleEvent(DurativeEvent event) {
-                       long lastEventStartedAtNanos = System.nanoTime();
+                       
+                	   // artificial delay to make the simulation run in real-time
+                	   long eventTimeMs = event.getTime()/1000000;
+                	   long shouldHappenAt = eventTimeMs + simulationStartedAtMs;
+                	   	
+						if ((shouldHappenAt - System.currentTimeMillis()) > 0) {
+							try {
+								Thread.sleep(Math.max(
+										shouldHappenAt - System.currentTimeMillis(),
+										0));
+							} catch (InterruptedException e) {
+							}
+						} 
+                	   
+                	   long lastEventStartedAtNanos = System.nanoTime();
                        agent.tick((int) (event.getTime() / 1000000));
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
 
@@ -274,7 +301,7 @@ public class ScenarioCreator {
                        } else {
 	                       if (concurrentSimulation.getWallclockRuntime() < simulateTicksUntilNs) {
 	                    	   int noOfTicksToSkip = (int) (duration / tickPeriodNs); // if the tick handling takes more than tickPeriod, we need to skip some ticks
-
+	                    	   
 	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriodNs, agent.getName(), this);
 	                       }
                        }
@@ -294,7 +321,8 @@ public class ScenarioCreator {
 //      try {
 //			System.in.read();
 //		} catch (IOException e) {}
-
+        
+        
          // *** run simulation ***
          concurrentSimulation.run();
 
@@ -317,7 +345,25 @@ public class ScenarioCreator {
              }
 
          }, new tt.euclid2i.vis.ProjectionTo2d()));
-     	
+        
+        VisManager.registerLayer(FastTrajectoriesLayer.create(new TrajectoriesProvider() {
+			
+			@Override
+			public Trajectory[] getTrajectories() {
+				Trajectory[] trajsArr = new Trajectory[agents.size()];
+				for (int i = 0; i < trajsArr.length; i++) {
+					trajsArr[i] = agents.get(i).getCurrentTrajectory();
+				}
+				return trajsArr;
+			}
+		},new ColorProvider() {
+			
+			@Override
+			public Color getColor(int i) {
+				return AgentColors.getColorForAgent(i);
+			}
+		}, 3, 1000));
+            	
  	}
 
     private static void saveActivityLog(Collection<ActivityLogEntry> activityLog, String activityLogFile) {

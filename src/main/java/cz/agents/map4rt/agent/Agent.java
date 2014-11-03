@@ -122,6 +122,7 @@ public abstract class Agent {
     	if (currentTask == null) {
     		if (!tasks.isEmpty() && tasks.get(0).getIssueTime() < timeMs) {
     			currentTask = tasks.get(0);
+    			LOGGER.info(getName() + " Carrying out new task " + currentTask);
     			handleNewTask(currentTask);
     			tasks.remove(0);
     		} 

@@ -8,7 +8,7 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.m2e.launchconfig.classpathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="cz.agents.map4rt.ScenarioCreator"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method BASE -problemfile /home/capino/projects/deconflictiontools/map/temp/ubremen-tasks.xml -maxtime 10000 -timestep 30 -showvis -bgimg environments/ubremen.png"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method BASE -problemfile /home/capino/projects/deconflictiontools/map/temp/ubremen-tasks.xml -maxtime 500000 -timestep 500 -showvis -bgimg environments/ubremen.png"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="map4rt"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="/home/capino/projects/deconflictiontools/src/main/resources"/>

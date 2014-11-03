@@ -18,6 +18,7 @@ public class BaselineAgent extends PlanningAgent {
 
 	@Override
 	protected void handleNewTask(RelocationTask task) {
+		
 		EvaluatedTrajectory traj = getBestResponseTrajectory(
 				new tt.euclidtime3i.Point(getCurrentPos(), (int) (time + T_PLANNING)), task.getDestination(),
 				new LinkedList<tt.euclid2i.Region>(), new LinkedList<Region>(), maxTime);
