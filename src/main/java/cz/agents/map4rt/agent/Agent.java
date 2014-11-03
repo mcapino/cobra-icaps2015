@@ -35,6 +35,7 @@ public abstract class Agent {
 
     Communicator communicator;
     List<String> agents;
+    float maxSpeed;
 
     Collection<Region> inflatedObstacles;
     DirectedGraph<Point, Line> planningGraph;
@@ -42,7 +43,8 @@ public abstract class Agent {
     RelocationTask currentTask = null;
     int time = 0;
 
-	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment, int agentBodyRadius) {
+
+	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment,  int agentBodyRadius, float maxSpeed) {
         super();
         this.name = name;
         this.start = start;
@@ -51,6 +53,7 @@ public abstract class Agent {
         this.agentBodyRadius = agentBodyRadius;
         this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);
         this.inflatedObstacles.addAll(tt.euclid2i.util.Util.inflateRegions(Collections.singleton(environment.getBoundary()), agentBodyRadius));
+        this.maxSpeed = maxSpeed;
     }
 
     public synchronized Point getStart() {

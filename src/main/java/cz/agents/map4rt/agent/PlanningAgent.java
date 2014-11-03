@@ -33,11 +33,12 @@ public abstract class PlanningAgent extends Agent {
 	protected EvaluatedTrajectory currentTrajectory;
 	protected Point currentPos;
 	
+	
 	private HeuristicToGoal<tt.euclidtime3i.Point> heuristic;
 	
 	public PlanningAgent(String name, Point start, List<RelocationTask> tasks,
-			Environment environment, int agentBodyRadius, int maxTime, int waitMoveDuration) {
-		super(name, start, tasks, environment, agentBodyRadius);
+			Environment environment, int agentBodyRadius, float maxSpeed, int maxTime, int waitMoveDuration) {
+		super(name, start, tasks, environment, agentBodyRadius, maxSpeed);
 		this.maxTime = maxTime;
 		this.waitMoveDuration = waitMoveDuration;
 		this.currentPos = start;
@@ -61,7 +62,7 @@ public abstract class PlanningAgent extends Agent {
 		if (heuristic == null) 
 			heuristic = new ShortestPathHeuristic(planningGraph, goal);
 			
-		traj = BestResponse.computeBestResponse(start, goal, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, waitMoveDuration);
+		traj = BestResponse.computeBestResponse(start, goal, maxSpeed, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, waitMoveDuration);
 		
 		if (traj == null) {
 			LOGGER.warn(" !!!!! No trajectory found !!!! ");

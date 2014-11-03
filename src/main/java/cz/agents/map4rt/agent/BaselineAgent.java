@@ -12,8 +12,8 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 public class BaselineAgent extends PlanningAgent {
 
 	public BaselineAgent(String name, Point start, List<RelocationTask> tasks,
-			Environment env, int agentBodyRadius, int maxTime, int timeStep) {
-		super(name, start, tasks, env, agentBodyRadius, maxTime, timeStep);
+			Environment env, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
+		super(name, start, tasks, env, agentBodyRadius, maxSpeed, maxTime, timeStep);
 	}
 
 	@Override

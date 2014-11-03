@@ -35,6 +35,7 @@ public class BestResponse {
 	public static EvaluatedTrajectory computeBestResponse(
 			final tt.euclidtime3i.Point start,
 			final Point goal,
+			final float maxSpeed,
 			final DirectedGraph<tt.euclid2i.Point, tt.euclid2i.Line> spatialGraph,
 			final HeuristicToGoal<tt.euclidtime3i.Point> heuristic,
 			final Collection<tt.euclid2i.Region> staticObstacles,
@@ -82,7 +83,7 @@ public class BestResponse {
 	    
         // time-extension
         DirectedGraph<tt.euclidtime3i.Point, Straight> motions 
-        	= createMotions(adaptedSpatialGraph, goal, dynamicObstacles, maxTime, timeStep);
+        	= createMotions(adaptedSpatialGraph, goal, maxSpeed, dynamicObstacles, maxTime, timeStep);
 
         // plan
         final GraphPath<tt.euclidtime3i.Point, Straight> path = AStarShortestPathSimple.findPathBetween(motions,
@@ -127,9 +128,9 @@ public class BestResponse {
         return new LineSegmentsConstantSpeedTrajectory<Point, Line>(0, path, 1, (int) path.getWeight());
 	}
 	
-	public static DirectedGraph<tt.euclidtime3i.Point,Straight> createMotions(DirectedGraph<Point, Line> spatialGraph, Point goal, Collection<? extends tt.euclidtime3i.Region> dynamicObstacles, int maxTime, int timeStep) {
+	public static DirectedGraph<tt.euclidtime3i.Point,Straight> createMotions(DirectedGraph<Point, Line> spatialGraph, Point goal, float maxSpeed, Collection<? extends tt.euclidtime3i.Region> dynamicObstacles, int maxTime, int timeStep) {
         DirectedGraph<tt.euclidtime3i.Point, Straight> motions
-            = new ConstantSpeedTimeExtension(spatialGraph, maxTime, new float[] {0.05f}, dynamicObstacles, timeStep, timeStep);
+            = new ConstantSpeedTimeExtension(spatialGraph, maxTime, new float[] {maxSpeed}, dynamicObstacles, timeStep, timeStep);
         motions = new FreeOnTargetWaitExtension(motions, goal);
         motions = new ControlEffortWrapper(motions, 0.01);
         return motions;

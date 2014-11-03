@@ -46,14 +46,16 @@ import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
+import cz.agents.map4rt.agent.ORCAAgent;
 import cz.agents.map4rt.agent.PlanningAgent;
 
 
 public class ScenarioCreator {
 	
 	/* Units: 
-	 * 1 time unit = 1ms; 
-	 * 1 space unit = depending on the map, 2cm typically. 
+	 * time: 1 time unit = 1ms; 
+	 * distance: 1 distance unit = depending on the map, 2cm typically. 
+	 * speed: in du/ms (distance units / millisecond), typically 0.05 du/ms represents roughly 1m/1s 
 	 */
 
 	////////////////////////////////////////////////////////////////////////
@@ -71,13 +73,14 @@ public class ScenarioCreator {
     enum Method {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
-    	DFCFS,  /* Distributed First-come First-served*/
+    	DFCFS,  /* Distributed First-come First-served */
         ORCA}
 
 
     private static RelocationTaskCoordinationProblem problem;
 
     private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
+    private static final float MAX_SPEED = 0.05f;
     
     public static void createFromArgs(String[] args) {
     	startedAt = System.currentTimeMillis();
@@ -95,8 +98,9 @@ public class ScenarioCreator {
         params.summaryPrefix = Args.getArgumentValue(args, "-summaryprefix", false, "");
         params.activityLogFile = Args.getArgumentValue(args, "-activitylog", false, null);
         String bgImgFileName = Args.getArgumentValue(args, "-bgimg", false, null);
-        
-        
+        String simSpeedStr = Args.getArgumentValue(args, "-simspeed", false, "1");
+        params.simSpeed = Double.parseDouble(simSpeedStr);
+                
 		File file = new File(xml);
 	    params.fileName = file.getName();
 	    
@@ -165,9 +169,9 @@ public class ScenarioCreator {
 //	            solveDFCFS(problem, params);
 //	            break;
 //
-//            case ORCA:
-//                solveORCA(problem, params);
-//                break;
+            case ORCA:
+                solveORCA(problem, params);
+                break;
 
             default:
                 throw new RuntimeException("Unknown method");
@@ -181,9 +185,22 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, agentBodyRadius, params.maxTime, params.timeStep);
+				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
             	agent.setPlanningGraph(planningGraph);
                 return agent;
+            }
+        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
+    }  
+	
+	private static void solveORCA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
+        simulate(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+				Agent agent = new ORCAAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep, params.showVis);
+				agent.setPlanningGraph(planningGraph);
+				return agent;
             }
         }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
     }    
@@ -265,8 +282,8 @@ public class ScenarioCreator {
                    public long handleEvent(DurativeEvent event) {
                        
                 	   // artificial delay to make the simulation run in real-time
-                	   long eventTimeMs = event.getTime()/1000000;
-                	   long shouldHappenAt = eventTimeMs + simulationStartedAtMs;
+                	   long eventTimeMs = (long) (event.getTime()/1000000);
+                	   long shouldHappenAt = (long)(eventTimeMs/params.simSpeed) + simulationStartedAtMs;
                 	   	
 						if ((shouldHappenAt - System.currentTimeMillis()) > 0) {
 							try {
