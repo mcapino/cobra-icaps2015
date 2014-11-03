@@ -116,7 +116,7 @@ public class ScenarioCreator {
 
 	    Method method = Method.valueOf(methodStr);
 	    
-	    params.runtimeDeadlineMs = 60*1000; /* default timeout is 1 minute */
+	    params.runtimeDeadlineMs = 3600*1000; /* default timeout is 1 hour */
 	    if (timeoutStr != null) {
 	    	int timeout = Integer.parseInt(timeoutStr);
 	    	params.runtimeDeadlineMs = timeout;
@@ -136,7 +136,7 @@ public class ScenarioCreator {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, Status.TIMEOUT, null, 0, clusters);
+				printSummary(summaryPrefix, Status.TIMEOUT, -1);
 				System.exit(0);
 			}
     	};
@@ -185,7 +185,7 @@ public class ScenarioCreator {
             	agent.setPlanningGraph(planningGraph);
                 return agent;
             }
-        }, TICK_INTERVAL_NS, (long) (params.runtimeDeadlineMs*1e6), params);
+        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
     }    
 
     interface AgentFactory {
@@ -289,7 +289,7 @@ public class ScenarioCreator {
                        if (unfinishedAgents.isEmpty()) {
                     	   concurrentSimulation.clearQueue();
                     	   // We are done!
-                    	   printSummary(params.summaryPrefix, Status.SUCCESS, agents, concurrentSimulation.getWallclockRuntime()/1000000, params.noOfClusters);
+                    	   printSummary(params.summaryPrefix, Status.SUCCESS, concurrentSimulation.getWallclockRuntime()/1000000);
                     	   
                            if (params.activityLogFile != null) {
                         	   saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
@@ -387,9 +387,8 @@ public class ScenarioCreator {
     
     enum Status {SUCCESS, FAIL, TIMEOUT}
 
-	private static void printSummary(String prefix, Status status, List<Agent> agents, long timeToConvergeMs, int clusters) {
-	    	double cost = 0;
-	    	System.out.println(prefix + (status == Status.SUCCESS ? String.format("%.2f", cost) : "inf") + ";" );
+	private static void printSummary(String prefix, Status status, long completedAt) {
+	    	System.out.println(prefix + (status == Status.SUCCESS ? completedAt : "inf") + ";" );
     }
 
 }
