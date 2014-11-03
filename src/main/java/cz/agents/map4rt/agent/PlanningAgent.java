@@ -5,9 +5,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.jgrapht.DirectedGraph;
 import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
+import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
@@ -37,8 +39,9 @@ public abstract class PlanningAgent extends Agent {
 	private HeuristicToGoal<tt.euclidtime3i.Point> heuristic;
 	
 	public PlanningAgent(String name, Point start, List<RelocationTask> tasks,
-			Environment environment, int agentBodyRadius, float maxSpeed, int maxTime, int waitMoveDuration) {
-		super(name, start, tasks, environment, agentBodyRadius, maxSpeed);
+			Environment environment, DirectedGraph<Point, Line> planningGraph,
+			int agentBodyRadius, float maxSpeed, int maxTime, int waitMoveDuration) {
+		super(name, start, tasks, environment, planningGraph, agentBodyRadius, maxSpeed);
 		this.maxTime = maxTime;
 		this.waitMoveDuration = waitMoveDuration;
 		this.currentPos = start;

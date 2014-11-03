@@ -58,7 +58,7 @@ public class ORCAAgent extends Agent {
 	private double DesiredControlNodeSearchRadius;
 
     public ORCAAgent(String name, Point start, List<RelocationTask> tasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis) {
-        super(name, start, tasks, environment, agentBodyRadius, maxSpeed);
+        super(name, start, tasks, environment, planningGraph, agentBodyRadius, maxSpeed);
 
         this.showVis = showVis;
         this.maxSpeed = maxSpeed;

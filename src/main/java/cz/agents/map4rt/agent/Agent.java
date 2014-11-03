@@ -44,7 +44,7 @@ public abstract class Agent {
     int time = 0;
 
 
-	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment,  int agentBodyRadius, float maxSpeed) {
+	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed) {
         super();
         this.name = name;
         this.start = start;
@@ -54,6 +54,7 @@ public abstract class Agent {
         this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);
         this.inflatedObstacles.addAll(tt.euclid2i.util.Util.inflateRegions(Collections.singleton(environment.getBoundary()), agentBodyRadius));
         this.maxSpeed = maxSpeed;
+        this.planningGraph = planningGraph;
     }
 
     public synchronized Point getStart() {
@@ -140,10 +141,6 @@ public abstract class Agent {
 
     public DirectedGraph<Point, Line> getPlanningGraph() {
     	return planningGraph;
-    }
-
-    public void setPlanningGraph(DirectedGraph<Point, Line> planningGraph) {
-    	this.planningGraph = planningGraph;
     }
 
     public abstract Point getCurrentPos();

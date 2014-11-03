@@ -46,6 +46,7 @@ import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.vis.VisManager;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
+import cz.agents.map4rt.agent.DFCFSAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
 import cz.agents.map4rt.agent.PlanningAgent;
 
@@ -160,16 +161,12 @@ public class ScenarioCreator {
 	        case BASE:
 	            solveBASE(problem, params);
 	            break;
-	        
-//	        case BASEST:
-//	            solveBASE(problem, params, true);
-//	            break;
-//	            
-//	        case DFCFS:
-//	            solveDFCFS(problem, params);
-//	            break;
-//
-            case ORCA:
+
+	        case DFCFS:
+	            solveDFCFS(problem, params);
+	            break;
+
+	        case ORCA:
                 solveORCA(problem, params);
                 break;
 
@@ -185,12 +182,23 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
-				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
-            	agent.setPlanningGraph(planningGraph);
+				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
                 return agent;
             }
         }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
     }  
+	
+	private static void solveDFCFS(final RelocationTaskCoordinationProblem problem, final Parameters params) {
+        simulate(problem, new AgentFactory() {
+            @Override
+            public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+
+				PlanningAgent agent = new DFCFSAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
+                return agent;
+            }
+        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
+    } 
 	
 	private static void solveORCA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
@@ -199,7 +207,6 @@ public class ScenarioCreator {
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
 
 				Agent agent = new ORCAAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep, params.showVis);
-				agent.setPlanningGraph(planningGraph);
 				return agent;
             }
         }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
