@@ -29,11 +29,13 @@ public class DFCFSAgent extends PlanningAgent {
 		
 		synchronized (Token.class) {
 			
+			int startTime = ((int) Math.ceil( (double) (time + T_PLANNING) / (double) timeStep) ) * timeStep;
+			
 			EvaluatedTrajectory traj = getBestResponseTrajectory(
-					new tt.euclidtime3i.Point(getCurrentPos(), (int) (time + T_PLANNING)), task.getDestination(),
+					new tt.euclidtime3i.Point(getCurrentPos(), startTime), task.getDestination(),
 					new LinkedList<tt.euclid2i.Region>(), Token.getReservedRegions(getName()), maxTime);
 			
-			Token.register(getName(), new MovingCircle(traj, agentBodyRadius));
+			Token.register(getName(), new MovingCircle(traj, agentBodyRadius, (int) (agentBodyRadius/maxSpeed)/4 ));
 			currentTrajectory = traj;
 		}
 	}

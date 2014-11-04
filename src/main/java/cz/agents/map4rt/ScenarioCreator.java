@@ -234,7 +234,7 @@ public class ScenarioCreator {
                     problem.getBodyRadius(i)));
         }
         
-        initAgentVisualization(agents);
+        initAgentVisualization(agents, params.timeStep);
         
         List<String> agentNames =  new ArrayList<String>(agents.size());
         for (Agent agent : agents) {
@@ -368,7 +368,7 @@ public class ScenarioCreator {
 
     }
     
-    private static void initAgentVisualization(final List<Agent> agents) {
+    private static void initAgentVisualization(final List<Agent> agents, int timeStep) {
         
         // starts
         VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
@@ -402,7 +402,7 @@ public class ScenarioCreator {
 			public Color getColor(int i) {
 				return AgentColors.getColorForAgent(i);
 			}
-		}, 3, 1000));
+		}, 3, timeStep));
             	
  	}
 

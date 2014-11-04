@@ -115,11 +115,11 @@ public abstract class Agent {
     }
 
     protected void notify(Message message) {
-        LOGGER.trace(getName() + " >>> received message " + message.getContent());
+       LOGGER.trace(getName() + " >>> received message " + message.getContent());
     }
 
     public void tick(int timeMs) {
-    	LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
+    	//LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
     	
     	time = timeMs;
     	

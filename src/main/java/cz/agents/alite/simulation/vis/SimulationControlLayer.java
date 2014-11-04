@@ -49,9 +49,9 @@ public class SimulationControlLayer extends AbstractLayer {
 			@Override
 			public void keyPressed(KeyEvent e) {
 				if (e.getKeyChar() == '+') {
-					simulationCtrl.setSpeed(simulationCtrl.getSpeed() * 1.2f);
-				} else if (e.getKeyChar() == '-') {
 					simulationCtrl.setSpeed(simulationCtrl.getSpeed() * 0.8f);
+				} else if (e.getKeyChar() == '-') {
+					simulationCtrl.setSpeed(simulationCtrl.getSpeed() * 1.2f);
 				} else if (e.getKeyChar() == '*') {
 					simulationCtrl.setSpeed(1.0f);
 				} else if (e.getKeyChar() == ' ') {

@@ -29,9 +29,9 @@ public abstract class PlanningAgent extends Agent {
 	Logger LOGGER = Logger.getLogger(PlanningAgent.class);
 	
 	EvaluatedTrajectory trajectory;
-
+	
+	protected final int timeStep;
 	protected final int maxTime;
-	protected final int waitMoveDuration;
 	protected EvaluatedTrajectory currentTrajectory;
 	protected Point currentPos;
 	
@@ -40,10 +40,10 @@ public abstract class PlanningAgent extends Agent {
 	
 	public PlanningAgent(String name, Point start, List<RelocationTask> tasks,
 			Environment environment, DirectedGraph<Point, Line> planningGraph,
-			int agentBodyRadius, float maxSpeed, int maxTime, int waitMoveDuration) {
+			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
 		super(name, start, tasks, environment, planningGraph, agentBodyRadius, maxSpeed);
 		this.maxTime = maxTime;
-		this.waitMoveDuration = waitMoveDuration;
+		this.timeStep = timeStep;
 		this.currentPos = start;
 	}
 
@@ -54,7 +54,7 @@ public abstract class PlanningAgent extends Agent {
 			Collection<Region> dynamicObst, 
 			int maxTime) {
 		
-		LOGGER.debug(getName() + " started planning ...");
+		LOGGER.debug(getName() + " started planning " + start + " -> " + goal);
 		long startedAt = System.currentTimeMillis();
 
 		EvaluatedTrajectory traj;
@@ -65,7 +65,7 @@ public abstract class PlanningAgent extends Agent {
 		if (heuristic == null) 
 			heuristic = new ShortestPathHeuristic(planningGraph, goal);
 			
-		traj = BestResponse.computeBestResponse(start, goal, maxSpeed, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, waitMoveDuration);
+		traj = BestResponse.computeBestResponse(start, goal, maxSpeed, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, timeStep);
 		
 		if (traj == null) {
 			LOGGER.warn(" !!!!! No trajectory found !!!! ");
@@ -92,7 +92,7 @@ public abstract class PlanningAgent extends Agent {
 		for (tt.euclidtime3i.Region region : dObst) {
 			assert region instanceof MovingCircle;
 			MovingCircle mc = (MovingCircle) region;
-			dObstInflated.add(new MovingCircle(mc.getTrajectory(), mc.getRadius() + radius));
+			dObstInflated.add(new MovingCircle(mc.getTrajectory(), mc.getRadius() + radius, mc.getSamplingInterval() * 2));
 		}
 		return dObstInflated;
 	}
