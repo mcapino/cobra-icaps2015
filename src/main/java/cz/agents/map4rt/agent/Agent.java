@@ -134,7 +134,10 @@ public abstract class Agent {
     		currentTask = null;
     	}
     }
-
+    
+    /**
+     * @return true if the task has been handled, false if the task could not been handled at this point
+     */
     protected abstract void handleNewTask(RelocationTask task);
     
 	public String getStatus() { return getName(); }

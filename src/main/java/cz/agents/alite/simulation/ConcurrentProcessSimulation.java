@@ -1,9 +1,11 @@
 package cz.agents.alite.simulation;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventProcessor;
+import cz.agents.alite.common.event.EventProcessor;
 
 public class ConcurrentProcessSimulation extends DurativeEventProcessor {
 
@@ -12,6 +14,7 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
     private long eventCount = 0;
     private long runTime;
     private int printouts = 10000;
+    private double simulationSpeed = 0;
     
     public ConcurrentProcessSimulation() {
     }
@@ -45,6 +48,16 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
     @Override
     protected void beforeProcessingEvent(DurativeEvent event) {
         ++eventCount;
+        
+        long timeToSleep = (long) ((event.getTime() - getCurrentEventTime()) * simulationSpeed);
+        
+        if ((simulationSpeed > 0) && (timeToSleep > 0)) {
+            try {
+                Thread.sleep(timeToSleep / 1000000);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(EventProcessor.class.getName()).log(Level.ERROR, null, ex);
+            }
+        }
 
         if (eventCount % printouts == 0) {
             LOGGER.debug(String.format(
@@ -83,5 +96,14 @@ public class ConcurrentProcessSimulation extends DurativeEventProcessor {
             }
         }
         return max;
+    }
+    
+    /** 0 means maximum */
+    public void setSimulationSpeed(final double simulationSpeed) {
+        this.simulationSpeed = simulationSpeed;
+    }
+
+    public double getSimulationSpeed() {
+        return simulationSpeed;
     }
 }

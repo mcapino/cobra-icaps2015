@@ -32,7 +32,6 @@ import tt.vis.FastTrajectoriesLayer;
 import tt.vis.FastTrajectoriesLayer.ColorProvider;
 import tt.vis.FastTrajectoriesLayer.TrajectoriesProvider;
 import tt.vis.LabeledCircleLayer;
-import tt.vis.TrajectoriesLayer;
 import cz.agents.alite.common.event.ActivityLogEntry;
 import cz.agents.alite.common.event.DurativeEvent;
 import cz.agents.alite.common.event.DurativeEventHandler;
@@ -43,6 +42,8 @@ import cz.agents.alite.communication.channel.DirectCommunicationChannel;
 import cz.agents.alite.communication.channel.DirectCommunicationChannel.ReceiverTable;
 import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
 import cz.agents.alite.simulation.ConcurrentProcessSimulation;
+import cz.agents.alite.simulation.vis.SimulationControlLayer;
+import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlProvider;
 import cz.agents.alite.vis.VisManager;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
@@ -53,7 +54,8 @@ import cz.agents.map4rt.agent.PlanningAgent;
 
 public class ScenarioCreator {
 	
-	/* Units: 
+	/* 
+	 * Units:
 	 * time: 1 time unit = 1ms; 
 	 * distance: 1 distance unit = depending on the map, 2cm typically. 
 	 * speed: in du/ms (distance units / millisecond), typically 0.05 du/ms represents roughly 1m/1s 
@@ -75,7 +77,7 @@ public class ScenarioCreator {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
     	DFCFS,  /* Distributed First-come First-served */
-        ORCA}
+        ORCA }
 
 
     private static RelocationTaskCoordinationProblem problem;
@@ -243,6 +245,7 @@ public class ScenarioCreator {
         final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
         concurrentSimulation.setPrintouts(1000000);
         concurrentSimulation.setKeepActivityLog(params.activityLogFile != null);
+        concurrentSimulation.setSimulationSpeed(params.simSpeed);
 
         // Create the communication channels and communicators for each agent
         ReceiverTable receiverTable = new DirectCommunicationChannel.DefaultReceiverTable();
@@ -263,8 +266,6 @@ public class ScenarioCreator {
         for (Agent agent : agents) {
         	unfinishedAgents.add(agent.getName());
         }
-        
-        final long simulationStartedAtMs = System.currentTimeMillis();
         
         // Run simulation of concurrent computation
         for (final Agent agent : agents) {
@@ -288,19 +289,6 @@ public class ScenarioCreator {
                    @Override
                    public long handleEvent(DurativeEvent event) {
                        
-                	   // artificial delay to make the simulation run in real-time
-                	   long eventTimeMs = (long) (event.getTime()/1000000);
-                	   long shouldHappenAt = (long)(eventTimeMs/params.simSpeed) + simulationStartedAtMs;
-                	   	
-						if ((shouldHappenAt - System.currentTimeMillis()) > 0) {
-							try {
-								Thread.sleep(Math.max(
-										shouldHappenAt - System.currentTimeMillis(),
-										0));
-							} catch (InterruptedException e) {
-							}
-						} 
-                	   
                 	   long lastEventStartedAtNanos = System.nanoTime();
                        agent.tick((int) (event.getTime() / 1000000));
                        long duration = System.nanoTime() - lastEventStartedAtNanos;
@@ -341,11 +329,39 @@ public class ScenarioCreator {
                concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
            }
 
-// wait for a key press before solving ...         
-//      try {
-//			System.in.read();
-//		} catch (IOException e) {}
-        
+		// wait for a key press before solving ...         
+		//      try {
+		//			System.in.read();
+		//		} catch (IOException e) {}
+        	
+       // Simulation Control Layer 
+       VisManager.registerLayer(SimulationControlLayer.create(new SimulationControlProvider() {
+			
+			@Override
+			public void setSpeed(float f) {
+				concurrentSimulation.setSimulationSpeed(f);
+			}
+			
+			@Override
+			public void setRunning(boolean running) {
+				concurrentSimulation.setRunning(running);
+			}
+			
+			@Override
+			public boolean isRunning() {
+				return concurrentSimulation.isRunning();
+			}
+			
+			@Override
+			public double getTime() {
+				return (concurrentSimulation.getCurrentEventTime() / 1e9);
+			}
+			
+			@Override
+			public float getSpeed() {
+				return (float) concurrentSimulation.getSimulationSpeed();
+			}
+		}));
         
          // *** run simulation ***
          concurrentSimulation.run();

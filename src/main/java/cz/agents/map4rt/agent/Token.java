@@ -9,6 +9,7 @@ import tt.euclidtime3i.Region;
 import tt.euclidtime3i.region.MovingCircle;
 
 public class Token {
+	
 	static Map<String, Region> regions = new HashMap<String, Region>();
 	
 	static List<Region> getReservedRegions(String askingAgent) {
@@ -23,4 +24,5 @@ public class Token {
 	public static void register(String name, MovingCircle movingCircle) {
 		regions.put(name, movingCircle);
 	}
+	
 }
