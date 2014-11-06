@@ -7,12 +7,15 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.util.HeuristicToGoal;
+import org.jgrapht.util.heuristics.PerfectHeuristic;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
+import tt.euclid2i.SegmentedTrajectory;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclid2i.region.Circle;
+import tt.euclid2i.trajectory.BasicSegmentedTrajectory;
 import tt.euclidtime3i.Region;
 import tt.euclidtime3i.ShortestPathHeuristic;
 import tt.euclidtime3i.region.MovingCircle;
@@ -35,9 +38,6 @@ public abstract class PlanningAgent extends Agent {
 	protected EvaluatedTrajectory currentTrajectory;
 	protected Point currentPos;
 	
-	
-	private HeuristicToGoal<tt.euclidtime3i.Point> heuristic;
-	
 	public PlanningAgent(String name, Point start, List<RelocationTask> tasks,
 			Environment environment, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
@@ -48,27 +48,45 @@ public abstract class PlanningAgent extends Agent {
 	}
 
 	protected EvaluatedTrajectory getBestResponseTrajectory(
-			tt.euclidtime3i.Point start,
+			Point start,
+			int minTime, 
+			int depTime,
 			Point goal,
-			Collection<tt.euclid2i.Region> staticObst,
 			Collection<Region> dynamicObst, 
 			int maxTime) {
 		
-		LOGGER.debug(getName() + " started planning " + start + " -> " + goal);
+		LOGGER.debug(getName() + " started planning " + start + "@"  + minTime + "/" + depTime + " -> " + goal + " maxtime=" + maxTime);
 		long startedAt = System.currentTimeMillis();
 
 		EvaluatedTrajectory traj;
-		LinkedList<tt.euclid2i.Region> sObstInflated = inflateStaticObstacles(staticObst, agentBodyRadius);
 		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, agentBodyRadius);
 
 
-		if (heuristic == null) 
-			heuristic = new ShortestPathHeuristic(planningGraph, goal);
+		final HeuristicToGoal<tt.euclid2i.Point> spatialHeuristic = new PerfectHeuristic<tt.euclid2i.Point, Line>(planningGraph, goal);
+		final HeuristicToGoal<tt.euclidtime3i.Point> spaceTimeHeuristic = new HeuristicToGoal<tt.euclidtime3i.Point>() {
+			@Override
+			public double getCostToGoalEstimate(tt.euclidtime3i.Point current) {
+				return spatialHeuristic.getCostToGoalEstimate(current.getPosition()) / (double)maxSpeed;
+			}
+		};
+		
+//		System.out.println("dobst:");
+//		for (Region dobst : dObstInflated) {
+//			BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
+//			System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
+//		}
 			
-		traj = BestResponse.computeBestResponse(start, goal, maxSpeed, getPlanningGraph(), heuristic, sObstInflated, dObstInflated, maxTime, timeStep);
+		traj = BestResponse.computeBestResponse(start, minTime, depTime, goal, maxSpeed, getPlanningGraph(), spaceTimeHeuristic, dObstInflated, maxTime, timeStep, T_PLANNING);
 		
 		if (traj == null) {
-			LOGGER.warn(" !!!!! No trajectory found !!!! ");
+			LOGGER.error(" >>>>>>>>>>>>>>> !!!!! No trajectory found within the runtime limit of " + T_PLANNING + " ms !!!! <<<<<<<<<<<<<<<<<<<<<");
+			System.out.println("dobst:");
+			for (Region dobst : dObstInflated) {
+				BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
+				System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
+			}
+			
+			//traj = BestResponse.computeBestResponseFallback(start, goal, maxSpeed, getPlanningGraph(), heuristic, dObstInflated, maxTime, timeStep);
 		}
 		
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");

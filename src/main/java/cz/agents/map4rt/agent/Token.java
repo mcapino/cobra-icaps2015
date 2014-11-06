@@ -10,6 +10,7 @@ import tt.euclidtime3i.region.MovingCircle;
 
 public class Token {
 	
+	static boolean locked;
 	static Map<String, Region> regions = new HashMap<String, Region>();
 	
 	static List<Region> getReservedRegions(String askingAgent) {
@@ -23,6 +24,19 @@ public class Token {
 
 	public static void register(String name, MovingCircle movingCircle) {
 		regions.put(name, movingCircle);
+	}
+	
+	synchronized static boolean tryLock() {
+		if (!locked) {
+			locked = true;
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	synchronized static void unlock() {
+			locked = false;
 	}
 	
 }

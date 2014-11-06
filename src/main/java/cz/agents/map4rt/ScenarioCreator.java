@@ -17,6 +17,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
 
+import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Trajectory;
@@ -45,8 +46,10 @@ import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.simulation.vis.SimulationControlLayer;
 import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlProvider;
 import cz.agents.alite.vis.VisManager;
+import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
+import cz.agents.map4rt.agent.CurrentTasks;
 import cz.agents.map4rt.agent.DFCFSAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
 import cz.agents.map4rt.agent.PlanningAgent;
@@ -234,7 +237,6 @@ public class ScenarioCreator {
                     problem.getBodyRadius(i)));
         }
         
-        initAgentVisualization(agents, params.timeStep);
         
         List<String> agentNames =  new ArrayList<String>(agents.size());
         for (Agent agent : agents) {
@@ -364,6 +366,7 @@ public class ScenarioCreator {
 		}));
         
          // *** run simulation ***
+         initAgentVisualization(agents, params.timeStep);
          concurrentSimulation.run();
 
     }
@@ -376,9 +379,8 @@ public class ScenarioCreator {
              @Override
              public Collection<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> getLabeledCircles() {
                  LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> list = new LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>>();
-
                  for (int i = 0; i < agents.size(); i++) {
-                     list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(agents.get(i).getCurrentPos(), agents.get(i).getAgentBodyRadius(), "" + i  , AgentColors.getColorForAgent(i)));
+               		 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(agents.get(i).getCurrentPos(), agents.get(i).getAgentBodyRadius(), "" + i  , AgentColors.getColorForAgent(i), AgentColors.getColorForAgent(i), Color.WHITE));
                  }
 
                  return list;
@@ -386,23 +388,41 @@ public class ScenarioCreator {
 
          }, new tt.euclid2i.vis.ProjectionTo2d()));
         
-        VisManager.registerLayer(FastTrajectoriesLayer.create(new TrajectoriesProvider() {
-			
-			@Override
-			public Trajectory[] getTrajectories() {
-				Trajectory[] trajsArr = new Trajectory[agents.size()];
-				for (int i = 0; i < trajsArr.length; i++) {
-					trajsArr[i] = agents.get(i).getCurrentTrajectory();
-				}
-				return trajsArr;
-			}
-		},new ColorProvider() {
-			
-			@Override
-			public Color getColor(int i) {
-				return AgentColors.getColorForAgent(i);
-			}
-		}, 3, timeStep));
+        VisManager.registerLayer(
+    		KeyToggleLayer.create("t", true, 
+		        FastTrajectoriesLayer.create(new TrajectoriesProvider() {
+					
+					@Override
+					public Trajectory[] getTrajectories() {
+						Trajectory[] trajsArr = new Trajectory[agents.size()];
+						for (int i = 0; i < trajsArr.length; i++) {
+							trajsArr[i] = agents.get(i).getCurrentTrajectory();
+						}
+						return trajsArr;
+					}
+				},new ColorProvider() {
+					
+					@Override
+					public Color getColor(int i) {
+						return AgentColors.getColorForAgent(i);
+					}
+				}, 3, timeStep)));
+        
+        // starts
+        VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
+
+             @Override
+             public Collection<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> getLabeledCircles() {
+            	 
+                 LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> list = new LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>>();
+                 for (Map.Entry<String, Point> entry : CurrentTasks.getTasks().entrySet()) {
+               		 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(entry.getValue(), 27, entry.getKey() , Color.GREEN));
+                 }
+
+                 return list;
+             }
+
+         }, new tt.euclid2i.vis.ProjectionTo2d()));
             	
  	}
 
