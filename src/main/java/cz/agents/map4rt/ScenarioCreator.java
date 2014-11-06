@@ -72,7 +72,7 @@ public class ScenarioCreator {
 
     ///////////////////////////////////////////////////////////////////////
     
-    static long startedAt;
+    static long simulationStartedAt;
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 	final static int RADIUS_GRACE = 1;
 		
@@ -86,10 +86,10 @@ public class ScenarioCreator {
     private static RelocationTaskCoordinationProblem problem;
 
     private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
-    private static final float MAX_SPEED = 0.05f;
+    private static final float MAX_SPEED = 0.2f;
     
     public static void createFromArgs(String[] args) {
-    	startedAt = System.currentTimeMillis();
+    	simulationStartedAt = System.currentTimeMillis();
     	Parameters params = new Parameters();
     	 	
     	String xml = Args.getArgumentValue(args, "-problemfile", true);
@@ -224,6 +224,8 @@ public class ScenarioCreator {
     private static void simulate(final RelocationTaskCoordinationProblem problem, final AgentFactory agentFactory, final long tickPeriodNs, 
     		final long simulateTicksUntilNs, final Parameters params) {
     	
+    	simulationStartedAt = System.currentTimeMillis();
+    	
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
         for (int i=0; i<problem.getStarts().length; i++) {
@@ -237,138 +239,48 @@ public class ScenarioCreator {
                     problem.getBodyRadius(i)));
         }
         
+        // Simulation Control Layer 
+        VisManager.registerLayer(SimulationControlLayer.create(new SimulationControlProvider() {
+ 			
+ 			@Override
+ 			public void setSpeed(float f) {}
+ 			
+ 			@Override
+ 			public void setRunning(boolean running) {}
+ 			
+ 			@Override
+ 			public boolean isRunning() { return true; }
+ 			
+ 			@Override
+ 			public double getTime() {
+ 				return ((System.currentTimeMillis()-simulationStartedAt) / 1000.0);
+ 			}
+ 			
+ 			@Override
+ 			public float getSpeed() { return 1; }
+ 		}));
         
-        List<String> agentNames =  new ArrayList<String>(agents.size());
-        for (Agent agent : agents) {
-            agentNames.add(agent.getName());
-        }
-
-        // Create concurrent process simulation
-        final ConcurrentProcessSimulation concurrentSimulation = new ConcurrentProcessSimulation();
-        concurrentSimulation.setPrintouts(1000000);
-        concurrentSimulation.setKeepActivityLog(params.activityLogFile != null);
-        concurrentSimulation.setSimulationSpeed(params.simSpeed);
-
-        // Create the communication channels and communicators for each agent
-        ReceiverTable receiverTable = new DirectCommunicationChannel.DefaultReceiverTable();
-        Map<String, List<Long>> inboxCounters = new HashMap<String, List<Long>>();
-        for (Agent agent : agents) {
-            InboxBasedCommunicator communicator = new InboxBasedCommunicator(agent.getName());
-
-            try {
-                communicator.setChannel(new ConcurrentProcessCommunicationChannel(communicator, concurrentSimulation, receiverTable, inboxCounters));
-            } catch (CommunicationChannelException e) {
-                e.printStackTrace();
-            }
-            agent.setCommunicator(communicator, agentNames);
-        }
-
-        // The list of agents that havent reached their goals yet
-        final Collection<String> unfinishedAgents = new LinkedList<String>();
-        for (Agent agent : agents) {
-        	unfinishedAgents.add(agent.getName());
-        }
+        initAgentVisualization(agents, params.timeStep);
         
-        // Run simulation of concurrent computation
         for (final Agent agent : agents) {
-
-               // start agents
-               concurrentSimulation.addEvent(0, agent.getName(), new DurativeEventHandler() {
-                   @Override
-                   public long handleEvent(DurativeEvent event) {
-                       agent.start();
-                       return COUNT_SYSTEM_NANOS;
-                   }
-
-                   @Override
-                   public DurativeEventProcessor getEventProcessor() {
-                       return concurrentSimulation;
-                   }
-               });
-
-               // start periodic ticks
-               DurativeEventHandler tickhandler =  new DurativeEventHandler() {
-                   @Override
-                   public long handleEvent(DurativeEvent event) {
-                       
-                	   long lastEventStartedAtNanos = System.nanoTime();
-                       agent.tick((int) (event.getTime() / 1000000));
-                       long duration = System.nanoTime() - lastEventStartedAtNanos;
-
-                       // Check whether all agents reached their goals
-                       if (agent.hasCompletedAllTasks()) {
-                    	   unfinishedAgents.remove(agent.getName());
-                       }
-
-                       if (unfinishedAgents.isEmpty()) {
-                    	   concurrentSimulation.clearQueue();
-                    	   // We are done!
-                    	   printSummary(params.summaryPrefix, Status.SUCCESS, concurrentSimulation.getWallclockRuntime()/1000000);
-                    	   
-                           if (params.activityLogFile != null) {
-                        	   saveActivityLog(concurrentSimulation.getActivityLog(), params.activityLogFile);
-                           }
-                    	   
-                    	   if (!params.showVis) {
-                    		   System.exit(0);
-                    	   }
-                       } else {
-	                       if (concurrentSimulation.getWallclockRuntime() < simulateTicksUntilNs) {
-	                    	   int noOfTicksToSkip = (int) (duration / tickPeriodNs); // if the tick handling takes more than tickPeriod, we need to skip some ticks
-	                    	   
-	                           concurrentSimulation.addEvent(event.getTime() + (noOfTicksToSkip+1)*tickPeriodNs, agent.getName(), this);
-	                       }
-                       }
-                       return duration;
-                   }
-
-                   @Override
-                   public DurativeEventProcessor getEventProcessor() {
-                       return concurrentSimulation;
-                   }
-               };
-               
-               concurrentSimulation.addEvent(1, agent.getName(), tickhandler);
-           }
-
-		// wait for a key press before solving ...         
-		//      try {
-		//			System.in.read();
-		//		} catch (IOException e) {}
         	
-       // Simulation Control Layer 
-       VisManager.registerLayer(SimulationControlLayer.create(new SimulationControlProvider() {
+			Thread thread = new Thread(agent.getName()) {
+				
+				@Override
+				public void run() {
+					agent.start();
+					while (!agent.hasCompletedAllTasks()) {
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {}
+						
+						agent.tick((int) (System.currentTimeMillis()-simulationStartedAt));
+					}
+				}
+			};
 			
-			@Override
-			public void setSpeed(float f) {
-				concurrentSimulation.setSimulationSpeed(f);
-			}
-			
-			@Override
-			public void setRunning(boolean running) {
-				concurrentSimulation.setRunning(running);
-			}
-			
-			@Override
-			public boolean isRunning() {
-				return concurrentSimulation.isRunning();
-			}
-			
-			@Override
-			public double getTime() {
-				return (concurrentSimulation.getCurrentEventTime() / 1e9);
-			}
-			
-			@Override
-			public float getSpeed() {
-				return (float) concurrentSimulation.getSimulationSpeed();
-			}
-		}));
-        
-         // *** run simulation ***
-         initAgentVisualization(agents, params.timeStep);
-         concurrentSimulation.run();
-
+			thread.start();
+		}
     }
     
     private static void initAgentVisualization(final List<Agent> agents, int timeStep) {
