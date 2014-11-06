@@ -276,14 +276,31 @@ public class ScenarioCreator {
 						
 						agent.tick((int) (System.currentTimeMillis()-simulationStartedAt));
 					}
+					LOGGER.info("Agent " + agent.getName() + " completed all tasks");
 				}
 			};
 			
 			thread.start();
 		}
+        
+        while (!allDone(agents)) {
+        	try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {}
+        }
+        printSummary(params.summaryPrefix, Status.SUCCESS, System.currentTimeMillis()-simulationStartedAt);
     }
     
-    private static void initAgentVisualization(final List<Agent> agents, int timeStep) {
+    private static boolean allDone(List<Agent> agents) {
+    	for (final Agent agent : agents) {
+    		if (!agent.hasCompletedAllTasks()) 
+    			return false;
+    	}
+    	return true;
+	}
+
+
+	private static void initAgentVisualization(final List<Agent> agents, int timeStep) {
         
         // starts
         VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {

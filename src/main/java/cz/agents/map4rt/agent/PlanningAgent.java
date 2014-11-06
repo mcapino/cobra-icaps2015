@@ -86,6 +86,7 @@ public abstract class PlanningAgent extends Agent {
 				System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
 			}
 			
+			throw new RuntimeException("Failed to find a trajectory");
 			//traj = BestResponse.computeBestResponseFallback(start, goal, maxSpeed, getPlanningGraph(), heuristic, dObstInflated, maxTime, timeStep);
 		}
 		

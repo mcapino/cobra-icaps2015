@@ -56,7 +56,7 @@ public abstract class Agent {
         this.inflatedObstacles.addAll(tt.euclid2i.util.Util.inflateRegions(Collections.singleton(environment.getBoundary()), agentBodyRadius));
         this.maxSpeed = maxSpeed;
         this.planningGraph = planningGraph;
-        CurrentTasks.registerTask(getName(), start);
+        assert CurrentTasks.tryToRegisterTask(name, start);
     }
 
     public synchronized Point getStart() {
@@ -127,9 +127,8 @@ public abstract class Agent {
     	
     	if (currentTask == null) {
     		if (!tasks.isEmpty() && tasks.get(0).getIssueTime() < timeMs) {
-    			if (CurrentTasks.isFreeFromOtherTasks(getName(), tasks.get(0).getDestination())) {
+    			if (CurrentTasks.tryToRegisterTask(getName(), tasks.get(0).getDestination())) {
 	    			currentTask = tasks.get(0);
-	    			CurrentTasks.registerTask(getName(), currentTask.getDestination());
 	    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + (tasks.size()-1) + " tasks in the stack to be carried out.");
 	    			tasks.remove(0);
 	    			handleNewTask(currentTask);
