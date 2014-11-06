@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -27,6 +28,7 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import util.DesiredControl;
 import util.GraphBasedOptimalPolicyController;
 import cz.agents.alite.communication.Message;
+import cz.agents.map4rt.agent.PositionBlackboard.Record;
 import cz.agents.map4rt.msg.InformNewPosition;
 
 public class ORCAAgent extends Agent {
@@ -35,8 +37,8 @@ public class ORCAAgent extends Agent {
 
 	private static final int MAX_NEIGHBORS = 50;
 	private static final float NEIGHBOR_DIST = 200;
-	private static final float TIME_HORIZON_AGENT = 100;
-	private static final float TIME_HORIZON_OBSTACLE = 10;
+	private static final float TIME_HORIZON_AGENT = 5000;
+	private static final float TIME_HORIZON_OBSTACLE = 3000;
 
 	private static final double NEAR_GOAL_EPS = 1.0f;
 
@@ -175,6 +177,9 @@ public class ORCAAgent extends Agent {
     	
     	LOGGER.trace(getName() + " -- doStep");
     	
+    	
+    	updateNeighborsFromBlackboard();
+    	
 		setPreferredVelocity(timeStep);
 
 		RVOAgent[] rvoAgents = neighbors.values().toArray(new RVOAgent[neighbors.values().size()]);
@@ -186,8 +191,7 @@ public class ORCAAgent extends Agent {
         Vector2 newVelocity = rvoAgent.computeNewVelocity(timeStep);
         rvoAgent.update(timeStep, newVelocity);
         
-        // broadcast to the others
-        broadcast(new InformNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), (double) rvoAgent.radius_));
+        PositionBlackboard.recordNewPosition(getName(), rvoAgent.id_, rvoAgent.position_.toPoint2d(), rvoAgent.velocity_.toVector2d(), rvoAgent.radius_);
     }
 
 	private void setPreferredVelocity(float timeStep) {
@@ -217,21 +221,16 @@ public class ORCAAgent extends Agent {
 		}
 	}
 
-	@Override
-    protected void notify(Message message) {
-        super.notify(message);
-
-        if (message.getContent() instanceof InformNewPosition) {
-            InformNewPosition newPosMessage = (InformNewPosition) (message.getContent());
-            RVOAgent neighborRVOAgent = new RVOAgent();
-            neighborRVOAgent.id_ = newPosMessage.getAgentId();
-            neighborRVOAgent.position_ = new Vector2(newPosMessage.getPosition());
-            neighborRVOAgent.velocity_ = new Vector2(newPosMessage.getVelocity());
-            neighborRVOAgent.radius_ = (float) newPosMessage.getRadius();
-
-            if (!newPosMessage.getAgentName().equals(getName())) {
-            	neighbors.put(newPosMessage.getAgentName(), neighborRVOAgent);
-            }
+    protected void updateNeighborsFromBlackboard() {
+        for (Map.Entry<String, Record> entry : PositionBlackboard.getRecords().entrySet()) {
+        	if (!entry.getKey().equals(getName())) {
+                RVOAgent neighborRVOAgent = new RVOAgent();
+                neighborRVOAgent.id_ = entry.getValue().agentId;
+                neighborRVOAgent.position_ = new Vector2(entry.getValue().position);
+                neighborRVOAgent.velocity_ = new Vector2(entry.getValue().velocity);
+                neighborRVOAgent.radius_ = (float) entry.getValue().radius;
+                neighbors.put(entry.getKey(), neighborRVOAgent);
+        	}
         }
     }
 	

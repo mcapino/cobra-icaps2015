@@ -86,7 +86,7 @@ public class ScenarioCreator {
     private static RelocationTaskCoordinationProblem problem;
 
     private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
-    private static final float MAX_SPEED = 0.2f;
+    private static final float MAX_SPEED = 0.05f;
     
     public static void createFromArgs(String[] args) {
     	simulationStartedAt = System.currentTimeMillis();
