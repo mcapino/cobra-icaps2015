@@ -24,8 +24,13 @@ public class BaselineAgent extends PlanningAgent {
 	@Override
 	protected void handleNewTask(RelocationTask task) {
 		
+		// nearest timestep in past
+		int minTime = ((int) Math.floor( (double) CommonTime.currentTimeMs() / (double) timeStep) ) * timeStep;
+		// start at a multiple of timestep
+		int depTime = ((int) Math.ceil( (double) (CommonTime.currentTimeMs() + T_PLANNING) / (double) timeStep) ) * timeStep;
+		
 		EvaluatedTrajectory traj = getBestResponseTrajectory(
-				getCurrentPos(), CommonTime.currentTimeMs(), (CommonTime.currentTimeMs() + T_PLANNING), task.getDestination(),
+				getCurrentPos(), minTime, depTime, task.getDestination(),
 				new LinkedList<Region>(), maxTime);
 		
 		currentTrajectory = traj;

@@ -360,6 +360,7 @@ public class ScenarioCreator {
 
 	private static void printSummary(String prefix, Status status, long completedAt) {
 	    	System.out.println(prefix + status.toString() + ";" + (status == Status.SUCCESS ? completedAt : "inf") + ";" );
+	    	System.exit(0);
     }
 
 }
