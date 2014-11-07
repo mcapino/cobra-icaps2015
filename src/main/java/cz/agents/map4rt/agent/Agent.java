@@ -14,7 +14,6 @@ import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
 import tt.jointeuclid2ni.probleminstance.RelocationTask;
-import tt.jointeuclid2ni.probleminstance.RelocationTaskImpl;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.InboxBasedCommunicator;
 import cz.agents.alite.communication.Message;
@@ -25,7 +24,7 @@ import cz.agents.alite.communication.content.Content;
 public abstract class Agent {
 
     static final Logger LOGGER = Logger.getLogger(Agent.class);
-
+    
     String name;
     Point start;
     List<RelocationTask> tasks;
@@ -42,8 +41,6 @@ public abstract class Agent {
     DirectedGraph<Point, Line> planningGraph;
     
     RelocationTask currentTask = null;
-    int time = 0;
-
 
 	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed) {
         super();
@@ -123,19 +120,19 @@ public abstract class Agent {
     public void tick(int timeMs) {
     	//LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
     	
-    	time = timeMs;
-    	
     	if (currentTask == null) {
-    		if (!tasks.isEmpty() && tasks.get(0).getIssueTime() < timeMs) {
-    			if (CurrentTasks.tryToRegisterTask(getName(), tasks.get(0).getDestination())) {
-	    			currentTask = tasks.get(0);
-	    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + (tasks.size()-1) + " tasks in the stack to be carried out.");
-	    			tasks.remove(0);
-	    			handleNewTask(currentTask);
-    			} else {
-    				LOGGER.trace(getName() + " the destination " + tasks.get(0).getDestination()  + " is occupied. Waiting for the destination to become free." );
-    			}
-    		} 
+    		synchronized (Agent.class) {
+	    		if (!tasks.isEmpty() && tasks.get(0).getIssueTime() < timeMs) {
+	    			if (CurrentTasks.tryToRegisterTask(getName(), tasks.get(0).getDestination())) {
+		    			currentTask = tasks.get(0);
+		    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + (tasks.size()-1) + " tasks in the stack to be carried out.");
+		    			tasks.remove(0);
+		    			handleNewTask(currentTask);
+	    			} else {
+	    				LOGGER.trace(getName() + " the destination " + tasks.get(0).getDestination()  + " is occupied. Waiting for the destination to become free." );
+	    			}
+	    		} 
+    		}
     	} else if (currentTask.getDestination().equals(getCurrentPos())) {
     		currentTask = null;
     	}

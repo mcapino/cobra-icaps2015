@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.jgrapht.DirectedGraph;
 
+import cz.agents.map4rt.CommonTime;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
@@ -13,8 +14,6 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import tt.jointeuclid2ni.probleminstance.RelocationTaskImpl;
 
 public class DFCFSAgent extends PlanningAgent {
-
-	private RelocationTask taskToBePlannedFor;
 
 	public DFCFSAgent(String name, Point start, List<RelocationTask> tasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph, 
@@ -26,37 +25,22 @@ public class DFCFSAgent extends PlanningAgent {
 
 	@Override
 	protected void handleNewTask(RelocationTask task) {
-		taskToBePlannedFor = task; // in the subsequent ticks, try to acquire the token and plan the trajectory
+		// nearest timestep in past
+		int minTime = ((int) Math.floor( (double) CommonTime.currentTimeMs() / (double) timeStep) ) * timeStep;
+		// start at a multiple of timestep
+		int depTime = ((int) Math.ceil( (double) (CommonTime.currentTimeMs() + T_PLANNING) / (double) timeStep) ) * timeStep;
+		
+		EvaluatedTrajectory traj = getBestResponseTrajectory(
+				getCurrentPos(), minTime, depTime, task.getDestination(),
+				Token.getReservedRegions(getName()), maxTime);
+		
+		assert timeStep % 10 == 0;
+		int samplingInterval = timeStep/10;
+		Token.register(getName(), new MovingCircle(traj, agentBodyRadius, samplingInterval));
+		currentTrajectory = traj;
 	}
 
 	@Override
 	public void start() {}
-
-	@Override
-	public void tick(int timeMs) {
-		super.tick(timeMs);
-		
-		if (taskToBePlannedFor != null) {
-			if (Token.tryLock()) {
-				
-				// nearest timestep in past
-				int minTime = ((int) Math.floor( (double) time / (double) timeStep) ) * timeStep;
-				// start at a multiple of timestep
-				int depTime = ((int) Math.ceil( (double) (time + T_PLANNING) / (double) timeStep) ) * timeStep;
-				
-				EvaluatedTrajectory traj = getBestResponseTrajectory(
-						getCurrentPos(), minTime, depTime, taskToBePlannedFor.getDestination(),
-						Token.getReservedRegions(getName()), maxTime);
-				
-				Token.register(getName(), new MovingCircle(traj, agentBodyRadius, (int) (agentBodyRadius/maxSpeed)/4 ));
-				currentTrajectory = traj;
-				taskToBePlannedFor = null;
-				Token.unlock();
-			}
-		}
-	}
 	
-	
-	
-
 }

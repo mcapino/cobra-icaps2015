@@ -9,6 +9,7 @@ import org.jgrapht.DirectedGraph;
 import org.jgrapht.util.HeuristicToGoal;
 import org.jgrapht.util.heuristics.PerfectHeuristic;
 
+import cz.agents.map4rt.CommonTime;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
@@ -75,6 +76,16 @@ public abstract class PlanningAgent extends Agent {
 //			BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
 //			System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
 //		}
+		
+		// check that the start point is free
+		
+//		for (Region dobst : dObstInflated) {
+//			if (dobst.isInside(new tt.euclidtime3i.Point(start, depTime))) {
+//				BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
+//				System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
+//				throw new RuntimeException("Cannot plan -- the start is inside dobst: " + ((SegmentedTrajectory)((MovingCircle)dobst).getTrajectory()).getSegments());
+//			}
+//		}
 			
 		traj = BestResponse.computeBestResponse(start, minTime, depTime, goal, maxSpeed, getPlanningGraph(), spaceTimeHeuristic, dObstInflated, maxTime, timeStep, T_PLANNING);
 		
@@ -87,7 +98,6 @@ public abstract class PlanningAgent extends Agent {
 			}
 			
 			throw new RuntimeException("Failed to find a trajectory");
-			//traj = BestResponse.computeBestResponseFallback(start, goal, maxSpeed, getPlanningGraph(), heuristic, dObstInflated, maxTime, timeStep);
 		}
 		
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
@@ -111,7 +121,7 @@ public abstract class PlanningAgent extends Agent {
 		for (tt.euclidtime3i.Region region : dObst) {
 			assert region instanceof MovingCircle;
 			MovingCircle mc = (MovingCircle) region;
-			dObstInflated.add(new MovingCircle(mc.getTrajectory(), mc.getRadius() + radius, mc.getSamplingInterval() * 2));
+			dObstInflated.add(new MovingCircle(mc.getTrajectory(), mc.getRadius() + radius, mc.getSamplingInterval()));
 		}
 		return dObstInflated;
 	}
@@ -123,8 +133,8 @@ public abstract class PlanningAgent extends Agent {
 
 	@Override
 	public Point getCurrentPos() {
-		if (currentTrajectory != null && currentTrajectory.get(time) != null) {
-			currentPos = currentTrajectory.get(time);
+		if (currentTrajectory != null && currentTrajectory.get(CommonTime.currentTimeMs()) != null) {
+			currentPos = currentTrajectory.get(CommonTime.currentTimeMs());
 		} 
 		return currentPos;
 	}

@@ -84,9 +84,6 @@ public class ScenarioCreator {
 
 
     private static RelocationTaskCoordinationProblem problem;
-
-    private static final long TICK_INTERVAL_NS = 100 /*ms*/ * 1000000;
-    private static final float MAX_SPEED = 0.05f;
     
     public static void createFromArgs(String[] args) {
     	simulationStartedAt = System.currentTimeMillis();
@@ -185,44 +182,46 @@ public class ScenarioCreator {
         simulate(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
-                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
+				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
                 return agent;
             }
-        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
+        }, params);
     }  
 	
 	private static void solveDFCFS(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
-                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new DFCFSAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep);
+				PlanningAgent agent = new DFCFSAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
                 return agent;
             }
-        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
+        }, params);
     } 
 	
 	private static void solveORCA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
-                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius) {
+                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				Agent agent = new ORCAAgent(name, start, tasks, env, planningGraph, agentBodyRadius, MAX_SPEED, params.maxTime, params.timeStep, params.showVis);
+				Agent agent = new ORCAAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.showVis);
 				return agent;
             }
-        }, TICK_INTERVAL_NS, (long) (params.maxTime*1e6), params);
+        }, params);
     }    
 
     interface AgentFactory {
-        Agent createAgent(String name, int priority, Point start, List<RelocationTask> tasks, Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius);
+		Agent createAgent(String name, int priority, Point start,
+				List<RelocationTask> tasks, Environment env,
+				DirectedGraph<Point, Line> planningGraph, int agentBodyRadius,
+				float speed);
     }
 
-    private static void simulate(final RelocationTaskCoordinationProblem problem, final AgentFactory agentFactory, final long tickPeriodNs, 
-    		final long simulateTicksUntilNs, final Parameters params) {
+    private static void simulate(final RelocationTaskCoordinationProblem problem, final AgentFactory agentFactory, final Parameters params) {
     	
     	simulationStartedAt = System.currentTimeMillis();
     	
@@ -236,7 +235,8 @@ public class ScenarioCreator {
                     problem.getRelocationTasks(i),
                     problem.getEnvironment(),
                     problem.getPlanningGraph(),
-                    problem.getBodyRadius(i)));
+                    problem.getBodyRadius(i),
+                    problem.getMaxSpeed(i)));
         }
         
         // Simulation Control Layer 
@@ -253,7 +253,7 @@ public class ScenarioCreator {
  			
  			@Override
  			public double getTime() {
- 				return ((System.currentTimeMillis()-simulationStartedAt) / 1000.0);
+ 				return (CommonTime.currentTimeMs() / 1000.0);
  			}
  			
  			@Override
@@ -274,7 +274,7 @@ public class ScenarioCreator {
 							Thread.sleep(100);
 						} catch (InterruptedException e) {}
 						
-						agent.tick((int) (System.currentTimeMillis()-simulationStartedAt));
+						agent.tick(CommonTime.currentTimeMs());
 					}
 					LOGGER.info("Agent " + agent.getName() + " completed all tasks");
 				}
@@ -301,22 +301,7 @@ public class ScenarioCreator {
 
 
 	private static void initAgentVisualization(final List<Agent> agents, int timeStep) {
-        
-        // starts
-        VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
-
-             @Override
-             public Collection<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> getLabeledCircles() {
-                 LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> list = new LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>>();
-                 for (int i = 0; i < agents.size(); i++) {
-               		 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(agents.get(i).getCurrentPos(), agents.get(i).getAgentBodyRadius(), "" + i  , AgentColors.getColorForAgent(i), AgentColors.getColorForAgent(i), Color.WHITE));
-                 }
-
-                 return list;
-             }
-
-         }, new tt.euclid2i.vis.ProjectionTo2d()));
-        
+        // trajectories
         VisManager.registerLayer(
     		KeyToggleLayer.create("t", true, 
 		        FastTrajectoriesLayer.create(new TrajectoriesProvider() {
@@ -336,8 +321,24 @@ public class ScenarioCreator {
 						return AgentColors.getColorForAgent(i);
 					}
 				}, 3, timeStep)));
+		
+        // positions
+        VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
+
+             @Override
+             public Collection<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> getLabeledCircles() {
+                 LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> list = new LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>>();
+                 for (int i = 0; i < agents.size(); i++) {
+               		 Point pos = agents.get(i).getCurrentPos();
+                	 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(pos, agents.get(i).getAgentBodyRadius(), "" + i  , AgentColors.getColorForAgent(i), AgentColors.getColorForAgent(i), Color.WHITE));
+                 }
+
+                 return list;
+             }
+
+         }, new tt.euclid2i.vis.ProjectionTo2d()));
         
-        // starts
+        // tasks
         VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
 
              @Override
@@ -345,7 +346,7 @@ public class ScenarioCreator {
             	 
                  LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> list = new LinkedList<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>>();
                  for (Map.Entry<String, Point> entry : CurrentTasks.getTasks().entrySet()) {
-               		 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(entry.getValue(), 27, entry.getKey() , Color.GREEN));
+               		 list.add(new LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>(entry.getValue(), 27, "\n"+entry.getKey() , Color.GREEN));
                  }
 
                  return list;
@@ -355,29 +356,10 @@ public class ScenarioCreator {
             	
  	}
 
-    private static void saveActivityLog(Collection<ActivityLogEntry> activityLog, String activityLogFile) {
-    	try {
-			File file = new File(activityLogFile);
-			BufferedWriter writer = new BufferedWriter(new FileWriter(file));		
-			writer.write("process;type;start;duration;expstates\n");
-	
-	    	for (ActivityLogEntry entry : activityLog) {
-	    		writer.write(entry.processName + ";" + entry.type + ";" + 
-	    				String.format("%.4f", entry.startTime/1000000000f) + ";" +  
-	    				String.format("%.4f", entry.duration/1000000000f) + ";" +
-	    				entry.expandedStates + "\n");
-	    	}
-	    	writer.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-		}
-	}
-    
     enum Status {SUCCESS, FAIL, TIMEOUT}
 
 	private static void printSummary(String prefix, Status status, long completedAt) {
-	    	System.out.println(prefix + (status == Status.SUCCESS ? completedAt : "inf") + ";" );
+	    	System.out.println(prefix + status.toString() + ";" + (status == Status.SUCCESS ? completedAt : "inf") + ";" );
     }
 
 }

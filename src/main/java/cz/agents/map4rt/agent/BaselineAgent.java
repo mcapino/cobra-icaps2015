@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.jgrapht.DirectedGraph;
 
+import cz.agents.map4rt.CommonTime;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
@@ -24,7 +25,7 @@ public class BaselineAgent extends PlanningAgent {
 	protected void handleNewTask(RelocationTask task) {
 		
 		EvaluatedTrajectory traj = getBestResponseTrajectory(
-				getCurrentPos(), (int)time, (int) (time + T_PLANNING), task.getDestination(),
+				getCurrentPos(), CommonTime.currentTimeMs(), (CommonTime.currentTimeMs() + T_PLANNING), task.getDestination(),
 				new LinkedList<Region>(), maxTime);
 		
 		currentTrajectory = traj;
