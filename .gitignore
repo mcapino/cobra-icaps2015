@@ -1,3 +1,6 @@
 /target/
 /.settings/
+/log/
+/experiment/log/
+/experiment/solver.jar
 *~
