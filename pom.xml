@@ -37,7 +37,7 @@
                             </descriptorRefs>
                             <archive>
                                 <manifest>
-                                    <mainClass>cz.agents.admap.creator.ScenarioCreator</mainClass>
+                                    <mainClass>cz.agents.map4rt.ScenarioCreator</mainClass>
                                 </manifest>
                             </archive>
                         </configuration>
