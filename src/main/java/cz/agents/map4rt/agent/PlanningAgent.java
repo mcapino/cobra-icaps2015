@@ -64,7 +64,6 @@ public abstract class PlanningAgent extends Agent {
 		EvaluatedTrajectory traj;
 		LinkedList<Region> dObstInflated = inflateDynamicObstacles(dynamicObst, agentBodyRadius);
 
-
 		final HeuristicToGoal<tt.euclid2i.Point> spatialHeuristic = new PerfectHeuristic<tt.euclid2i.Point, Line>(planningGraph, goal);
 		final HeuristicToGoal<tt.euclidtime3i.Point> spaceTimeHeuristic = new HeuristicToGoal<tt.euclidtime3i.Point>() {
 			@Override
@@ -72,35 +71,6 @@ public abstract class PlanningAgent extends Agent {
 				return spatialHeuristic.getCostToGoalEstimate(current.getPosition()) / (double)maxSpeed;
 			}
 		};
-		
-		System.out.println("dobst:");
-		for (Region dobst : dObstInflated) {
-			BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
-			System.out.println("r=" + ((MovingCircle) dobst).getRadius() + " " + mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
-		}
-		
-		// check that the start point is free
-		
-		int tmin = -1;
-		double minStartDist = Double.MAX_VALUE;
-		Region minDobst = null;
-		for (Region dobst : dObstInflated) {
-			BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
-			for (int t = depTime; t <= maxTime-timeStep-1; t += timeStep/2) {
-				double dist = mctraj.get(t).distance(start);
-				if (dist < minStartDist) {
-					minStartDist = dist;
-					tmin = t;
-					minDobst = dobst;
-				}
-			}
-		}
-		
-		if (minStartDist < 50.0) {
-			SegmentedTrajectory invadedTraj = (SegmentedTrajectory)((MovingCircle) minDobst).getTrajectory();
-			System.out.println("The start position " + start + "is invaded at time " + tmin + "with minDist=" + minStartDist  + "by the trajectory " + invadedTraj.getSegments().get(0) + " --> " + invadedTraj.getSegments().get(invadedTraj.getSegments().size()-1));
-			System.exit(0);
-		}
 			
 		traj = BestResponse.computeBestResponse(start, minTime, depTime, goal,
 				maxSpeed, getPlanningGraph(), spaceTimeHeuristic,
@@ -109,24 +79,10 @@ public abstract class PlanningAgent extends Agent {
 		
 		if (traj == null) {
 			LOGGER.error(" >>>>>>>>>>>>>>> !!!!! No trajectory found within the runtime limit of " + T_PLANNING + " ms !!!! <<<<<<<<<<<<<<<<<<<<<");
-			System.out.println("dobst:");
-			for (Region dobst : dObstInflated) {
-				BasicSegmentedTrajectory mctraj = (BasicSegmentedTrajectory)((MovingCircle) dobst).getTrajectory();
-				System.out.println(mctraj.getSegments().get(0) + " --> " + mctraj.getSegments().get(mctraj.getSegments().size()-1));
-			}
-			
 			throw new RuntimeException("Failed to find a trajectory");
 		}
 		
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
-
-		double minDist = BestResponse.minDistance(traj, dObstInflated, timeStep/2);
-		LOGGER.debug("The resulting trajectory on interval [" + traj.getMinTime() + "," + traj.getMaxTime() + "] has min-distance " + minDist  + " to other trajectories. Goal will be reached at " + goalReachedTime);
-		
-		if (minDist < 50.0) {
-			System.exit(0);
-		}
-		
 		return traj;
 	}
 	
