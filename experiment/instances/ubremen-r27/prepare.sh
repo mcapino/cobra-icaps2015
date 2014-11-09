@@ -19,9 +19,9 @@ rm $instancefolder/*
 cp prepare.sh $instancefolder/
 
 instance=0
-for nagents in "1" "15"
+for nagents in "1" "5" "15"
 do
-    for seed in {1..3}
+    for seed in {1..5}
     do
         let instance=instance+1
 	    # create a problem instance file
