@@ -48,7 +48,7 @@ import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlPr
 import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
-import cz.agents.map4rt.agent.BaselineAgent;
+import cz.agents.map4rt.agent.BaselineSTAgent;
 import cz.agents.map4rt.agent.CurrentTasks;
 import cz.agents.map4rt.agent.DFCFSAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
@@ -184,7 +184,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new BaselineAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
+				PlanningAgent agent = new BaselineSTAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
                 return agent;
             }
         }, params);

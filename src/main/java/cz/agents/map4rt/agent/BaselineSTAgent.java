@@ -13,9 +13,9 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclidtime3i.Region;
 import tt.jointeuclid2ni.probleminstance.RelocationTask;
 
-public class BaselineAgent extends PlanningAgent {
+public class BaselineSTAgent extends PlanningAgent {
 
-	public BaselineAgent(String name, Point start, List<RelocationTask> tasks,
+	public BaselineSTAgent(String name, Point start, List<RelocationTask> tasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
 		super(name, start, tasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
