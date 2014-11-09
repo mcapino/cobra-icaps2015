@@ -262,4 +262,9 @@ public class ORCAAgent extends Agent {
 	public EvaluatedTrajectory getCurrentTrajectory() {
 		return null;
 	}
+	
+	@Override
+	protected boolean currentTaskDestinationReached() {
+		return currentTask.getDestination().equals(getCurrentPos());
+	}
 }

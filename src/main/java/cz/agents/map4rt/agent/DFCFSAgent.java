@@ -34,13 +34,13 @@ public class DFCFSAgent extends PlanningAgent {
 				getCurrentPos(), minTime, depTime, task.getDestination(),
 				Token.getReservedRegions(getName()), maxTime);
 		
-		assert timeStep % 10 == 0;
-		int samplingInterval = timeStep/10;
+		assert timeStep % 2 == 0;
+		int samplingInterval = timeStep/2;
 		Token.register(getName(), new MovingCircle(traj, agentBodyRadius, samplingInterval));
 		currentTrajectory = traj;
 	}
 
 	@Override
 	public void start() {}
-	
+
 }

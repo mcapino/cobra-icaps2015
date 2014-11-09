@@ -30,6 +30,7 @@ import tt.euclidtime3i.discretization.ConstantSpeedTimeExtension;
 import tt.euclidtime3i.discretization.ControlEffortWrapper;
 import tt.euclidtime3i.discretization.FreeOnTargetWaitExtension;
 import tt.euclidtime3i.discretization.Straight;
+import tt.euclidtime3i.region.MovingCircle;
 import tt.euclidtime3i.vis.TimeParameterProjectionTo2d;
 import tt.vis.GraphLayer;
 import tt.vis.TimeParameterHolder;
@@ -194,4 +195,21 @@ public class BestResponse {
         motions = new ControlEffortWrapper(motions, 0.01);
         return motions;
 	}
+	
+	public static double minDistance(Trajectory traj, Collection<tt.euclidtime3i.Region> dObsts, int timeStep) {
+		double minDist = Double.MAX_VALUE;
+		for (int t = traj.getMinTime(); t <= traj.getMaxTime(); t += timeStep ) {
+			Point trajPos = traj.get(t);
+			for (tt.euclidtime3i.Region dobst : dObsts) {
+				assert dobst instanceof MovingCircle;
+				Point otherPos = ((MovingCircle) dobst).getTrajectory().get(t);
+				double dist = trajPos.distance(otherPos);
+				if (dist < minDist) {
+					minDist = dist;
+				}
+			}
+		}
+		return minDist;
+	}
 }
+

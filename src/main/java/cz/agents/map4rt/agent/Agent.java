@@ -133,12 +133,14 @@ public abstract class Agent {
 	    			}
 	    		} 
     		}
-    	} else if (currentTask.getDestination().equals(getCurrentPos())) {
+    	} else if (currentTaskDestinationReached()) {
     		currentTask = null;
     	}
     }
     
-    /**
+    protected abstract boolean currentTaskDestinationReached();
+
+	/**
      * @return true if the task has been handled, false if the task could not been handled at this point
      */
     protected abstract void handleNewTask(RelocationTask task);
