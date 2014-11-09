@@ -36,9 +36,9 @@ public class ORCAAgent extends Agent {
 	static final Logger LOGGER = Logger.getLogger(ORCAAgent.class);
 
 	private static final int MAX_NEIGHBORS = 50;
-	private static final float NEIGHBOR_DIST = 200;
+	private static final float NEIGHBOR_DIST = 500;
 	private static final float TIME_HORIZON_AGENT = 5000;
-	private static final float TIME_HORIZON_OBSTACLE = 3000;
+	private static final float TIME_HORIZON_OBSTACLE = 1000;
 
 	private static final double NEAR_GOAL_EPS = 1.0f;
 
