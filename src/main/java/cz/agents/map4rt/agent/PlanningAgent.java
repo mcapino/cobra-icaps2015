@@ -41,10 +41,10 @@ public abstract class PlanningAgent extends Agent {
 	protected int goalReachedTime;
 	protected Point currentPos;
 	
-	public PlanningAgent(String name, Point start, List<RelocationTask> tasks,
+	public PlanningAgent(String name, Point start, int nTasks,
 			Environment environment, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, tasks, environment, planningGraph, agentBodyRadius, maxSpeed);
+		super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed);
 		this.maxTime = maxTime;
 		this.timeStep = timeStep;
 		this.currentPos = start;
@@ -82,7 +82,7 @@ public abstract class PlanningAgent extends Agent {
 			throw new RuntimeException("Failed to find a trajectory");
 		}
 		
-		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms");
+		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms. Goal will be reached in " + goalReachedTime);
 		return traj;
 	}
 	
@@ -134,7 +134,7 @@ public abstract class PlanningAgent extends Agent {
 	
 	@Override
 	protected boolean currentTaskDestinationReached() {
-		return CommonTime.currentTimeMs() >= this.goalReachedTime;
+		return CommonTime.currentTimeMs() >= goalReachedTime;
 	}
 	
 }

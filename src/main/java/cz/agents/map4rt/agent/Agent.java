@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -27,7 +28,7 @@ public abstract class Agent {
     
     String name;
     Point start;
-    List<RelocationTask> tasks;
+    int nTasks;
 
     Environment environment;
 
@@ -40,13 +41,15 @@ public abstract class Agent {
     Collection<Region> inflatedObstacles;
     DirectedGraph<Point, Line> planningGraph;
     
-    RelocationTask currentTask = null;
+    Point currentTask = null;
+    Random random;
 
-	public Agent(String name, Point start, List<RelocationTask> tasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed) {
+	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed) {
         super();
         this.name = name;
         this.start = start;
-        this.tasks = tasks;
+        this.nTasks = nTasks;
+        this.random = new Random(1);
         this.environment = environment;
         this.agentBodyRadius = agentBodyRadius;
         this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);
@@ -122,15 +125,11 @@ public abstract class Agent {
     	
     	if (currentTask == null) {
     		synchronized (Agent.class) {
-	    		if (!tasks.isEmpty() && tasks.get(0).getIssueTime() < timeMs) {
-	    			if (CurrentTasks.tryToRegisterTask(getName(), tasks.get(0).getDestination())) {
-		    			currentTask = tasks.get(0);
-		    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + (tasks.size()-1) + " tasks in the stack to be carried out.");
-		    			tasks.remove(0);
-		    			handleNewTask(currentTask);
-	    			} else {
-	    				LOGGER.trace(getName() + " the destination " + tasks.get(0).getDestination()  + " is occupied. Waiting for the destination to become free." );
-	    			}
+	    		if (nTasks > 0) {
+	    			currentTask = CurrentTasks.assignRandomDestination(getName(), random);
+	    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + nTasks + " tasks in the stack to be carried out.");
+	    			handleNewTask(currentTask);
+	    			nTasks--;
 	    		} 
     		}
     	} else if (currentTaskDestinationReached()) {
@@ -143,7 +142,7 @@ public abstract class Agent {
 	/**
      * @return true if the task has been handled, false if the task could not been handled at this point
      */
-    protected abstract void handleNewTask(RelocationTask task);
+    protected abstract void handleNewTask(Point task);
     
 	public String getStatus() { return getName(); }
 
@@ -154,7 +153,7 @@ public abstract class Agent {
     public abstract Point getCurrentPos();
     
     public boolean hasCompletedAllTasks() {
-    	return currentTask == null & tasks.isEmpty();
+    	return currentTask==null && nTasks == 0;
     }
 
 	public int getMessageSentCounter() {

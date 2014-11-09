@@ -59,8 +59,8 @@ public class ORCAAgent extends Agent {
 	private Collection<Region> ttObstaclesLessInflated;
 	private double DesiredControlNodeSearchRadius;
 
-    public ORCAAgent(String name, Point start, List<RelocationTask> tasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis) {
-        super(name, start, tasks, environment, planningGraph, agentBodyRadius, maxSpeed);
+    public ORCAAgent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis) {
+        super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed);
 
         this.showVis = showVis;
         this.maxSpeed = maxSpeed;
@@ -236,7 +236,7 @@ public class ORCAAgent extends Agent {
 	
 	public Point getCurrentGoal() {
 		if (currentTask != null) {
-			return currentTask.getDestination();
+			return currentTask;
 		} else {
 			return getCurrentPos();
 		}
@@ -251,9 +251,9 @@ public class ORCAAgent extends Agent {
 	}
 
 	@Override
-	protected void handleNewTask(RelocationTask task) {
+	protected void handleNewTask(Point task) {
 		desiredControl = new GraphBasedOptimalPolicyController(planningGraph,
-				task.getDestination(), ttObstaclesLessInflated, maxSpeed,
+				task, ttObstaclesLessInflated, maxSpeed,
 				DesiredControlNodeSearchRadius, showVis);		
 	}
 
@@ -265,6 +265,6 @@ public class ORCAAgent extends Agent {
 	
 	@Override
 	protected boolean currentTaskDestinationReached() {
-		return currentTask.getDestination().equals(getCurrentPos());
+		return currentTask.equals(getCurrentPos());
 	}
 }

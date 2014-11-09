@@ -8,6 +8,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -48,6 +49,7 @@ import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlPr
 import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
+import cz.agents.map4rt.agent.BaselineAgent;
 import cz.agents.map4rt.agent.BaselineSTAgent;
 import cz.agents.map4rt.agent.CurrentTasks;
 import cz.agents.map4rt.agent.DFCFSAgent;
@@ -103,6 +105,8 @@ public class ScenarioCreator {
         String bgImgFileName = Args.getArgumentValue(args, "-bgimg", false, null);
         String simSpeedStr = Args.getArgumentValue(args, "-simspeed", false, "1");
         params.simSpeed = Double.parseDouble(simSpeedStr);
+        String nTasksStr = Args.getArgumentValue(args, "-ntasks", true);
+    	params.nTasks = Integer.parseInt(nTasksStr);
                 
 		File file = new File(xml);
 	    params.fileName = file.getName();
@@ -181,10 +185,10 @@ public class ScenarioCreator {
 	private static void solveBASE(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
+            public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new BaselineSTAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
+				PlanningAgent agent = new BaselineAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
                 return agent;
             }
         }, params);
@@ -193,10 +197,10 @@ public class ScenarioCreator {
 	private static void solveDFCFS(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
+            public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new DFCFSAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
+				PlanningAgent agent = new DFCFSAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
                 return agent;
             }
         }, params);
@@ -205,10 +209,10 @@ public class ScenarioCreator {
 	private static void solveORCA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
-            public Agent createAgent(String name, int i, Point start, List<RelocationTask> tasks,
+            public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				Agent agent = new ORCAAgent(name, start, tasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.showVis);
+				Agent agent = new ORCAAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.showVis);
 				return agent;
             }
         }, params);
@@ -216,7 +220,7 @@ public class ScenarioCreator {
 
     interface AgentFactory {
 		Agent createAgent(String name, int priority, Point start,
-				List<RelocationTask> tasks, Environment env,
+				int nTasks, Environment env,
 				DirectedGraph<Point, Line> planningGraph, int agentBodyRadius,
 				float speed);
     }
@@ -224,6 +228,7 @@ public class ScenarioCreator {
     private static void simulate(final RelocationTaskCoordinationProblem problem, final AgentFactory agentFactory, final Parameters params) {
     	
     	simulationStartedAt = System.currentTimeMillis();
+    	CurrentTasks.docks =  Arrays.asList(problem.getDocks());
     	
         // Create agents
         final List<Agent> agents = new LinkedList<Agent>();
@@ -232,7 +237,7 @@ public class ScenarioCreator {
                     "a" + new DecimalFormat("00").format(i),
                     i,
                     problem.getStart(i),
-                    problem.getRelocationTasks(i),
+                    params.nTasks,
                     problem.getEnvironment(),
                     problem.getPlanningGraph(),
                     problem.getBodyRadius(i),

@@ -15,14 +15,14 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 
 public class BaselineSTAgent extends PlanningAgent {
 
-	public BaselineSTAgent(String name, Point start, List<RelocationTask> tasks,
+	public BaselineSTAgent(String name, Point start, int nTasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, tasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
+		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
 	}
 
 	@Override
-	protected void handleNewTask(RelocationTask task) {
+	protected void handleNewTask(Point task) {
 		
 		// nearest timestep in past
 		int minTime = ((int) Math.floor( (double) CommonTime.currentTimeMs() / (double) timeStep) ) * timeStep;
@@ -30,7 +30,7 @@ public class BaselineSTAgent extends PlanningAgent {
 		int depTime = ((int) Math.ceil( (double) (CommonTime.currentTimeMs() + T_PLANNING) / (double) timeStep) ) * timeStep;
 		
 		EvaluatedTrajectory traj = getBestResponseTrajectory(
-				getCurrentPos(), minTime, depTime, task.getDestination(),
+				getCurrentPos(), minTime, depTime, task,
 				new LinkedList<Region>(), maxTime);
 		
 		currentTrajectory = traj;

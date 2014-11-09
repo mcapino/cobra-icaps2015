@@ -14,26 +14,25 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 
 public class BaselineAgent extends PlanningAgent {
 
-	public BaselineAgent(String name, Point start, List<RelocationTask> tasks,
+	public BaselineAgent(String name, Point start, int nTasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, tasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
+		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
 	}
 
 	@Override
-	protected void handleNewTask(RelocationTask task) {
+	protected void handleNewTask(final Point task) {
 		
 		// start at a multiple of timestep
 		int depTime = CommonTime.currentTimeMs();
 		final Point startPoint = getCurrentPos();
-		final Point goal = task.getDestination();
 		
-		LOGGER.debug(getName() + " started planning " + start + "@"  + depTime + " -> " + goal + " maxtime=" + maxTime);
+		LOGGER.debug(getName() + " started planning " + start + "@"  + depTime + " -> " + task + " maxtime=" + maxTime);
 		
-		EvaluatedTrajectory traj = BestResponse.computeShortestPath(startPoint, depTime, goal, maxSpeed, maxTime, getPlanningGraph(), new HeuristicToGoal<Point>() {
+		EvaluatedTrajectory traj = BestResponse.computeShortestPath(startPoint, depTime, task, maxSpeed, maxTime, getPlanningGraph(), new HeuristicToGoal<Point>() {
 			@Override
 			public double getCostToGoalEstimate(Point current) {
-				return current.distance(goal);
+				return current.distance(task);
 			}
 		});
 		
@@ -45,7 +44,7 @@ public class BaselineAgent extends PlanningAgent {
 
 	@Override
 	protected boolean currentTaskDestinationReached() {
-		return currentTask.getDestination().equals(getCurrentPos());
+		return currentTask.equals(getCurrentPos());
 	}
 	
 	
