@@ -4,5 +4,6 @@
 /experiment/log/
 /experiment/solver.jar
 /experiment/instances/*/*.xml
+/experiment/instances/*/data.*.*
 *~
 .Rproj.user
