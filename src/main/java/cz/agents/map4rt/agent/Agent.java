@@ -14,12 +14,12 @@ import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
 import tt.euclid2i.probleminstance.Environment;
-import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.InboxBasedCommunicator;
 import cz.agents.alite.communication.Message;
 import cz.agents.alite.communication.MessageHandler;
 import cz.agents.alite.communication.content.Content;
+import cz.agents.map4rt.CommonTime;
 
 
 public abstract class Agent {
@@ -43,6 +43,8 @@ public abstract class Agent {
     
     Point currentTask = null;
     Random random;
+    
+    long lastTickAtMs;
 
 	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
@@ -122,6 +124,7 @@ public abstract class Agent {
 
     public void tick(int timeMs) {
     	//LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
+    	lastTickAtMs = CommonTime.currentTimeMs();
     	
     	if (currentTask == null) {
     		synchronized (Agent.class) {
@@ -162,5 +165,9 @@ public abstract class Agent {
 	
 	public int getInboxSize() {
 		return ((InboxBasedCommunicator) communicator).getInboxSize();
+	}
+
+	public long getLastTickAtMs() {
+		return lastTickAtMs;
 	}
 }

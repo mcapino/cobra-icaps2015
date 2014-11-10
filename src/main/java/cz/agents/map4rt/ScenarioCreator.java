@@ -132,7 +132,7 @@ public class ScenarioCreator {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, Status.TIMEOUT, -1);
+				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1);
 				System.exit(0);
 			}
     	};
@@ -278,7 +278,15 @@ public class ScenarioCreator {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {}
         }
-        printSummary(params.summaryPrefix, Status.SUCCESS, System.currentTimeMillis()-simulationStartedAt);
+        
+        long sumTaskDuration = 0;
+        for (Agent agent : agents) {
+			sumTaskDuration += agent.getLastTickAtMs();
+		}
+        
+        long avgTaskDuration = sumTaskDuration / (agents.size() * params.nTasks);
+        
+        printSummary(params.summaryPrefix, Status.SUCCESS, avgTaskDuration, System.currentTimeMillis()-simulationStartedAt);
     }
     
     private static boolean allDone(List<Agent> agents) {
@@ -348,8 +356,8 @@ public class ScenarioCreator {
 
     enum Status {SUCCESS, FAIL, TIMEOUT}
 
-	private static void printSummary(String prefix, Status status, long completedAt) {
-	    	System.out.println(prefix + status.toString() + ";" + (status == Status.SUCCESS ? completedAt : "inf") + ";" );
+	private static void printSummary(String prefix, Status status, long avgTaskDuration, long completedAt) {
+	    	System.out.println(prefix + status.toString() + ";" + (status == Status.SUCCESS ? avgTaskDuration : "inf") + ";" + (status == Status.SUCCESS ? completedAt : ";"));
 	    	System.exit(0);
     }
 

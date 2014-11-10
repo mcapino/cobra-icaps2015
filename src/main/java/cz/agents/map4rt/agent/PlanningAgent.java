@@ -76,12 +76,14 @@ public abstract class PlanningAgent extends Agent {
 		traj = BestResponse.computeBestResponse(start, minTime, depTime, goal,
 				maxSpeed, getPlanningGraph(), spaceTimeHeuristic,
 				dObstInflated, maxTime, timeStep, T_PLANNING);
-		goalReachedTime = computeDestinationReachedTime((SegmentedTrajectory) traj, goal);
+		
 		
 		if (traj == null) {
 			LOGGER.error(" >>>>>>>>>>>>>>> !!!!! No trajectory found within the runtime limit of " + T_PLANNING + " ms !!!! <<<<<<<<<<<<<<<<<<<<<");
 			throw new RuntimeException("Failed to find a trajectory");
 		}
+		
+		goalReachedTime = computeDestinationReachedTime((SegmentedTrajectory) traj, goal);
 		
 		LOGGER.debug(getName() + " finished planning in " + (System.currentTimeMillis() - startedAt) + "ms. Goal will be reached in " + goalReachedTime);
 		return traj;
