@@ -19,9 +19,9 @@ rm $instancefolder/*
 cp prepare.sh $instancefolder/
 
 instance=0
-for nagents in "1" "5" "15"
+for nagents in "1" "5" "10" "15" "20" "30" "35"
 do
-    for seed in {1..5}
+    for seed in {1..10}
     do
         let instance=instance+1
 	    # create a problem instance file
@@ -36,12 +36,12 @@ do
         for alg in $algs
         do
 		    summaryprefix="$envname;$instance;$nagents;$radius;$seed;$timestep;$maxtime;$alg;"
-	        echo -method $alg -problemfile $instancefile -timestep $timestep -maxtime $maxtime -timeout $maxtime -summary -summaryprefix "$summaryprefix" >> $instancefolder/data.in           
+	        echo -method $alg -problemfile $instancefile -ntasks 4 -timestep $timestep -maxtime $maxtime -timeout $maxtime -seed $seed -summaryprefix "$summaryprefix" >> $instancefolder/data.in           
         done
 
 	    echo Finished instance no $instance. Agents: $nagents. Seed: $seed.
     done        
 done
-echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;" > $instancefolder/head
+echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;simfinished" > $instancefolder/head
 echo Done. Created $instance instances at $envname environment. Instances stored in $instancefolder.
 

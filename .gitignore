@@ -3,5 +3,6 @@
 /log/
 /experiment/log/
 /experiment/solver.jar
+/experiment/instances/*/*.xml
 *~
 .Rproj.user

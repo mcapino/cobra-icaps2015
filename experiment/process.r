@@ -15,118 +15,11 @@ plotsdir <- paste(dir, "/../plots/", sep="")
 runs <- read.csv(file=paste(dir, "/data.out.head", sep=""), head=TRUE, sep=";")
 runs <- runs[order(runs$instance, runs$alg),]
 runs$time[runs$time==0] <- NA
-runs$agents.in.cluster <- runs$nagents/runs$clusters
-runs$agents.in.cluster.ceil <- ceiling(runs$nagents/runs$clusters)
-runs$replans.per.agent <- runs$replans / runs$nagents
-runs$expansions.per.replan <- runs$expansions/runs$replans 
-runs$time[runs$alg=="ORCA"] <- NA
 
 maxagents <- max(runs$nagents)
 
-runs$alg = factor(runs$alg,levels=c("PP", "RPP", "SDPP", "SDRPP", "ADPP",  "ADRPP", "ORCA", "BASEST"))
-
-runs$alg.scheme <- NA
-runs$alg.scheme[runs$alg=="PP" | runs$alg=="RPP"] <- "C" 
-runs$alg.scheme[runs$alg=="ADPP" | runs$alg=="ADRPP"] <- "AD"
-runs$alg.scheme[runs$alg=="SDPP" | runs$alg=="SDRPP"] <- "SD"
-runs$alg.scheme[runs$alg=="ORCA"] <- "ORCA"
-
-
-runs$alg.ppvar <- "NA"
-runs$alg.ppvar[runs$alg=="PP" | runs$alg=="ADPP" | runs$alg=="SDPP"] <- "PP" 
-runs$alg.ppvar[runs$alg=="RPP" | runs$alg=="ADRPP" | runs$alg=="SDRPP"] <- "RPP"
-
-alg.palette <- brewer.pal(length(unique(runs$alg)), "Set1")[1:length(unique(runs$alg))-1]
-alg.palette <- brewer.pal(length(unique(runs$alg)), "Set1")[1:length(unique(runs$alg))-1]
-
-orange <-"#E69F00"
-blue <- "#56B4E9"
-green <- "#009E73"
-yellow <- "#F0E442"
-
-get.color <- function(algs) {
-  pal <- c()
-  for (alg in algs) {
-    if (is.na(alg)) {
-      pal <- c(pal, "#888888")
-    } 
-    
-    else if (alg == "PP") {
-      pal <- c(pal, "firebrick3")
-    } else if (alg == "RPP") {
-      pal <- c(pal, "firebrick1")
-    } 
-    
-    else if (alg == "SDPP") {
-      pal <- c(pal, "deepskyblue3")
-    } else if (alg == "SDRPP") {
-      pal <- c(pal, "deepskyblue1")
-    } 
-    
-    else if (alg == "ADPP") {
-      pal <- c(pal, "springgreen3")
-    } else if (alg == "ADRPP") {
-      pal <- c(pal, "springgreen1")
-    } 
-    
-    else if (alg == "ORCA"){
-      pal <- c(pal, "pink2")
-    } else {
-      pal <- c(pal, "#222222")
-    }
-  }
-  return(pal)
-}
-
-get.shape <- function(algs) {
-  pal <- c()
-  for (alg in algs) {
-    if (is.na(alg)) {
-      pal <- c(pal, 7)
-    } 
-    
-    else if (alg == "PP") {
-      pal <- c(pal, 16)
-    } else if (alg == "RPP") {
-      pal <- c(pal, 21)
-    } 
-    
-    else if (alg == "SDPP") {
-      pal <- c(pal, 17)
-    } else if (alg == "SDRPP") {
-      pal <- c(pal, 24)
-    } 
-    
-    else if (alg == "ADPP") {
-      pal <- c(pal, 15)
-    } else if (alg == "ADRPP") {
-      pal <- c(pal, 22)
-    } 
-    
-    else if (alg == "ORCA"){
-      pal <- c(pal, 8)
-    } else {
-      pal <- c(pal, 5)
-    }
-  }
-  return(pal)
-}
-
-get.linetype <- function(algs) {
-  pal <- c()
-  for (alg in algs) {
-    if (is.na(alg)) {
-      pal <- c(pal, "twodash")
-    } else if (alg == "PP" | alg == "SDPP" | alg == "ADPP") {
-      pal <- c(pal, "solid")
-    } else if (alg == "RPP" | alg == "SDRPP" | alg == "ADRPP") {
-      pal <- c(pal, "solid")
-    } else {
-      pal <- c(pal, "dashed")
-    }
-  }
-  return(pal)
-}
+#runs$alg = factor(runs$alg,levels=c("BASE", "DFCFS", "ORCA"))
+runs$alg <- revalue(runs$alg, c("DFCFS" = "COBRA"))
 
 ### scatter plot of all gathered raw data
 
@@ -137,7 +30,7 @@ ggplot(runs, aes(instance, time/1000, color=alg, shape=alg)) + geom_point()
 common.runs <- function(runs, algs) {
   solved.by.all <- unique(runs$instance)
   for (alg in algs) {
-    solved.by.all <- intersect(solved.by.all, unique(runs[runs$alg==alg & is.finite(runs$cost), "instance"]))                              
+    solved.by.all <- intersect(solved.by.all, unique(runs[runs$alg==alg & runs$status=="SUCCESS", "instance"]))                              
   }
   
   common.runs <- runs[is.element(runs$instance, solved.by.all) & is.element(runs$alg,algs), ] 
@@ -154,9 +47,10 @@ pd <- position_dodge(2)
 ### success rate ####
 succ.nagents <- function(runs, timelimit) {
   x <- runs[!is.na(runs$time) && runs$time<timelimit, ]
-  succ <- ddply(x, .(nagents, alg, radius), summarise,  
-                solved = sum(is.finite(cost)),
-                total = length(cost)
+  
+  succ <- ddply(x, .(nagents, alg), summarise,  
+                solved = sum(status=="SUCCESS"),
+                total = length(status)
   )
   
   plot <- ggplot(succ, aes(x=nagents, y=solved, color=alg, linetype=alg))+
@@ -164,22 +58,19 @@ succ.nagents <- function(runs, timelimit) {
     geom_point(aes(shape=alg), position=pd, size=4, fill="white") + 
     scale_y_continuous(limits=c(0,max(succ$total)), name=paste("instances solved out of ", max(succ$total), "[-]")  ) +
     scale_x_continuous(limits=c(0,maxagents+3), name="number of robots [-]") +
-    scale_color_manual(values=get.color(unique(succ$alg)), name="method") +
-    scale_linetype_manual(values=get.linetype(unique(succ$alg)), name="method") +
-    scale_shape_manual(values=get.shape(unique(succ$alg)), name="method") +
     theme_bw() + 
     theme(legend.position = "bottom", legend.direction = "horizontal") +
-    ggtitle("1: Coverage")
+    ggtitle("Success rate")
   
   return(plot)  
 }
-succ.nagents(runs[is.element(runs$alg,.("PP", "RPP", "SDPP", "SDRPP", "ADPP", "ADRPP", "ORCA")),], Inf)
+succ.nagents(runs, Inf)
 ggsave(filename=paste(imgdir, "succ.vs.nagents.pdf", sep=""), width=4, height=4)
 
 ### runtime ###
 
 runtime.vs.nagents <- function(runs) {  
-  time.sum <- ddply(runs, .(nagents, alg, radius), summarise,  
+  time.sum <- ddply(runs, .(nagents, alg), summarise,  
                     N = sum(!is.na(time)),
                     mean = mean(time),
                     med = median(time),
@@ -188,27 +79,19 @@ runtime.vs.nagents <- function(runs) {
                     min = min(time),
                     max = max(time))
   
-  plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg))+
-    geom_errorbar(aes(ymin=(mean-se)/1000, ymax=(mean+se)/1000), width=2, position=pd, size=0.5, alpha=0.5) +
-    #geom_errorbar(aes(ymin=(mean-sd)/1000, ymax=(mean+sd)/1000), width=0.1, position=pd, size=2, alpha=1) +
+  plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg)) +
+    geom_errorbar(aes(ymin=(mean-se)/1000, ymax=(mean+se)/1000), width=1, position=pd, size=0.5, alpha=0.5) +
     geom_line(size=1, position=pd)+ 
     geom_point(size=4, position=pd, fill="white")+   
-    #geom_text(aes(label=N, y=0, size=2), colour="black") + 
-
-    scale_color_manual(values=get.color(unique(time.sum$alg)), name="method") +
-    scale_linetype_manual(values=get.linetype(unique(time.sum$alg)), name="method") +
-    scale_shape_manual(values=get.shape(unique(time.sum$alg)), name="method") +
-    
-    scale_y_continuous(name="time to converge [s]") +
+    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="time to finish all tasks [s]") +
     scale_x_continuous(limits=c(0,maxagents+3), name="no of robots [-]") +  
-    
     theme_bw() +
-    ggtitle("2: Avg. time to solution")
+    ggtitle("Avg. time to solution")
   
   return(plot)
 }
 
-runtime.vs.nagents(common.runs(runs, .("PP","RPP","ADPP","ADRPP", "SDPP", "SDRPP")))
+runtime.vs.nagents(common.runs(runs, c("COBRA","BASE")))
 ggsave(filename=paste(imgdir, "runtime.vs.nagents.pdf", sep=""), width=4, height=4)
 
 ## speedup ~ no of agents ##
