@@ -42,6 +42,6 @@ do
 	    echo Finished instance no $instance. Agents: $nagents. Seed: $seed.
     done        
 done
-echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;" > $instancefolder/head
+echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;simfinished" > $instancefolder/head
 echo Done. Created $instance instances at $envname environment. Instances stored in $instancefolder.
 

@@ -7,7 +7,7 @@ library(gridExtra)
 
 ### Load the data
 
-env <- "ubremen-r27"
+env <- "warehouse-r25"
 
 dir <- paste("instances/",env, sep="")
 imgdir <- paste(dir, "/figs/", sep="")
@@ -45,10 +45,9 @@ common.runs <- function(runs, algs) {
 pd <- position_dodge(2)
 
 ### success rate ####
-succ.nagents <- function(runs, timelimit) {
-  x <- runs[!is.na(runs$time) && runs$time<timelimit, ]
+succ.nagents <- function(runs) {
   
-  succ <- ddply(x, .(nagents, alg), summarise,  
+  succ <- ddply(runs, .(nagents, alg), summarise,  
                 solved = sum(status=="SUCCESS"),
                 total = length(status)
   )
@@ -64,7 +63,7 @@ succ.nagents <- function(runs, timelimit) {
   
   return(plot)  
 }
-succ.nagents(runs, Inf)
+succ.nagents(runs)
 ggsave(filename=paste(imgdir, "succ.vs.nagents.pdf", sep=""), width=4, height=4)
 
 ### runtime ###
@@ -72,26 +71,30 @@ ggsave(filename=paste(imgdir, "succ.vs.nagents.pdf", sep=""), width=4, height=4)
 runtime.vs.nagents <- function(runs) {  
   time.sum <- ddply(runs, .(nagents, alg), summarise,  
                     N = sum(!is.na(time)),
-                    mean = mean(time),
-                    med = median(time),
-                    sd = sd(time),
+                    mean = mean(time, na.rm=TRUE),
+                    med = median(time, na.rm=TRUE),
+                    sd = sd(time, na.rm=TRUE),
                     se = sd / sqrt(N),
-                    min = min(time),
-                    max = max(time))
+                    min = min(time, na.rm=TRUE),
+                    max = max(time, na.rm=TRUE))
   
   plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg)) +
     geom_errorbar(aes(ymin=(mean-se)/1000, ymax=(mean+se)/1000), width=1, position=pd, size=0.5, alpha=0.5) +
     geom_line(size=1, position=pd)+ 
     geom_point(size=4, position=pd, fill="white")+   
-    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="time to finish all tasks [s]") +
+    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="avg. time to finish a tasks [s]") +
     scale_x_continuous(limits=c(0,maxagents+3), name="no of robots [-]") +  
     theme_bw() +
-    ggtitle("Avg. time to solution")
+    ggtitle("Avg. time to finish a task")
   
   return(plot)
 }
 
-runtime.vs.nagents(common.runs(runs, c("COBRA","BASE")))
+runs.noinf <-runs
+runs.noinf$time[is.infinite(runs.noinf$time)] <-NA
+
+runtime.vs.nagents(runs.noinf)
+runtime.vs.nagents(common.runs(runs, c("COBRA","BASE", "ORCA")))
 ggsave(filename=paste(imgdir, "runtime.vs.nagents.pdf", sep=""), width=4, height=4)
 
 ## speedup ~ no of agents ##
