@@ -3,6 +3,7 @@ package cz.agents.map4rt.agent;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -43,8 +44,8 @@ public abstract class PlanningAgent extends Agent {
 	
 	public PlanningAgent(String name, Point start, int nTasks,
 			Environment environment, DirectedGraph<Point, Line> planningGraph,
-			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed);
+			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, Random random) {
+		super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed, random);
 		this.maxTime = maxTime;
 		this.timeStep = timeStep;
 		this.currentPos = start;

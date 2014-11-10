@@ -44,12 +44,12 @@ public abstract class Agent {
     Point currentTask = null;
     Random random;
 
-	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed) {
+	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
         this.name = name;
         this.start = start;
         this.nTasks = nTasks;
-        this.random = new Random(1);
+        this.random = random;
         this.environment = environment;
         this.agentBodyRadius = agentBodyRadius;
         this.inflatedObstacles = tt.euclid2i.util.Util.inflateRegions(environment.getObstacles(), agentBodyRadius);

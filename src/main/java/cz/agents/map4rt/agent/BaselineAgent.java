@@ -1,6 +1,6 @@
 package cz.agents.map4rt.agent;
 
-import java.util.List;
+import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.util.HeuristicToGoal;
@@ -10,14 +10,13 @@ import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
-import tt.jointeuclid2ni.probleminstance.RelocationTask;
 
 public class BaselineAgent extends PlanningAgent {
 
 	public BaselineAgent(String name, Point start, int nTasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph,
-			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
+			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, Random random) {
+		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep, random);
 	}
 
 	@Override

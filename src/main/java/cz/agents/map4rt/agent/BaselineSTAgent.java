@@ -2,6 +2,7 @@ package cz.agents.map4rt.agent;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
 
@@ -17,8 +18,8 @@ public class BaselineSTAgent extends PlanningAgent {
 
 	public BaselineSTAgent(String name, Point start, int nTasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph,
-			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep) {
-		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep);
+			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, int seed, Random random) {
+		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep, random);
 	}
 
 	@Override

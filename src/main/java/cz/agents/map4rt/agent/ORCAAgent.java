@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
@@ -59,8 +60,8 @@ public class ORCAAgent extends Agent {
 	private Collection<Region> ttObstaclesLessInflated;
 	private double DesiredControlNodeSearchRadius;
 
-    public ORCAAgent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis) {
-        super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed);
+    public ORCAAgent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis, Random random) {
+        super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed, random);
 
         this.showVis = showVis;
         this.maxSpeed = maxSpeed;

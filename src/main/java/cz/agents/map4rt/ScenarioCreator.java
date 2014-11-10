@@ -1,29 +1,23 @@
 package cz.agents.map4rt;
 import java.awt.Color;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
 
-import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Trajectory;
 import tt.euclid2i.probleminstance.Environment;
-import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import tt.jointeuclid2ni.probleminstance.RelocationTaskCoordinationProblem;
 import tt.jointeuclid2ni.probleminstance.TrajectoryCoordinationProblemXMLDeserializer;
 import tt.jointeuclid2ni.probleminstance.VisUtil;
@@ -34,23 +28,12 @@ import tt.vis.FastTrajectoriesLayer;
 import tt.vis.FastTrajectoriesLayer.ColorProvider;
 import tt.vis.FastTrajectoriesLayer.TrajectoriesProvider;
 import tt.vis.LabeledCircleLayer;
-import cz.agents.alite.common.event.ActivityLogEntry;
-import cz.agents.alite.common.event.DurativeEvent;
-import cz.agents.alite.common.event.DurativeEventHandler;
-import cz.agents.alite.common.event.DurativeEventProcessor;
-import cz.agents.alite.communication.InboxBasedCommunicator;
-import cz.agents.alite.communication.channel.CommunicationChannelException;
-import cz.agents.alite.communication.channel.DirectCommunicationChannel;
-import cz.agents.alite.communication.channel.DirectCommunicationChannel.ReceiverTable;
-import cz.agents.alite.communication.eventbased.ConcurrentProcessCommunicationChannel;
-import cz.agents.alite.simulation.ConcurrentProcessSimulation;
 import cz.agents.alite.simulation.vis.SimulationControlLayer;
 import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlProvider;
 import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
-import cz.agents.map4rt.agent.BaselineSTAgent;
 import cz.agents.map4rt.agent.CurrentTasks;
 import cz.agents.map4rt.agent.DFCFSAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
@@ -107,7 +90,9 @@ public class ScenarioCreator {
         params.simSpeed = Double.parseDouble(simSpeedStr);
         String nTasksStr = Args.getArgumentValue(args, "-ntasks", true);
     	params.nTasks = Integer.parseInt(nTasksStr);
-                
+        String seedStr = Args.getArgumentValue(args, "-seed", true);
+    	params.random = new Random(Integer.parseInt(seedStr));
+    	
 		File file = new File(xml);
 	    params.fileName = file.getName();
 	    
@@ -188,7 +173,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new BaselineAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
+				PlanningAgent agent = new BaselineAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.random);
                 return agent;
             }
         }, params);
@@ -200,7 +185,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new DFCFSAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep);
+				PlanningAgent agent = new DFCFSAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.random);
                 return agent;
             }
         }, params);
@@ -212,7 +197,7 @@ public class ScenarioCreator {
             public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				Agent agent = new ORCAAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.showVis);
+				Agent agent = new ORCAAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.showVis, params.random);
 				return agent;
             }
         }, params);
