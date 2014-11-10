@@ -59,7 +59,6 @@ public class ScenarioCreator {
     
     static long simulationStartedAt;
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
-	final static int RADIUS_GRACE = 1;
 		
     enum Method {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
@@ -129,7 +128,7 @@ public class ScenarioCreator {
 			public void run() {
 				while (System.currentTimeMillis() < killAtMs) {
 					try {
-						Thread.sleep(10);
+						Thread.sleep(100);
 					} catch (InterruptedException e) {}
 				}
 				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1);
@@ -259,7 +258,7 @@ public class ScenarioCreator {
 				@Override
 				public void run() {
 					agent.start();
-					while (!agent.hasCompletedAllTasks()) {
+					while (!allDone(agents)) {
 						try {
 							Thread.sleep(100);
 						} catch (InterruptedException e) {}
@@ -281,7 +280,7 @@ public class ScenarioCreator {
         
         long sumTaskDuration = 0;
         for (Agent agent : agents) {
-			sumTaskDuration += agent.getLastTickAtMs();
+			sumTaskDuration += (agent.getLastTaskReachedTime() - agent.getFirstTaskIssuedAt());
 		}
         
         long avgTaskDuration = sumTaskDuration / (agents.size() * params.nTasks);
@@ -321,7 +320,9 @@ public class ScenarioCreator {
 				}, 3, timeStep)));
 		
         // positions
-        VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
+        VisManager.registerLayer(
+        	KeyToggleLayer.create("b", true, 
+        	LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {
 
              @Override
              public Collection<LabeledCircleLayer.LabeledCircle<tt.euclid2i.Point>> getLabeledCircles() {
@@ -334,7 +335,7 @@ public class ScenarioCreator {
                  return list;
              }
 
-         }, new tt.euclid2i.vis.ProjectionTo2d()));
+         }, new tt.euclid2i.vis.ProjectionTo2d())));
         
         // tasks
         VisManager.registerLayer(LabeledCircleLayer.create(new LabeledCircleLayer.LabeledCircleProvider<tt.euclid2i.Point>() {

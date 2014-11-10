@@ -60,6 +60,8 @@ public class ORCAAgent extends Agent {
 	private Collection<Region> ttObstaclesLessInflated;
 	private double DesiredControlNodeSearchRadius;
 
+	private Point currentGoal;
+
     public ORCAAgent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, boolean showVis, Random random) {
         super(name, start, nTasks, environment, planningGraph, agentBodyRadius, maxSpeed, random);
 
@@ -102,6 +104,7 @@ public class ORCAAgent extends Agent {
 				return new Vector(0,0);
 			}
 		};
+		currentGoal = start;
         
         kdTree = new KdTree();
 
@@ -236,11 +239,7 @@ public class ORCAAgent extends Agent {
     }
 	
 	public Point getCurrentGoal() {
-		if (currentTask != null) {
-			return currentTask;
-		} else {
-			return getCurrentPos();
-		}
+		return currentGoal;
 	}
 
 	public Point getCurrentPos() {
@@ -256,6 +255,7 @@ public class ORCAAgent extends Agent {
 		desiredControl = new GraphBasedOptimalPolicyController(planningGraph,
 				task, ttObstaclesLessInflated, maxSpeed,
 				DesiredControlNodeSearchRadius, showVis);		
+		currentGoal = task;
 	}
 
 

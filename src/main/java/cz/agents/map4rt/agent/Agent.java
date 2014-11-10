@@ -44,7 +44,8 @@ public abstract class Agent {
     Point currentTask = null;
     Random random;
     
-    long lastTickAtMs;
+    long firstTaskIssuedAt;
+    long lastTaskReachedAtMs;
 
 	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
@@ -124,9 +125,11 @@ public abstract class Agent {
 
     public void tick(int timeMs) {
     	//LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
-    	lastTickAtMs = CommonTime.currentTimeMs();
     	
     	if (currentTask == null) {
+        	if (firstTaskIssuedAt == 0) {
+        		firstTaskIssuedAt = CommonTime.currentTimeMs();
+        	}
     		synchronized (Agent.class) {
 	    		if (nTasks > 0) {
 	    			currentTask = CurrentTasks.assignRandomDestination(getName(), random);
@@ -136,6 +139,10 @@ public abstract class Agent {
 	    		} 
     		}
     	} else if (currentTaskDestinationReached()) {
+    		if (nTasks == 0) {
+    			LOGGER.info(getName() + " finished all tasks");
+    			lastTaskReachedAtMs = CommonTime.currentTimeMs();
+    		}
     		currentTask = null;
     	}
     }
@@ -167,7 +174,11 @@ public abstract class Agent {
 		return ((InboxBasedCommunicator) communicator).getInboxSize();
 	}
 
-	public long getLastTickAtMs() {
-		return lastTickAtMs;
+	public long getFirstTaskIssuedAt() {
+		return firstTaskIssuedAt;
+	}
+	
+	public long getLastTaskReachedTime() {
+		return lastTaskReachedAtMs;
 	}
 }
