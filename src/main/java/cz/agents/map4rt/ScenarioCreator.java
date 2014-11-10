@@ -128,7 +128,7 @@ public class ScenarioCreator {
 			public void run() {
 				while (System.currentTimeMillis() < killAtMs) {
 					try {
-						Thread.sleep(100);
+						Thread.sleep(50);
 					} catch (InterruptedException e) {}
 				}
 				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1);

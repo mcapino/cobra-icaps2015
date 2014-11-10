@@ -41,7 +41,7 @@ public class ORCAAgent extends Agent {
 	private static final float TIME_HORIZON_AGENT = 5000;
 	private static final float TIME_HORIZON_OBSTACLE = 1000;
 
-	private static final double NEAR_GOAL_EPS = 1.0f;
+	private static final double NEAR_GOAL_EPS = 0.0f;
 
 	private RVOAgent rvoAgent;
     private HashMap<String, RVOAgent> neighbors;
@@ -53,6 +53,8 @@ public class ORCAAgent extends Agent {
 	DesiredControl desiredControl;
 
 	private static final long UNKNOWN = -1;
+
+	private static final double GOAL_REACHED_TOLERANCE = 3;
 	private long lastTickTime = UNKNOWN;
 
 	private boolean showVis;
@@ -161,9 +163,9 @@ public class ORCAAgent extends Agent {
 		super.tick(time);
 
         if (showVis) {
-	        try {
-	            Thread.sleep(10);
-	        } catch (InterruptedException e) {}
+//	        try {
+//	            Thread.sleep(10);
+//	        } catch (InterruptedException e) {}
         }
         
 		if (lastTickTime == UNKNOWN) {
@@ -266,6 +268,6 @@ public class ORCAAgent extends Agent {
 	
 	@Override
 	protected boolean currentTaskDestinationReached() {
-		return currentTask.equals(getCurrentPos());
+		return currentTask.distance(getCurrentPos()) < GOAL_REACHED_TOLERANCE;
 	}
 }
