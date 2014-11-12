@@ -36,6 +36,8 @@ public class BaselineAgent extends PlanningAgent {
 		});
 		
 		currentTrajectory = traj;
+		lastTaskTravelStartedAt = depTime;
+		currentTaskTouchedGoal = false;
 	}
 
 	@Override

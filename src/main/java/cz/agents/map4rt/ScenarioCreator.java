@@ -63,7 +63,7 @@ public class ScenarioCreator {
     enum Method {
     	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
     	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
-    	DFCFS,  /* Distributed First-come First-served */
+    	COBRA,  /* Continuous Best-Response Approach */
         ORCA }
 
 
@@ -131,7 +131,7 @@ public class ScenarioCreator {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1);
+				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1, -1, -1);
 				System.exit(0);
 			}
     	};
@@ -152,7 +152,7 @@ public class ScenarioCreator {
 	            solveBASE(problem, params);
 	            break;
 
-	        case DFCFS:
+	        case COBRA:
 	            solveDFCFS(problem, params);
 	            break;
 
@@ -250,6 +250,10 @@ public class ScenarioCreator {
  		}));
         
         initAgentVisualization(agents, params.timeStep);
+
+        LOGGER.info("=== All Agents initialized");
+        final int FIRST_TASK_WINDOW = 30000;
+        final long initalizedAtMs = CommonTime.currentTimeMs();
         
         for (final Agent agent : agents) {
         	
@@ -257,6 +261,7 @@ public class ScenarioCreator {
 				
 				@Override
 				public void run() {
+					agent.setIssueFirstTaskAt(initalizedAtMs + params.random.nextInt(FIRST_TASK_WINDOW));
 					agent.start();
 					while (!allDone(agents)) {
 						try {
@@ -279,13 +284,19 @@ public class ScenarioCreator {
         }
         
         long sumTaskDuration = 0;
+        long sumTravelTimeTouch = 0;
+        long sumTravelTimeRest = 0;
         for (Agent agent : agents) {
-			sumTaskDuration += (agent.getLastTaskReachedTime() - agent.getFirstTaskIssuedAt());
+			sumTaskDuration += agent.getSumTaskDuration();
+			sumTravelTimeTouch += agent.getSumTravelTimeTouch();
+			sumTravelTimeRest += agent.getSumTravelTimeRest();
 		}
         
         long avgTaskDuration = sumTaskDuration / (agents.size() * params.nTasks);
+        long avgTravelTimeTouch = sumTravelTimeTouch / (agents.size() * params.nTasks);
+        long avgTravelTimeRest = sumTravelTimeRest / (agents.size() * params.nTasks);
         
-        printSummary(params.summaryPrefix, Status.SUCCESS, avgTaskDuration, System.currentTimeMillis()-simulationStartedAt);
+        printSummary(params.summaryPrefix, Status.SUCCESS, avgTaskDuration, avgTravelTimeTouch, avgTravelTimeRest, CommonTime.currentTimeMs()-initalizedAtMs);
     }
     
     private static boolean allDone(List<Agent> agents) {
@@ -357,8 +368,8 @@ public class ScenarioCreator {
 
     enum Status {SUCCESS, FAIL, TIMEOUT}
 
-	private static void printSummary(String prefix, Status status, long avgTaskDuration, long completedAt) {
-	    	System.out.println(prefix + status.toString() + ";" + (status == Status.SUCCESS ? avgTaskDuration : "inf") + ";" + (status == Status.SUCCESS ? completedAt : ";"));
+	private static void printSummary(String prefix, Status status, long avgTaskDuration, long avgTravelTimeTouch, long avgTravelTimeRest, long makeSpan) {
+	    	System.out.println(prefix + status.toString() + ";" + avgTaskDuration + ";" + avgTravelTimeTouch + ";" + avgTravelTimeRest + ";" + makeSpan);
 	    	System.exit(0);
     }
 

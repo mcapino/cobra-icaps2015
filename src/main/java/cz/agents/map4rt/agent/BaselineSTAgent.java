@@ -35,6 +35,8 @@ public class BaselineSTAgent extends PlanningAgent {
 				new LinkedList<Region>(), maxTime);
 		
 		currentTrajectory = traj;
+		lastTaskTravelStartedAt = depTime;
+		currentTaskTouchedGoal = false;
 	}
 
 	@Override

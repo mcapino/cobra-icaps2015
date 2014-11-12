@@ -44,8 +44,13 @@ public abstract class Agent {
     Point currentTask = null;
     Random random;
     
-    long firstTaskIssuedAt;
-    long lastTaskReachedAtMs;
+    long lastTaskIssuedAt;
+    long sumTaskDuration;
+          
+    long lastTaskReachedAtMs;    
+    long issueFirstTaskAt = 0;
+    
+    
 
 	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
@@ -126,24 +131,23 @@ public abstract class Agent {
     public void tick(int timeMs) {
     	//LOGGER.info(getName() + " Tick @ " + time/1000.0 + "s");
     	
-    	if (currentTask == null) {
-        	if (firstTaskIssuedAt == 0) {
-        		firstTaskIssuedAt = CommonTime.currentTimeMs();
-        	}
+    	if (currentTask == null && CommonTime.currentTimeMs() > issueFirstTaskAt && nTasks > 0) {
+    		lastTaskIssuedAt = CommonTime.currentTimeMs();
     		synchronized (Agent.class) {
-	    		if (nTasks > 0) {
-	    			currentTask = CurrentTasks.assignRandomDestination(getName(), random);
-	    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + nTasks + " tasks in the stack to be carried out.");
-	    			handleNewTask(currentTask);
-	    			nTasks--;
-	    		} 
+    			currentTask = CurrentTasks.assignRandomDestination(getName(), random);
+    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + nTasks + " tasks in the stack to be carried out.");
+    			handleNewTask(currentTask);
+    			nTasks--;
     		}
-    	} else if (currentTaskDestinationReached()) {
-    		if (nTasks == 0) {
+    	} 
+    	
+    	if (currentTask != null && currentTaskDestinationReached()) {
+			sumTaskDuration += (CommonTime.currentTimeMs() - lastTaskIssuedAt);
+			if (nTasks == 0) {
     			LOGGER.info(getName() + " finished all tasks");
     			lastTaskReachedAtMs = CommonTime.currentTimeMs();
     		}
-    		currentTask = null;
+			currentTask = null;
     	}
     }
     
@@ -174,11 +178,19 @@ public abstract class Agent {
 		return ((InboxBasedCommunicator) communicator).getInboxSize();
 	}
 
-	public long getFirstTaskIssuedAt() {
-		return firstTaskIssuedAt;
-	}
-	
 	public long getLastTaskReachedTime() {
 		return lastTaskReachedAtMs;
 	}
+	
+	public void setIssueFirstTaskAt(long issueFirstTaskAt) {
+		this.issueFirstTaskAt = issueFirstTaskAt;
+	}
+	
+	public long getSumTaskDuration() {
+		return sumTaskDuration;
+	}
+	
+	public abstract long getSumTravelTimeRest();
+	public abstract long getSumTravelTimeTouch();
+	
 }

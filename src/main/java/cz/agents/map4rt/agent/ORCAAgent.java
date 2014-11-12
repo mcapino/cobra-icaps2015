@@ -204,9 +204,9 @@ public class ORCAAgent extends Agent {
 		Vector2 currentPosition = rvoAgent.position_;
 		double distanceToGoal = currentPosition.toPoint2i().distance(getCurrentGoal());
 
-		if (currentPosition.toPoint2i().distance(getCurrentGoal()) < NEAR_GOAL_EPS) {
-			rvoAgent.setPrefVelocity(new Vector2(0, 0));
-		} else {
+		//if (currentPosition.toPoint2i().distance(getCurrentGoal()) < NEAR_GOAL_EPS) {
+			//rvoAgent.setPrefVelocity(new Vector2(0, 0));
+		//} else {
 			Vector desiredVelocity = desiredControl.getDesiredControl(rvoAgent.position_.toPoint2d());
 			assert !Double.isNaN(desiredVelocity.x) && !Double.isNaN(desiredVelocity.y);
 			double desiredSpeed = desiredVelocity.length();
@@ -224,7 +224,7 @@ public class ORCAAgent extends Agent {
 			}
 			
 			rvoAgent.setPrefVelocity(new Vector2(desiredVelocity));
-		}
+		//}
 	}
 
     protected void updateNeighborsFromBlackboard() {
@@ -270,4 +270,16 @@ public class ORCAAgent extends Agent {
 	protected boolean currentTaskDestinationReached() {
 		return currentTask.distance(getCurrentPos()) < GOAL_REACHED_TOLERANCE;
 	}
+
+	@Override
+	public long getSumTravelTimeRest() {
+		return 0;
+	}
+	
+	@Override
+	public long getSumTravelTimeTouch() {
+		return getSumTaskDuration();
+	}
+	
+	
 }

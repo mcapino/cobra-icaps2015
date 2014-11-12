@@ -42,6 +42,12 @@ public abstract class PlanningAgent extends Agent {
 	protected int goalReachedTime;
 	protected Point currentPos;
 	
+    long lastTaskTravelStartedAt;
+    long sumTravelTimeRest;
+
+	private long sumTravelTimeTouch;
+	protected boolean currentTaskTouchedGoal;
+	
 	public PlanningAgent(String name, Point start, int nTasks,
 			Environment environment, DirectedGraph<Point, Line> planningGraph,
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, Random random) {
@@ -138,6 +144,31 @@ public abstract class PlanningAgent extends Agent {
 	@Override
 	protected boolean currentTaskDestinationReached() {
 		return CommonTime.currentTimeMs() >= goalReachedTime;
+	}
+	
+	@Override
+	public void tick(int timeMs) {
+		
+		if (!currentTaskTouchedGoal && getCurrentPos().equals(currentTask)) {
+			sumTravelTimeTouch += (CommonTime.currentTimeMs() - lastTaskTravelStartedAt);
+			currentTaskTouchedGoal = true;
+		}
+		
+		if (currentTask != null && currentTaskDestinationReached()) {
+			sumTravelTimeRest += (CommonTime.currentTimeMs() - lastTaskTravelStartedAt);
+		}
+		
+		super.tick(timeMs);
+	}
+
+	@Override
+	public long getSumTravelTimeRest() {
+		return sumTravelTimeRest;
+	}
+	
+	@Override
+	public long getSumTravelTimeTouch() {
+		return sumTravelTimeTouch;
 	}
 	
 }

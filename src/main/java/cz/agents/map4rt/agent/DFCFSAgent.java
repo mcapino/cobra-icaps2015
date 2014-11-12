@@ -1,18 +1,15 @@
 package cz.agents.map4rt.agent;
 
-import java.util.List;
 import java.util.Random;
 
 import org.jgrapht.DirectedGraph;
 
-import cz.agents.map4rt.CommonTime;
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.probleminstance.Environment;
 import tt.euclidtime3i.region.MovingCircle;
-import tt.jointeuclid2ni.probleminstance.RelocationTask;
-import tt.jointeuclid2ni.probleminstance.RelocationTaskImpl;
+import cz.agents.map4rt.CommonTime;
 
 public class DFCFSAgent extends PlanningAgent {
 
@@ -39,6 +36,8 @@ public class DFCFSAgent extends PlanningAgent {
 		int samplingInterval = timeStep/2;
 		Token.register(getName(), new MovingCircle(traj, agentBodyRadius, samplingInterval));
 		currentTrajectory = traj;
+		lastTaskTravelStartedAt = depTime;
+		currentTaskTouchedGoal = false;
 	}
 
 	@Override
