@@ -1,18 +1,20 @@
 #!/bin/bash
 
-# ubremen
+#--ubremen
 #envname=ubremen-r27-docks
 #instancesetname="ubremen-r27"
 #radius=27
 #gridedgelen="65"
 #maxtime=600000
+#agents="1 5 10 15 20 30 35"
 
-# warehouse
+#--warehouse
 envname=warehouse-r25-docks
 instancesetname="warehouse-r25"
 radius=25
 gridedgelen="54"
 maxtime=600000
+agents="1 5 10 15 20 30 40 50"
 
 denvxml="d-envs/$envname.xml"
 instancefolder="instances/$instancesetname"
@@ -20,14 +22,14 @@ maxspeed="0.05"
 timestep=`echo "import math;print(int(math.ceil($gridedgelen/(2*$maxspeed))))" | python`
 ntasks="4"
 
-echo "Will use timestep $timestep"
+echo "Preparing instanceset $instancesetname. Will use timestep $timestep."
 
 mkdir -p $instancefolder
 rm $instancefolder/*
 cp prepare.sh $instancefolder/
 
 instance=0
-for nagents in "1" "5" "10" "15" "20" "30" "35" "40" "50" "60"
+for nagents in $agents
 do
     for seed in {1..10}
     do
@@ -50,6 +52,6 @@ do
 	    echo Finished instance no $instance. Agents: $nagents. Seed: $seed.
     done        
 done
-echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;simfinished" > $instancefolder/head
+echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;avgtasktime;avgtravelt;avgtravelr;makespan" > $instancefolder/head
 echo Done. Created $instance instances at $envname environment. Instances stored in $instancefolder.
 
