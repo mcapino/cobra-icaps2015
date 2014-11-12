@@ -1,1 +1,1 @@
-env;instance;nagents;radius;seed;timestep;maxtime;alg;status;time;simfinished
+env;instance;nagents;radius;seed;timestep;maxtime;alg;status;avgtasktime;avgtravelt;avgtravelr;makespan
