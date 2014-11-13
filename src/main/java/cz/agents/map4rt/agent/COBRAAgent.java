@@ -11,9 +11,9 @@ import tt.euclid2i.probleminstance.Environment;
 import tt.euclidtime3i.region.MovingCircle;
 import cz.agents.map4rt.CommonTime;
 
-public class DFCFSAgent extends PlanningAgent {
+public class COBRAAgent extends PlanningAgent {
 
-	public DFCFSAgent(String name, Point start, int nTasks,
+	public COBRAAgent(String name, Point start, int nTasks,
 			Environment env, DirectedGraph<Point, Line> planningGraph, 
 			int agentBodyRadius, float maxSpeed, int maxTime, int timeStep, Random random) {
 		super(name, start, nTasks, env, planningGraph, agentBodyRadius, maxSpeed, maxTime, timeStep, random);

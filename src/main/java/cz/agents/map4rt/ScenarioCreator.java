@@ -35,7 +35,7 @@ import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
 import cz.agents.map4rt.agent.BaselineAgent;
 import cz.agents.map4rt.agent.CurrentTasks;
-import cz.agents.map4rt.agent.DFCFSAgent;
+import cz.agents.map4rt.agent.COBRAAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
 import cz.agents.map4rt.agent.PlanningAgent;
 
@@ -153,7 +153,7 @@ public class ScenarioCreator {
 	            break;
 
 	        case COBRA:
-	            solveDFCFS(problem, params);
+	            solveCOBRA(problem, params);
 	            break;
 
 	        case ORCA:
@@ -178,13 +178,13 @@ public class ScenarioCreator {
         }, params);
     }  
 	
-	private static void solveDFCFS(final RelocationTaskCoordinationProblem problem, final Parameters params) {
+	private static void solveCOBRA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
             public Agent createAgent(String name, int i, Point start, int nTasks,
                     Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
 
-				PlanningAgent agent = new DFCFSAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.random);
+				PlanningAgent agent = new COBRAAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.random);
                 return agent;
             }
         }, params);
