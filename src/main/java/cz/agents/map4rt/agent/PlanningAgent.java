@@ -43,9 +43,7 @@ public abstract class PlanningAgent extends Agent {
 	protected Point currentPos;
 	
     long lastTaskTravelStartedAt;
-    long sumTravelTimeRest;
-
-	private long sumTravelTimeTouch;
+	
 	protected boolean currentTaskTouchedGoal;
 	
 	public PlanningAgent(String name, Point start, int nTasks,
@@ -143,32 +141,29 @@ public abstract class PlanningAgent extends Agent {
 	
 	@Override
 	protected boolean currentTaskDestinationReached() {
-		return CommonTime.currentTimeMs() >= goalReachedTime;
+		return currentTask != null && CommonTime.currentTimeMs() >= goalReachedTime;
 	}
 	
 	@Override
 	public void tick(int timeMs) {
 		
-		if (!currentTaskTouchedGoal && getCurrentPos().equals(currentTask)) {
-			sumTravelTimeTouch += (CommonTime.currentTimeMs() - lastTaskTravelStartedAt);
+		if (currentTask != null && !currentTaskTouchedGoal && getCurrentPos().equals(currentTask)) {
+			// DESTINATION TOUCHED
+			long prolongT = (CommonTime.currentTimeMs() - lastTaskTravelStartedAt) - this.currentTaskBaseDuration;
+			prolongTSum += prolongT;
+			prolongTSumSq += prolongT * prolongT;
+			
 			currentTaskTouchedGoal = true;
 		}
 		
 		if (currentTask != null && currentTaskDestinationReached()) {
-			sumTravelTimeRest += (CommonTime.currentTimeMs() - lastTaskTravelStartedAt);
+			// DESTINATION REACHED AND THE ROBOT CAN REST
+			long prolongR = (CommonTime.currentTimeMs() - lastTaskTravelStartedAt) - this.currentTaskBaseDuration;
+			prolongRSum += prolongR;
+			prolongRSumSq += prolongR * prolongR;
 		}
 		
 		super.tick(timeMs);
 	}
 
-	@Override
-	public long getSumTravelTimeRest() {
-		return sumTravelTimeRest;
-	}
-	
-	@Override
-	public long getSumTravelTimeTouch() {
-		return sumTravelTimeTouch;
-	}
-	
 }

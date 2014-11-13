@@ -29,6 +29,7 @@ import tt.jointeuclid2ni.probleminstance.RelocationTask;
 import util.DesiredControl;
 import util.GraphBasedOptimalPolicyController;
 import cz.agents.alite.communication.Message;
+import cz.agents.map4rt.CommonTime;
 import cz.agents.map4rt.agent.PositionBlackboard.Record;
 import cz.agents.map4rt.msg.InformNewPosition;
 
@@ -160,7 +161,15 @@ public class ORCAAgent extends Agent {
 
     @Override
 	public void tick(int time) {
+    	
+    	if (currentTask != null && currentTaskDestinationReached()) {
+    		long prolongT = (CommonTime.currentTimeMs() - lastTaskIssuedAt) - currentTaskBaseDuration;
+    		prolongTSum += prolongT;
+    		prolongTSumSq += prolongT * prolongT;
+    	}
+    	
 		super.tick(time);
+			
 
         if (showVis) {
 //	        try {
@@ -254,6 +263,7 @@ public class ORCAAgent extends Agent {
 
 	@Override
 	protected void handleNewTask(Point task) {
+				
 		desiredControl = new GraphBasedOptimalPolicyController(planningGraph,
 				task, ttObstaclesLessInflated, maxSpeed,
 				DesiredControlNodeSearchRadius, showVis);		
@@ -270,16 +280,4 @@ public class ORCAAgent extends Agent {
 	protected boolean currentTaskDestinationReached() {
 		return currentTask.distance(getCurrentPos()) < GOAL_REACHED_TOLERANCE;
 	}
-
-	@Override
-	public long getSumTravelTimeRest() {
-		return 0;
-	}
-	
-	@Override
-	public long getSumTravelTimeTouch() {
-		return getSumTaskDuration();
-	}
-	
-	
 }

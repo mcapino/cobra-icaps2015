@@ -50,7 +50,7 @@ do
         ## ConflictGenerator
         java -XX:+UseSerialGC -cp solver.jar -Dlog4j.configuration="file:$PWD/log4j.custom" tt.jointeuclid2ni.probleminstance.generator.GenerateRTInstance -env $denvxml -nagents $nagents -radius $radius -maxspeed $maxspeed  -seed $seed -outfile $instancefile
                
-        algs="BASE ORCA DFCFS"
+        algs="ORCA COBRA"
         
         for alg in $algs
         do
@@ -61,6 +61,6 @@ do
 	    echo Finished instance no $instance. Agents: $nagents. Seed: $seed.
     done        
 done
-echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;avgtasktime;avgtravelt;avgtravelr;makespan" > $instancefolder/head
+echo "env;instance;nagents;radius;seed;timestep;maxtime;alg;status;avgBase;varBase;avgWait;varWait;avgPlan;varPlan;avgPWindow;varPWindow;avgProlongT;varProlongT;avgProlongR;varProlongR;makespan" > $instancefolder/head
 echo Done. Created $instance instances at $envname environment. Instances stored in $instancefolder.
 

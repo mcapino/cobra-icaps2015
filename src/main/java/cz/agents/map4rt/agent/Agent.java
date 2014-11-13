@@ -8,6 +8,9 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.GraphPath;
+import org.jgrapht.alg.AStarShortestPathSimple;
+import org.jgrapht.util.HeuristicToGoal;
 
 import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
@@ -45,13 +48,26 @@ public abstract class Agent {
     Random random;
     
     long lastTaskIssuedAt;
-    long sumTaskDuration;
-          
     long lastTaskReachedAtMs;    
     long issueFirstTaskAt = 0;
-    
-    
 
+	protected long currentTaskBaseDuration;
+
+	public long baseSum;
+	public long baseSumSq;
+	
+	public long waitSum;
+	public long waitSumSq;	
+	public long planSum;
+	public long planSumSq;
+	public long pWindowSum;
+	public long pWindowSumSq;	
+	
+	public long prolongTSum;
+	public long prolongTSumSq;	
+	public long prolongRSum;
+	public long prolongRSumSq;
+	
 	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
         this.name = name;
@@ -134,15 +150,22 @@ public abstract class Agent {
     	if (currentTask == null && CommonTime.currentTimeMs() > issueFirstTaskAt && nTasks > 0) {
     		lastTaskIssuedAt = CommonTime.currentTimeMs();
     		synchronized (Agent.class) {
+    			long waitDuration = CommonTime.currentTimeMs() - lastTaskIssuedAt;
+    			waitSum += waitDuration;
+    			waitSumSq += waitDuration * waitDuration;
+    			
     			currentTask = CurrentTasks.assignRandomDestination(getName(), random);
-    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ". There is " + nTasks + " tasks in the stack to be carried out.");
+    			currentTaskBaseDuration = getTaskDuration(getCurrentPos(), currentTask);
+    			baseSum += currentTaskBaseDuration;
+    			baseSumSq += currentTaskBaseDuration * currentTaskBaseDuration;
+    			
+    			LOGGER.info(getName() + " Carrying out new task " + currentTask + ", baseline duration is " + currentTaskBaseDuration + ". There is " + nTasks + " tasks in the stack to be carried out.");
     			handleNewTask(currentTask);
     			nTasks--;
     		}
     	} 
     	
     	if (currentTask != null && currentTaskDestinationReached()) {
-			sumTaskDuration += (CommonTime.currentTimeMs() - lastTaskIssuedAt);
 			if (nTasks == 0) {
     			LOGGER.info(getName() + " finished all tasks");
     			lastTaskReachedAtMs = CommonTime.currentTimeMs();
@@ -186,11 +209,22 @@ public abstract class Agent {
 		this.issueFirstTaskAt = issueFirstTaskAt;
 	}
 	
-	public long getSumTaskDuration() {
-		return sumTaskDuration;
+	protected long getTaskDuration(final Point startPoint, final Point goal) {
+		
+		HeuristicToGoal<Point> heuristic = new HeuristicToGoal<Point>() {
+			@Override
+			public double getCostToGoalEstimate(Point current) {
+				return current.distance(goal);
+			}
+		};
+		
+        GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(getPlanningGraph(),
+                heuristic,
+                startPoint,
+                goal);
+        
+        return (long) (path.getWeight()/maxSpeed);
 	}
 	
-	public abstract long getSumTravelTimeRest();
-	public abstract long getSumTravelTimeTouch();
-	
+
 }

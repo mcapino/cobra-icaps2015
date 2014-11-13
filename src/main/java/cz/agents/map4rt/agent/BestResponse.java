@@ -121,7 +121,7 @@ public class BestResponse {
         	for (int t=minTime; t < depTime; t += timeStep) {
         		edgeList.add(new Straight(new tt.euclidtime3i.Point(start, t), new tt.euclidtime3i.Point(start, t+timeStep)));
         	}
-        	assert edgeList.get(edgeList.size()-1).getEnd().getTime() == depTime;
+        	assert edgeList.isEmpty() || edgeList.get(edgeList.size()-1).getEnd().getTime() == depTime;
         	edgeList.addAll(path.getEdgeList());
         	
         	GraphPathImpl<tt.euclidtime3i.Point, Straight> path2 

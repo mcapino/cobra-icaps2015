@@ -33,7 +33,6 @@ import cz.agents.alite.simulation.vis.SimulationControlLayer.SimulationControlPr
 import cz.agents.alite.vis.VisManager;
 import cz.agents.alite.vis.layer.toggle.KeyToggleLayer;
 import cz.agents.map4rt.agent.Agent;
-import cz.agents.map4rt.agent.BaselineAgent;
 import cz.agents.map4rt.agent.CurrentTasks;
 import cz.agents.map4rt.agent.COBRAAgent;
 import cz.agents.map4rt.agent.ORCAAgent;
@@ -61,9 +60,7 @@ public class ScenarioCreator {
     static Logger LOGGER = Logger.getLogger(ScenarioCreator.class);
 		
     enum Method {
-    	BASE, 	/* Only computes single-agent paths, does not resolve conflicts. Uses spatial planner. */
-    	BASEST, /* Only computes single-agent paths, does not resolve conflicts. Uses space-time planner. */
-    	COBRA,  /* Continuous Best-Response Approach */
+    	COBRA,  
         ORCA }
 
 
@@ -131,7 +128,7 @@ public class ScenarioCreator {
 						Thread.sleep(50);
 					} catch (InterruptedException e) {}
 				}
-				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1, -1, -1);
+				printSummary(summaryPrefix, Status.TIMEOUT, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1);
 				System.exit(0);
 			}
     	};
@@ -148,10 +145,6 @@ public class ScenarioCreator {
         
         switch (method) {
         
-	        case BASE:
-	            solveBASE(problem, params);
-	            break;
-
 	        case COBRA:
 	            solveCOBRA(problem, params);
 	            break;
@@ -166,18 +159,6 @@ public class ScenarioCreator {
         }
     }
 
-	private static void solveBASE(final RelocationTaskCoordinationProblem problem, final Parameters params) {
-        simulate(problem, new AgentFactory() {
-            @Override
-            public Agent createAgent(String name, int i, Point start, int nTasks,
-                    Environment env, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float speed) {
-
-				PlanningAgent agent = new BaselineAgent(name, start, nTasks, env, planningGraph, agentBodyRadius, speed, params.maxTime, params.timeStep, params.random);
-                return agent;
-            }
-        }, params);
-    }  
-	
 	private static void solveCOBRA(final RelocationTaskCoordinationProblem problem, final Parameters params) {
         simulate(problem, new AgentFactory() {
             @Override
@@ -283,20 +264,69 @@ public class ScenarioCreator {
 			} catch (InterruptedException e) {}
         }
         
-        long sumTaskDuration = 0;
-        long sumTravelTimeTouch = 0;
-        long sumTravelTimeRest = 0;
+        
+    	long baseSum = 0;
+    	long baseSumSq = 0;
+    	long waitSum = 0;
+    	long waitSumSq = 0;	
+    	long planSum = 0;
+    	long planSumSq = 0;
+    	long pWindowSum = 0;
+    	long pWindowSumSq = 0;	
+    	long prolongTSum = 0;
+    	long prolongTSumSq = 0;	
+    	long prolongRSum = 0;
+    	long prolongRSumSq = 0;
+        
         for (Agent agent : agents) {
-			sumTaskDuration += agent.getSumTaskDuration();
-			sumTravelTimeTouch += agent.getSumTravelTimeTouch();
-			sumTravelTimeRest += agent.getSumTravelTimeRest();
+        	baseSum +=  agent.baseSum;
+        	baseSumSq += agent.baseSumSq ;
+        	
+        	waitSum += agent.waitSum;
+        	waitSumSq += agent.waitSumSq;	
+        	
+        	planSum += agent.planSum;
+        	planSumSq += agent.planSumSq;
+        	
+        	pWindowSum += agent.pWindowSum;
+        	pWindowSumSq += agent.pWindowSumSq;	
+        	
+        	prolongTSum += agent.prolongTSum;
+        	prolongTSumSq += agent.prolongTSumSq;	
+        	
+        	prolongRSum += agent.prolongRSum;
+        	prolongRSumSq += agent.prolongRSumSq;
 		}
         
-        long avgTaskDuration = sumTaskDuration / (agents.size() * params.nTasks);
-        long avgTravelTimeTouch = sumTravelTimeTouch / (agents.size() * params.nTasks);
-        long avgTravelTimeRest = sumTravelTimeRest / (agents.size() * params.nTasks);
+        long n = agents.size() * params.nTasks;
         
-        printSummary(params.summaryPrefix, Status.SUCCESS, avgTaskDuration, avgTravelTimeTouch, avgTravelTimeRest, CommonTime.currentTimeMs()-initalizedAtMs);
+        long avgBase = avg(baseSum, n);
+        long varBase = sd(baseSumSq, avgBase, n);
+        
+        long avgWait = avg(waitSum, n);
+        long varWait = sd(waitSumSq, avgWait, n);
+        
+        long avgPlan = avg(planSum, n);
+        long varPlan = sd(planSumSq, avgPlan, n);
+        
+        long avgPWindow = avg(pWindowSum, n);
+        long varPWindow = sd(pWindowSumSq,  avgPWindow, n);
+        
+        long avgProlongT = avg(prolongTSum, n);
+        long varProlongT = sd(prolongTSumSq, avgProlongT, n);
+        
+        long avgProlongR = avg(prolongRSum, n);
+        long varProlongR = sd(prolongRSumSq, avgProlongR, n);
+        // avgBase;varBase;avgWait;varWait;avgPlan;varPlan;avgPWindow;varPWindow;avgProlongT;varProlongT;avgProlongR;varProlongR;makespan
+
+		printSummary(params.summaryPrefix, Status.SUCCESS, 
+				avgBase,varBase,
+				avgWait,varWait,
+				avgPlan,varPlan,
+				avgPWindow,varPWindow,
+				avgProlongT,varProlongT,
+				avgProlongR,varProlongR,
+				CommonTime.currentTimeMs() - initalizedAtMs);
     }
     
     private static boolean allDone(List<Agent> agents) {
@@ -368,9 +398,34 @@ public class ScenarioCreator {
 
     enum Status {SUCCESS, FAIL, TIMEOUT}
 
-	private static void printSummary(String prefix, Status status, long avgTaskDuration, long avgTravelTimeTouch, long avgTravelTimeRest, long makeSpan) {
-	    	System.out.println(prefix + status.toString() + ";" + avgTaskDuration + ";" + avgTravelTimeTouch + ";" + avgTravelTimeRest + ";" + makeSpan);
+	private static void printSummary(String prefix, Status status, 
+	        long avgBase, long varBase, 
+	        long avgWait, long varWait, 
+	        long avgPlan, long varPlan, 
+	        long avgPWindow, long varPWindow, 
+	        long avgProlongT, long varProlongT, 
+	        long avgProlongR,  long varProlongR,
+	        long makespan
+			) {
+	    	System.out.println(prefix + status.toString() 
+	    	         + ";" + avgBase  + ";" + varBase 
+	    	         + ";" + avgWait  + ";" + varWait 
+	    	         + ";" + avgPlan  + ";" + varPlan 
+	    	         + ";" + avgPWindow  + ";" + varPWindow 
+	    	         + ";" + avgProlongT  + ";" + varProlongT 
+	    	         + ";" + avgProlongR   + ";" + varProlongR
+	    	         + ";" + makespan
+	    			);
 	    	System.exit(0);
     }
+	
+	static long avg(long sum, long n) {
+		return sum / n;
+	}
+	
+	static long sd(long sumSq, long mean, long n) {
+		double var = (sumSq/n) - (mean*mean); 
+		return (long) Math.round(Math.sqrt(var));
+	}
 
 }
