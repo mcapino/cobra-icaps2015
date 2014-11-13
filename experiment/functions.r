@@ -7,30 +7,24 @@ pd <- position_dodge(2)
 
 load.and.preprocess <- function(env) {
   dir <- paste("instances/",env, sep="")
-  imgdir <- paste(dir, "/figs/", sep="")
-  plotsdir <- paste(dir, "/../plots/", sep="")
   runs <- read.csv(file=paste(dir, "/data.out.head", sep=""), head=TRUE, sep=";")
   runs <- runs[order(runs$instance, runs$alg),]
-  runs$alg <- revalue(runs$alg, c("DFCFS" = "COBRA"))
-  runs$avgtravelr[runs$alg=="ORCA"] <- runs$avgtravelt[runs$alg=="ORCA"]
-  runs$avgtasktime[runs$avgtasktime < 1] <- NA
-  runs$avgtravelt[runs$avgtravelt < 1] <- NA 
-  runs$avgtravelr[runs$avgtravelr < 1] <- NA
   
-  algs <- unique(runs$alg)
-  for (instance in unique(runs$instance)) {
-    for (alg in unique(runs$alg)) {
-      runs$avgtaskprolong[runs$instance==instance & runs$alg==alg] <- 
-        runs$avgtasktime[runs$instance==instance & runs$alg==alg] - runs$avgtasktime[runs$instance==instance & runs$alg=="BASE"] 
-      
-      runs$avgttprolong[runs$instance==instance & runs$alg==alg] <- 
-        runs$avgtravelt[runs$instance==instance & runs$alg==alg] - runs$avgtravelt[runs$instance==instance & runs$alg=="BASE"] 
-      
-      runs$avgtrprolong[runs$instance==instance & runs$alg==alg] <- 
-        runs$avgtravelr[runs$instance==instance & runs$alg==alg] - runs$avgtravelr[runs$instance==instance & runs$alg=="BASE"] 
-    
-    }
-  }
+  runs$avgProlongR[runs$alg=="ORCA"] <- runs$avgProlongT[runs$alg=="ORCA"]
+  runs$varProlongR[runs$alg=="ORCA"] <- runs$varProlongT[runs$alg=="ORCA"]
+  
+  runs$avgBase[runs$status=="TIMEOUT"] <- NA
+  runs$varBase[runs$status=="TIMEOUT"] <- NA
+  runs$avgWait[runs$status=="TIMEOUT"] <- NA
+  runs$varWait[runs$status=="TIMEOUT"] <- NA
+  runs$avgPlan[runs$status=="TIMEOUT"] <- NA
+  runs$varPlan[runs$status=="TIMEOUT"] <- NA
+  runs$avgPWindow[runs$status=="TIMEOUT"] <- NA
+  runs$varPWindow[runs$status=="TIMEOUT"] <- NA
+  runs$avgProlongT[runs$status=="TIMEOUT"] <- NA
+  runs$varProlongT[runs$status=="TIMEOUT"] <- NA
+  runs$avgProlongR[runs$status=="TIMEOUT"] <- NA
+  runs$varProlongR[runs$status=="TIMEOUT"] <- NA
   
   maxagents <<- max(runs$nagents) + 3
 
@@ -63,106 +57,52 @@ successrate.nagents <- function(runs) {
   return(plot)
 }
 
-avgtasktime.vs.nagents <- function(runs) {  
-  time.sum <- ddply(runs, .(nagents, alg), summarise,  
-                    N = sum(!is.na(time)),
-                    mean = mean(avgtasktime, na.rm=TRUE),
-                    med = median(avgtasktime, na.rm=TRUE),
-                    sd = sd(avgtasktime, na.rm=TRUE),
-                    se = sd / sqrt(N),
-                    min = min(avgtasktime, na.rm=TRUE),
-                    max = max(avgtasktime, na.rm=TRUE))
-  
-  plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg)) +
-    geom_errorbar(aes(ymin=(mean-se)/1000, ymax=(mean+se)/1000), width=1, position=pd, size=0.5, alpha=0.5) +
-    geom_line(size=1, position=pd)+ 
-    geom_point(size=3, position=pd, fill="white")+   
-    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="avg. time to finish a tasks [s]") +
-    scale_x_continuous(limits=c(0,maxagents), name="no of robots [-]") +  
-    theme_bw() +
-    ggtitle("Avg. time to finish a task")
-  
-  return(plot)
-}
-
 avgtaskprolong.vs.nagents <- function(runs) {  
-  avg.sum <- ddply(runs, .(nagents, alg), summarise,  
-                    N = sum(!is.na(time)),
-                    mean = mean(avgtaskprolong, na.rm=TRUE),
-                    med = median(avgtaskprolong, na.rm=TRUE),
-                    sd = sd(avgtaskprolong, na.rm=TRUE),
-                    se = sd / sqrt(N),
-                    min = min(avgtaskprolong, na.rm=TRUE),
-                    max = max(avgtaskprolong, na.rm=TRUE))
   
-  travelr.sum <- ddply(runs, .(nagents, alg), summarise,  
-                    N = sum(!is.na(time)),
-                    mean = mean(avgtrprolong, na.rm=TRUE),
-                    med = median(avgtrprolong, na.rm=TRUE),
-                    sd = NA,
-                    se = NA,
-                    min = min(avgtrprolong, na.rm=TRUE),
-                    max = max(avgtrprolong, na.rm=TRUE))
+  avgbase <- mean(runs$avgBase, na.rm=TRUE)
   
-  avg.sum$type <- "incl. planning"
-  travelr.sum$type <- "excl. planning"
+  travel <- ddply(runs, .(nagents, alg), summarise,  
+                    N = sum(!is.na(avgProlongR)),
+                    mean = mean(avgProlongR, na.rm=TRUE),
+                    sd = mean(varProlongR, na.rm=TRUE),
+                    se = sd / sqrt(N*max(nagents)*4))
   
-  combined <- rbind(avg.sum, travelr.sum[travelr.sum$alg=="COBRA",])
-  combined$type <- factor(combined$type, c("incl. planning", "excl. planning"))
+  travelT <- ddply(runs[runs$alg=="COBRA",], .(nagents, alg), summarise,  
+                  N = sum(!is.na(avgProlongT)),
+                  mean = mean(avgProlongT, na.rm=TRUE),
+                  sd = mean(varProlongT, na.rm=TRUE),
+                  se = sd / sqrt(N*max(nagents)*4))
+                   
+  travelPlanning <- ddply(runs, .(nagents, alg), summarise,  
+                  N = sum(!is.na(avgPWindow)),
+                  mean = mean(avgPWindow, na.rm=TRUE),
+                  sd = mean(varPWindow, na.rm=TRUE),
+                  se = sd / sqrt(N*max(nagents)*4))                   
+  
+ 
+  travelPlanning$mean <- travelPlanning$mean + travel$mean
+  travelPlanning$sd <- NA
+  
+  travel$type <- "travel only"
+  travelT$type <- "travel (t) only "
+  travelPlanning$type <- "planning + travel"
+  
+  combined <- rbind(travel, travelPlanning[travelPlanning$alg=="COBRA",])
+  combined$type <- factor(combined$type, c("travel only", "planning + travel"))
   
   plot <- ggplot(combined, aes(x=nagents, y=mean/1000, color=alg, linetype=type, shape=alg)) +
-    geom_errorbar(aes(ymin=(mean-sd)/1000, ymax=(mean+sd)/1000), width=2, position=pd, size=1, alpha=0.5) +
+    geom_errorbar(aes(ymin=(mean-sd)/1000, ymax=(mean+sd)/1000), width=4, position=pd, size=0.5, alpha=0.5) +
+    #geom_errorbar(aes(ymin=(mean-se)/1000, ymax=(mean+se)/1000), width=4, position=pd, size=1, alpha=1) +
     geom_line(size=1, position=pd)+ 
     geom_point(size=3, position=pd, fill="white")+   
-    scale_y_continuous(limits=c(min(combined$mean-combined$se, na.rm=TRUE)/1000, max(combined$mean+combined$se, na.rm=TRUE)/1000), name="avg. prolongation [s]") +
+    #scale_y_continuous(limits=c(min(combined$mean-combined$sd, na.rm=TRUE)/1000, max(combined$mean+combined$sd, na.rm=TRUE)/1000), name="avg. prolongation [s]") +
+    scale_y_continuous(name="avg. prolongation [s]") +
     scale_x_continuous(limits=c(0,maxagents), name="no of robots [-]") +  
     theme_bw() +
-    ggtitle("Avg. task prolongation due to collision avoidance")
+    ggtitle(paste("Avg. prolongation of a relocation task (avg. ", round(avgbase/1000),  "s long) due to collision avoidance"))
   
   return(plot)
 }
 
-avgttprolong.vs.nagents <- function(runs) {  
-  time.sum <- ddply(runs, .(nagents, alg), summarise,  
-                    N = sum(!is.na(time)),
-                    mean = mean(avgttprolong, na.rm=TRUE),
-                    med = median(avgttprolong, na.rm=TRUE),
-                    sd = sd(avgttprolong, na.rm=TRUE),
-                    se = sd / sqrt(N),
-                    min = min(avgttprolong, na.rm=TRUE),
-                    max = max(avgttprolong, na.rm=TRUE))
-  
-  plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg)) +
-    geom_errorbar(aes(ymin=(mean-sd)/1000, ymax=(mean+sd)/1000), width=1, position=pd, size=1, alpha=0.5) +
-    geom_line(size=1, position=pd)+ 
-    geom_point(size=3, position=pd, fill="white")+   
-    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="avg. prolongation [s]") +
-    scale_x_continuous(limits=c(0,maxagents), name="no of robots [-]") +  
-    theme_bw() +
-    ggtitle("Avg. task prolongation due to collision avoidance")
-  
-  return(plot)
-}
 
-avgtrprolong.vs.nagents <- function(runs) {  
-  time.sum <- ddply(runs, .(nagents, alg), summarise,  
-                    N = sum(!is.na(time)),
-                    mean = mean(avgtrprolong, na.rm=TRUE),
-                    med = median(avgtrprolong, na.rm=TRUE),
-                    sd = sd(avgtrprolong, na.rm=TRUE),
-                    se = sd / sqrt(N),
-                    min = min(avgtrprolong, na.rm=TRUE),
-                    max = max(avgtrprolong, na.rm=TRUE))
-  
-  plot <- ggplot(time.sum, aes(x=nagents, y=mean/1000, color=alg, linetype=alg, shape=alg)) +
-    geom_errorbar(aes(ymin=(mean-sd)/1000, ymax=(mean+sd)/1000), width=1, position=pd, size=1, alpha=0.5) +
-    geom_line(size=1, position=pd)+ 
-    geom_point(size=3, position=pd, fill="white")+   
-    scale_y_continuous(limits=c(min(time.sum$mean-time.sum$se, na.rm=TRUE)/1000, max(time.sum$mean+time.sum$se, na.rm=TRUE)/1000), name="avg. prolongation [s]") +
-    scale_x_continuous(limits=c(0,maxagents), name="no of robots [-]") +  
-    theme_bw() +
-    ggtitle("Avg. task prolongation due to collision avoidance")
-  
-  return(plot)
-}
 

@@ -16,6 +16,7 @@ import tt.euclid2i.EvaluatedTrajectory;
 import tt.euclid2i.Line;
 import tt.euclid2i.Point;
 import tt.euclid2i.Region;
+import tt.euclid2i.discretization.AdditionalPointsExtension;
 import tt.euclid2i.probleminstance.Environment;
 import cz.agents.alite.communication.Communicator;
 import cz.agents.alite.communication.InboxBasedCommunicator;
@@ -67,6 +68,8 @@ public abstract class Agent {
 	public long prolongTSumSq;	
 	public long prolongRSum;
 	public long prolongRSumSq;
+
+	private double maxEdgeLength;
 	
 	public Agent(String name, Point start, int nTasks, Environment environment, DirectedGraph<Point, Line> planningGraph, int agentBodyRadius, float maxSpeed, Random random) {
         super();
@@ -80,6 +83,15 @@ public abstract class Agent {
         this.inflatedObstacles.addAll(tt.euclid2i.util.Util.inflateRegions(Collections.singleton(environment.getBoundary()), agentBodyRadius));
         this.maxSpeed = maxSpeed;
         this.planningGraph = planningGraph;
+        
+        maxEdgeLength = 0;
+        for (Line edge : getPlanningGraph().edgeSet()) {
+        	if (edge.getDistance() > maxEdgeLength) {
+        		maxEdgeLength = edge.getDistance();
+        	}
+        }
+        
+        
         assert CurrentTasks.tryToRegisterTask(name, start);
     }
 
@@ -218,7 +230,9 @@ public abstract class Agent {
 			}
 		};
 		
-        GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(getPlanningGraph(),
+		AdditionalPointsExtension graph = new AdditionalPointsExtension(getPlanningGraph(), Collections.singleton(startPoint), (int) Math.ceil(maxEdgeLength));
+		
+        GraphPath<Point, Line> path = AStarShortestPathSimple.findPathBetween(graph,
                 heuristic,
                 startPoint,
                 goal);
