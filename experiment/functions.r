@@ -98,10 +98,20 @@ avgtaskprolong.vs.nagents <- function(runs) {
     #scale_y_continuous(limits=c(min(combined$mean-combined$sd, na.rm=TRUE)/1000, max(combined$mean+combined$sd, na.rm=TRUE)/1000), name="avg. prolongation [s]") +
     scale_y_continuous(name="avg. prolongation [s]") +
     scale_x_continuous(limits=c(0,maxagents), name="no of robots [-]") +  
+    scale_linetype_discrete(name="") +
+    scale_color_discrete(name="Method: ") +
+    scale_shape(name="Method: ") +
     theme_bw() +
-    ggtitle(paste("Avg. prolongation of a relocation task (avg. ", round(avgbase/1000),  "s long) due to collision avoidance"))
+    ggtitle(paste("Avg. prolongation  of a relocation task (avg. ", round(avgbase/1000),  "s long)\n due to collision avoidance"))
   
   return(plot)
+}
+
+get.legend<-function(plot){
+  tmp <- ggplotGrob(plot)
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
 }
 
 

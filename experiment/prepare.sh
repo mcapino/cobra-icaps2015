@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #--ubremen
-#envname=ubremen-r27-docks
-#instancesetname="ubremen-r27"
-#radius=27
-#gridedgelen="65"
-#maxtime=600000
-#agents="1 5 10 15 20 30 35"
+envname=ubremen-r27-docks
+instancesetname="ubremen-r27"
+radius=27
+gridedgelen="65"
+maxtime=600000
+agents="1 5 10 15 20 30 35"
 
 #--warehouse
 #envname=warehouse-r25-docks
@@ -17,12 +17,12 @@
 #agents="1 5 10 15 20 30 40 50"
 
 #--empty-hall
-envname=empty-hall-r25-docks
-instancesetname="empty-hall-r25"
-radius=24
-gridedgelen="54"
-maxtime=600000
-agents="1 5 10 15 20 30 40 50"
+#envname=empty-hall-r25-docks
+#instancesetname="empty-hall-r25"
+#radius=20
+#gridedgelen="54"
+#maxtime=600000
+#agents="1 5 10 15 20 30 40 50"
 
 
 denvxml="d-envs/$envname.xml"

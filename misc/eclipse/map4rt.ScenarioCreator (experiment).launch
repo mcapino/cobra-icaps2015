@@ -8,7 +8,7 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.m2e.launchconfig.classpathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="cz.agents.map4rt.ScenarioCreator"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method BASE -problemfile experiment/instances/ubremen-r27/20.xml -maxtime 600000 -timestep 650 -showvis -timeout 600000 -ntasks 4 -seed 10"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-method COBRA -problemfile experiment/instances/empty-hall-r25/72.xml -maxtime 600000 -timestep 540 -showvis -timeout 600000 -ntasks 4 -seed 2"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="map4rt"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.m2e.launchconfig.sourcepathProvider"/>
 </launchConfiguration>
