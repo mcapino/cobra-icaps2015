@@ -2,7 +2,8 @@
 source("functions.r")
 
 ### Load the data
-runs <- load.and.preprocess('warehouse-r25')
+
+runs <- load.and.preprocess('empty-hall-r25')
 
 ### scatter plot of all gathered raw data
 
