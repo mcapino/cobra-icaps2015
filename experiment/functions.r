@@ -47,7 +47,7 @@ successrate.nagents <- function(runs) {
                        successrate = sum(status=="SUCCESS") / length(unique(instance))
   )
   
-  plot <- ggplot(successrate, aes(nagents, successrate*100, color=alg, linetype=alg, shape=alg)) + 
+  plot <- ggplot(successrate, aes(nagents, successrate*100, color=alg, shape=alg)) + 
     geom_point(size=3) + geom_line(size=1) +
     scale_y_continuous(limits=c(0,100), name=("Instances solved [%]")) +  
     scale_x_continuous(limits=c(0,maxagents), name=("No of robots")) +
