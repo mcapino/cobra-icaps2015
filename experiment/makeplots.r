@@ -27,9 +27,3 @@ imgdir <- "plots/"
 make.plots(imgdir=imgdir, env="ubremen-r27")
 make.plots(imgdir=imgdir, env="warehouse-r25")
 make.plots(imgdir=imgdir, env="empty-hall-r25")
-
-make.plots(imgdir="/home/capino/projects/deconfliction/repo-doc/icaps2015/plots/", env="ubremen-r27")
-make.plots(imgdir="/home/capino/projects/deconfliction/repo-doc/icaps2015/plots/", env="warehouse-r25")
-make.plots(imgdir="/home/capino/projects/deconfliction/repo-doc/icaps2015/plots/", env="empty-hall-r25")
-
-
