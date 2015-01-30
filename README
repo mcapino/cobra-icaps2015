@@ -1,6 +1,11 @@
 Multi-Agent trajectory Planning for Relocation Tasks
 ==================================
 
+This repository contains an implementation of COBRA algorithm and the dataset used for experimental comparision as described in the paper:
+
+M. Čáp, J. Vokřínek, and A. Kleiner, “Complete decentralized method for on-line multi-robot trajectory planning in valid infrastructures,” in International conference on planning and scheduling, ICAPS 2015 (accepted), 2015.
+
+
 1. Recomputing the whole experiment:
 --------------------------------
 
