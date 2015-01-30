@@ -1,7 +1,19 @@
-Decentralized Multi-robot Planning
+Multi-Agent trajectory Planning for Relocation Tasks
 ==================================
 
-Compiling
+1. Recomputing the whole experiment:
+--------------------------------
+
+To recompute the entire experiment, run the following command:
+
+$./run-experiment.sh
+
+
+
+2. Executing single simulation run:
+-----------------------------------
+
+2.1 Compiling
 ---------
 The dependencies are managed using Maven. To compile the project and create a jar archive with dependencies run:	
 
@@ -9,20 +21,23 @@ $ mvn package
 
 The jar archive with all dependencies will be in:
 
-target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar
+target/map4rt-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 Alternatively, you can open the project in your favorite IDE, i.e. in Eclipse.
 
-Getting started
+2.2 Getting started
 ---------------
 
-The planners are run through cz.agents.admap.creator.ScenarioCreator class. 
+An simulation is run by executing cz.agents.map4rt.ScenarioCreator class.
 
 Parameters:
-  -problemfile 		Path to an xml file with problem description.
-  -method			Specifies method to be used to solve the problem. One of {PP, RPP, SDPP, SDRPP, ADPP, ADRPP, ORCA}.
-  -maxtime			Specifies the maximum time considered during trajectory planning.
+  -problemfile 		Path to the xml file with problem description.
+  -method			Specifies method to be used to solve the problem. One of {COBRA, ORCA}.
+  -maxtime			Specifies the maximum time (in miliseconds) considered during trajectory planning.
   -timestep			The discretization of time-dimension used during trajectory planning.
+  -timeout          The timeout in miliseconds after which the simulation will be terminated
+  -ntasks           Number of random tasks to generate for each robot
+  -seed             Random seed used to generate the random tasks for the robots
   -showvis          Turns on/off the visualization.
   
 Detailed information can be derived from the source code, in particular from the method cz.agents.admap.creator.ScenarioCreator.createFromArgs().  
@@ -30,26 +45,23 @@ Detailed information can be derived from the source code, in particular from the
 Example: 
 --------
 
-	Tshe following command will run the ADRPP on the example problem instance described in file problems/ubremen-n15.xml.
+The following command will run the COBRA on the example problem instance described in file experiment/instances/ubremen-r27/28.xml with 4 tasks for each robot randomly generated with random seed 8.
 
-	$ java -jar target/admap-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -problemfile problems/ubremen-n15.xml -method ADRPP -maxtime 15000 -timestep 45 -showvis
+$java -jar target/map4rt-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -method COBRA -problemfile experiment/instances/ubremen-r27/28.xml -ntasks 4 -timestep 650 -maxtime 600000 -timeout 600000 -seed 8 -showvis
 
-Visualization control: 
+2.3 Visualization control: 
 ----------------------
 
 When the visualization window pops-up, use the following keys to toggle various useful visualization layers:
   m - missions/tasks of agents
   t - trajectories of agents
   g - planning graph
-  c - conflicts between trajectories (may slow down the visualization if toggled on)
   p - polygons representing obstacles 
   
-The movement of agents can be simulated by pressing (and holding) the following keys:
-  q - move time forwards
-  a - move time backwards
-  <space> - reset time to 0
-  
 Dragging with right mouse button pressed moves the viewport. Mouse wheel zooms the view.
+
+
+
   
   
   
