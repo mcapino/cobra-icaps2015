@@ -14,18 +14,18 @@ MEM=4 # maximum memory used by one simulation run
 
 
 # run the experiment in empty-hall environment
-echo "\nRunning the experiment in empty hall...\n"
+echo -e "\nRunning the experiment in empty hall...\n"
 ./run.sh empty-hall-r25 $CPUS data.in data.out $MEM  
 ./addhead.sh empty-hall-r25
 
 
 # run the experiment in ubremen environment
-echo "\nRunning the experiment in ubremen...\n"
+echo -e "\nRunning the experiment in ubremen...\n"
 ./run.sh ubremen-r27 $CPUS data.in data.out $MEM
 ./addhead.sh ubremen-r27
 
 # run the experiment in warehouse environment
-echo "\nRunning the experiment in warehouse...\n"  
+echo -e "\nRunning the experiment in warehouse...\n"  
 ./run.sh warehouse-r25 $CPUS data.in data.out $MEM
 ./addhead.sh warehouse-r25
 
@@ -34,7 +34,7 @@ echo "\nRunning the experiment in warehouse...\n"
 mkdir -p plots
 Rscript makeplots.r
 
-echo "Done! The new plots have been generated in /plots directory."
+echo -e "Done! The new plots have been generated in /plots directory."
 
 
 
