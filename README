@@ -28,7 +28,7 @@ Alternatively, you can open the project in your favorite IDE, i.e. in Eclipse.
 2.2 Getting started
 ---------------
 
-An simulation is run by executing cz.agents.map4rt.ScenarioCreator class.
+A simulation is run by executing cz.agents.map4rt.ScenarioCreator class.
 
 Parameters:
   -problemfile 		Path to the xml file with problem description.
