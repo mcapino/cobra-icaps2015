@@ -18,8 +18,8 @@ cp target/map4rt-1.0-SNAPSHOT-jar-with-dependencies.jar experiment/solver.jar
 
 cd experiment
 
-CPUS=1 # no of CPU to be used for the experiment (how many experiments to run in parallel)
-MEM=1  # maximum memory used by one simulation run in GBs
+CPUS=4 # no of CPU to be used for the experiment (how many experiments to run in parallel)
+MEM=4  # maximum memory used by one simulation run in GBs
 
 
 # run the experiment in empty-hall environment
