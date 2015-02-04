@@ -43,4 +43,4 @@ echo -e "\n >>>> Running the experiment in warehouse...\n"
 mkdir -p plots
 Rscript makeplots.r
 
-echo -e "\n >>>> Done! The new plots have been generated in /plots directory. \n"
+echo -e "\n >>>> Done! The plots should be in experiment/plots directory. \n"
