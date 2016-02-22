@@ -51,7 +51,7 @@ Example:
 
 The following command will run the COBRA on the example problem instance described in file experiment/instances/ubremen-r27/28.xml with 4 tasks for each robot randomly generated with random seed 8.
 
-$java -jar target/map4rt-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.admap.creator.ScenarioCreator -method COBRA -problemfile experiment/instances/ubremen-r27/28.xml -ntasks 4 -timestep 650 -maxtime 600000 -timeout 600000 -seed 8 -showvis
+$java -jar target/map4rt-1.0-SNAPSHOT-jar-with-dependencies.jar cz.agents.map4rt.creator.ScenarioCreator -method COBRA -problemfile experiment/instances/ubremen-r27/28.xml -ntasks 4 -timestep 650 -maxtime 600000 -timeout 600000 -seed 8 -showvis
 
 2.3 Visualization control: 
 ----------------------
