@@ -5,6 +5,19 @@ This repository contains an implementation of COBRA algorithm and the dataset us
 
 M. Čáp, J. Vokřínek, and A. Kleiner, “Complete decentralized method for on-line multi-robot trajectory planning in valid infrastructures,” in International conference on planning and scheduling, ICAPS 2015, 2015.
 
+Dependencies:
+-------------
+
+The following software must be installed on the machine where the experiment is executed: 
+ * Java JDK 7 or higher
+ * Maven
+ * GNU parallel
+ * R programming language with packages: plyr, ggplot2, rcolorbrewer, gridExtra
+
+In Ubuntu 14.04, all the dependencies can be installed by running
+
+$ sudo apt-get install -y openjdk-7-jdk maven parallel r-base r-cran-plyr r-cran-ggplot2 r-cran-rcolorbrewer
+$ sudo Rscript -e "install.packages('gridExtra', repos='http://cran.us.r-project.org')"
 
 1. Recomputing the whole experiment:
 --------------------------------
@@ -12,7 +25,6 @@ M. Čáp, J. Vokřínek, and A. Kleiner, “Complete decentralized method for on
 To recompute the entire experiment, run the following command:
 
 $./run-experiment.sh
-
 
 2. Executing single simulation run:
 -----------------------------------
